@@ -8,8 +8,12 @@ import { registerChatHandlers } from './chatHandlers';
 export function initSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, { cors: { origin: '*' } });
 
-  const pubClient = createRedisClient();
+  const pubClient = createRedisClient('redis:pub');
   const subClient = pubClient.duplicate();
+  // duplicate() não herda os listeners do client original — precisa do próprio handler.
+  subClient.on('error', (err: NodeJS.ErrnoException) => {
+    console.error(`[redis:sub] erro de conexão: ${err.code ?? err.message}`);
+  });
   io.adapter(createAdapter(pubClient, subClient));
 
   io.use((socket, next) => {
