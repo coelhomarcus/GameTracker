@@ -1,11 +1,15 @@
+import { and, desc, eq } from 'drizzle-orm';
+import { db } from '../db';
+import { gameEntries, gameEntryStatusEnum } from '../db/schema';
 import { AppError } from '../lib/errors';
-import { prisma } from '../lib/prisma';
 import { findOrCacheGameByIgdbId } from './games.service';
+
+type GameEntryStatus = (typeof gameEntryStatusEnum.enumValues)[number];
 
 interface CreateInput {
   igdbId: number;
   platform: string;
-  status: 'backlog' | 'playing' | 'completed' | 'dropped';
+  status: GameEntryStatus;
   startedAt?: Date;
   finishedAt?: Date;
   hoursPlayed?: number;
@@ -15,8 +19,12 @@ interface CreateInput {
 
 type UpdateInput = Partial<Omit<CreateInput, 'igdbId'>>;
 
+function getWithGame(id: string) {
+  return db.query.gameEntries.findFirst({ where: eq(gameEntries.id, id), with: { game: true } });
+}
+
 async function getOwnedEntry(userId: string, entryId: string) {
-  const entry = await prisma.gameEntry.findUnique({ where: { id: entryId } });
+  const entry = await db.query.gameEntries.findFirst({ where: eq(gameEntries.id, entryId) });
   if (!entry || entry.userId !== userId) {
     throw new AppError(404, 'not_found', 'Registro não encontrado');
   }
@@ -26,40 +34,44 @@ async function getOwnedEntry(userId: string, entryId: string) {
 export async function create(userId: string, input: CreateInput) {
   const game = await findOrCacheGameByIgdbId(input.igdbId);
 
-  return prisma.gameEntry.create({
-    data: {
+  const [created] = await db
+    .insert(gameEntries)
+    .values({
       userId,
       gameId: game.id,
       platform: input.platform,
       status: input.status,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
-      hoursPlayed: input.hoursPlayed,
+      hoursPlayed: input.hoursPlayed?.toString(),
       rating: input.rating,
       notes: input.notes,
-    },
-    include: { game: true },
-  });
+    })
+    .returning();
+
+  return getWithGame(created!.id);
 }
 
-export async function listMine(userId: string, status?: CreateInput['status']) {
-  return prisma.gameEntry.findMany({
-    where: { userId, ...(status ? { status } : {}) },
-    include: { game: true },
-    orderBy: { createdAt: 'desc' },
+export async function listMine(userId: string, status?: GameEntryStatus) {
+  return db.query.gameEntries.findMany({
+    where: status ? and(eq(gameEntries.userId, userId), eq(gameEntries.status, status)) : eq(gameEntries.userId, userId),
+    with: { game: true },
+    orderBy: desc(gameEntries.createdAt),
   });
 }
 
 export async function update(userId: string, entryId: string, input: UpdateInput) {
   await getOwnedEntry(userId, entryId);
-  return prisma.gameEntry.update({
-    where: { id: entryId },
-    data: input,
-    include: { game: true },
-  });
+
+  await db
+    .update(gameEntries)
+    .set({ ...input, hoursPlayed: input.hoursPlayed?.toString() })
+    .where(eq(gameEntries.id, entryId));
+
+  return getWithGame(entryId);
 }
 
 export async function remove(userId: string, entryId: string) {
   await getOwnedEntry(userId, entryId);
-  await prisma.gameEntry.delete({ where: { id: entryId } });
+  await db.delete(gameEntries).where(eq(gameEntries.id, entryId));
 }

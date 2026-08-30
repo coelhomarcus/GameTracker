@@ -1,35 +1,33 @@
+import { and, count, eq } from 'drizzle-orm';
+import { db } from '../db';
+import { follows, gameEntries, users } from '../db/schema';
 import { AppError } from '../lib/errors';
-import { prisma } from '../lib/prisma';
 import * as notificationsService from './notifications.service';
 
 export async function getPublicProfile(viewerId: string, targetId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: targetId },
-    select: {
-      id: true,
-      username: true,
-      avatarUrl: true,
-      bio: true,
-      createdAt: true,
-      _count: { select: { followers: true, following: true, gameEntries: true } },
-    },
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, targetId),
+    columns: { id: true, username: true, avatarUrl: true, bio: true, createdAt: true },
   });
   if (!user) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
-  const isFollowedByMe =
+  const [followerCountRows, followingCountRows, gameEntryCountRows, followRow] = await Promise.all([
+    db.select({ value: count() }).from(follows).where(eq(follows.followingId, targetId)),
+    db.select({ value: count() }).from(follows).where(eq(follows.followerId, targetId)),
+    db.select({ value: count() }).from(gameEntries).where(eq(gameEntries.userId, targetId)),
     viewerId === targetId
-      ? false
-      : (await prisma.follow.findUnique({
-          where: { followerId_followingId: { followerId: viewerId, followingId: targetId } },
-        })) !== null;
+      ? null
+      : db.query.follows.findFirst({
+          where: and(eq(follows.followerId, viewerId), eq(follows.followingId, targetId)),
+        }),
+  ]);
 
-  const { _count, ...rest } = user;
   return {
-    ...rest,
-    followerCount: _count.followers,
-    followingCount: _count.following,
-    gameEntryCount: _count.gameEntries,
-    isFollowedByMe,
+    ...user,
+    followerCount: followerCountRows[0]!.value,
+    followingCount: followingCountRows[0]!.value,
+    gameEntryCount: gameEntryCountRows[0]!.value,
+    isFollowedByMe: followRow != null,
   };
 }
 
@@ -38,22 +36,21 @@ export async function follow(followerId: string, followingId: string) {
     throw new AppError(400, 'invalid_operation', 'Não é possível seguir a si mesmo');
   }
 
-  const target = await prisma.user.findUnique({ where: { id: followingId } });
+  const target = await db.query.users.findFirst({ where: eq(users.id, followingId) });
   if (!target) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
-  await prisma.follow.upsert({
-    where: { followerId_followingId: { followerId, followingId } },
-    update: {},
-    create: { followerId, followingId },
-  });
+  await db
+    .insert(follows)
+    .values({ followerId, followingId })
+    .onConflictDoNothing({ target: [follows.followerId, follows.followingId] });
 
   await notificationsService.notify({ userId: followingId, actorId: followerId, type: 'follow' });
 }
 
 export async function unfollow(followerId: string, followingId: string) {
-  await prisma.follow.deleteMany({ where: { followerId, followingId } });
+  await db.delete(follows).where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)));
 }
 
 export async function setPushToken(userId: string, token: string) {
-  await prisma.user.update({ where: { id: userId }, data: { expoPushToken: token } });
+  await db.update(users).set({ expoPushToken: token }).where(eq(users.id, userId));
 }

@@ -1,8 +1,10 @@
+import { and, eq, ne } from 'drizzle-orm';
 import type { Server, Socket } from 'socket.io';
-import { prisma } from '../lib/prisma';
+import { db } from '../db';
+import { conversationParticipants, messages } from '../db/schema';
 import { sendPushNotification } from '../lib/push';
 
-const userSelect = { id: true, username: true, avatarUrl: true } as const;
+const userColumns = { id: true, username: true, avatarUrl: true } as const;
 
 // Contagem de conexões por usuário (várias abas/dispositivos) — só emite offline quando chega a zero.
 // Em memória por processo: presença fica por instância; se escalar o backend horizontalmente,
@@ -10,9 +12,9 @@ const userSelect = { id: true, username: true, avatarUrl: true } as const;
 const onlineConnections = new Map<string, number>();
 
 async function conversationRoomsFor(userId: string) {
-  const participations = await prisma.conversationParticipant.findMany({
-    where: { userId },
-    select: { conversationId: true },
+  const participations = await db.query.conversationParticipants.findMany({
+    where: eq(conversationParticipants.userId, userId),
+    columns: { conversationId: true },
   });
   return participations.map((p) => `conversation:${p.conversationId}`);
 }
@@ -27,8 +29,11 @@ export function registerChatHandlers(io: Server, socket: Socket) {
     const conversationId = payload?.conversationId;
     if (!conversationId) return ack?.({ error: 'conversationId obrigatório' });
 
-    const participant = await prisma.conversationParticipant.findUnique({
-      where: { conversationId_userId: { conversationId, userId } },
+    const participant = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+      ),
     });
     if (!participant) return ack?.({ error: 'Conversa não encontrada' });
 
@@ -48,25 +53,35 @@ export function registerChatHandlers(io: Server, socket: Socket) {
         return ack?.({ error: 'Payload inválido' });
       }
 
-      const participant = await prisma.conversationParticipant.findUnique({
-        where: { conversationId_userId: { conversationId, userId } },
+      const participant = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(conversationParticipants.conversationId, conversationId),
+          eq(conversationParticipants.userId, userId),
+        ),
       });
       if (!participant) return ack?.({ error: 'Conversa não encontrada' });
 
-      const message = await prisma.message.create({
-        data: { conversationId, senderId: userId, content: content.trim() },
-        include: { sender: { select: userSelect } },
+      const [created] = await db
+        .insert(messages)
+        .values({ conversationId, senderId: userId, content: content.trim() })
+        .returning();
+      const message = await db.query.messages.findFirst({
+        where: eq(messages.id, created!.id),
+        with: { sender: { columns: userColumns } },
       });
 
       io.to(`conversation:${conversationId}`).emit('message:receive', message);
       ack?.({ message });
 
-      const others = await prisma.conversationParticipant.findMany({
-        where: { conversationId, userId: { not: userId } },
-        include: { user: { select: { expoPushToken: true } } },
+      const others = await db.query.conversationParticipants.findMany({
+        where: and(
+          eq(conversationParticipants.conversationId, conversationId),
+          ne(conversationParticipants.userId, userId),
+        ),
+        with: { user: { columns: { expoPushToken: true } } },
       });
       for (const other of others) {
-        void sendPushNotification(other.user.expoPushToken, message.sender.username, content.trim());
+        void sendPushNotification(other.user.expoPushToken, message!.sender.username, content.trim());
       }
     },
   );

@@ -1,16 +1,19 @@
+import { and, desc, eq, exists, sql } from 'drizzle-orm';
+import { db } from '../db';
+import { conversationParticipants, conversations, messages, users } from '../db/schema';
 import { AppError } from '../lib/errors';
-import { prisma } from '../lib/prisma';
+import { decodeCursor, encodeCursor } from '../lib/cursor';
 
-const userSelect = { id: true, username: true, avatarUrl: true } as const;
+const userColumns = { id: true, username: true, avatarUrl: true } as const;
 
 export async function listMine(userId: string) {
-  const participations = await prisma.conversationParticipant.findMany({
-    where: { userId },
-    include: {
+  const participations = await db.query.conversationParticipants.findMany({
+    where: eq(conversationParticipants.userId, userId),
+    with: {
       conversation: {
-        include: {
-          participants: { include: { user: { select: userSelect } } },
-          messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        with: {
+          participants: { with: { user: { columns: userColumns } } },
+          messages: { orderBy: desc(messages.createdAt), limit: 1 },
         },
       },
     },
@@ -33,14 +36,32 @@ export async function listMine(userId: string) {
 }
 
 async function findExistingConversation(userId: string, otherUserId: string) {
-  const candidate = await prisma.conversation.findFirst({
-    where: {
-      AND: [{ participants: { some: { userId } } }, { participants: { some: { userId: otherUserId } } }],
-    },
-    include: { participants: true },
+  const candidates = await db.query.conversations.findMany({
+    where: and(
+      exists(
+        db
+          .select()
+          .from(conversationParticipants)
+          .where(
+            and(eq(conversationParticipants.conversationId, conversations.id), eq(conversationParticipants.userId, userId)),
+          ),
+      ),
+      exists(
+        db
+          .select()
+          .from(conversationParticipants)
+          .where(
+            and(
+              eq(conversationParticipants.conversationId, conversations.id),
+              eq(conversationParticipants.userId, otherUserId),
+            ),
+          ),
+      ),
+    ),
+    with: { participants: true },
   });
 
-  return candidate && candidate.participants.length === 2 ? candidate : null;
+  return candidates.find((c) => c.participants.length === 2) ?? null;
 }
 
 export async function findOrCreateWithUser(userId: string, otherUserId: string) {
@@ -48,21 +69,25 @@ export async function findOrCreateWithUser(userId: string, otherUserId: string) 
     throw new AppError(400, 'invalid_operation', 'Não é possível iniciar uma conversa consigo mesmo');
   }
 
-  const otherUser = await prisma.user.findUnique({ where: { id: otherUserId } });
+  const otherUser = await db.query.users.findFirst({ where: eq(users.id, otherUserId) });
   if (!otherUser) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
   const existing = await findExistingConversation(userId, otherUserId);
   if (existing) return { id: existing.id };
 
-  const created = await prisma.conversation.create({
-    data: { participants: { create: [{ userId }, { userId: otherUserId }] } },
+  return db.transaction(async (tx) => {
+    const [conversation] = await tx.insert(conversations).values({}).returning();
+    await tx.insert(conversationParticipants).values([
+      { conversationId: conversation!.id, userId },
+      { conversationId: conversation!.id, userId: otherUserId },
+    ]);
+    return { id: conversation!.id };
   });
-  return { id: created.id };
 }
 
 async function requireParticipant(userId: string, conversationId: string) {
-  const participant = await prisma.conversationParticipant.findUnique({
-    where: { conversationId_userId: { conversationId, userId } },
+  const participant = await db.query.conversationParticipants.findFirst({
+    where: and(eq(conversationParticipants.conversationId, conversationId), eq(conversationParticipants.userId, userId)),
   });
   if (!participant) throw new AppError(404, 'not_found', 'Conversa não encontrada');
   return participant;
@@ -71,22 +96,34 @@ async function requireParticipant(userId: string, conversationId: string) {
 export async function getMessages(userId: string, conversationId: string, cursor: string | undefined, limit: number) {
   await requireParticipant(userId, conversationId);
 
-  const messages = await prisma.message.findMany({
-    where: { conversationId },
-    orderBy: { createdAt: 'desc' },
-    take: limit + 1,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    include: { sender: { select: userSelect } },
+  const cursorFilter = cursor
+    ? (() => {
+        const decoded = decodeCursor(cursor);
+        return sql`(${messages.createdAt}, ${messages.id}) < (${decoded.createdAt.toISOString()}, ${decoded.id})`;
+      })()
+    : undefined;
+
+  const results = await db.query.messages.findMany({
+    where: cursorFilter
+      ? and(eq(messages.conversationId, conversationId), cursorFilter)
+      : eq(messages.conversationId, conversationId),
+    orderBy: [desc(messages.createdAt), desc(messages.id)],
+    limit: limit + 1,
+    with: { sender: { columns: userColumns } },
   });
 
-  const hasMore = messages.length > limit;
-  const items = messages.slice(0, limit);
-  const nextCursor = hasMore ? items[items.length - 1]?.id : null;
+  const hasMore = results.length > limit;
+  const items = results.slice(0, limit);
+  const last = items[items.length - 1];
+  const nextCursor = hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
 
   return { items, nextCursor };
 }
 
 export async function markRead(userId: string, conversationId: string) {
   const participant = await requireParticipant(userId, conversationId);
-  await prisma.conversationParticipant.update({ where: { id: participant.id }, data: { lastReadAt: new Date() } });
+  await db
+    .update(conversationParticipants)
+    .set({ lastReadAt: new Date() })
+    .where(eq(conversationParticipants.id, participant.id));
 }

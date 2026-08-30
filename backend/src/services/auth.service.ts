@@ -1,7 +1,9 @@
 import bcrypt from 'bcrypt';
+import { and, eq, isNull, or } from 'drizzle-orm';
+import { db } from '../db';
+import { refreshTokens, users } from '../db/schema';
 import { parseDurationMs } from '../lib/duration';
 import { AppError } from '../lib/errors';
-import { prisma } from '../lib/prisma';
 import {
   generateRefreshTokenSecret,
   hashRefreshTokenSecret,
@@ -25,28 +27,26 @@ async function issueSession(userId: string): Promise<Session> {
   const { secret, hash } = generateRefreshTokenSecret();
   const expiresAt = new Date(Date.now() + parseDurationMs(REFRESH_EXPIRES_IN));
 
-  const record = await prisma.refreshToken.create({
-    data: { userId, tokenHash: hash, expiresAt },
-  });
+  const [record] = await db.insert(refreshTokens).values({ userId, tokenHash: hash, expiresAt }).returning();
 
-  return { accessToken, refreshToken: `${record.id}.${secret}` };
+  return { accessToken, refreshToken: `${record!.id}.${secret}` };
 }
 
 export async function register(username: string, email: string, password: string) {
-  const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
+  const existing = await db.query.users.findFirst({ where: or(eq(users.username, username), eq(users.email, email)) });
   if (existing) {
     throw new AppError(409, 'conflict', 'Username ou email já cadastrado');
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({ data: { username, email, passwordHash } });
-  const session = await issueSession(user.id);
+  const [user] = await db.insert(users).values({ username, email, passwordHash }).returning();
+  const session = await issueSession(user!.id);
 
-  return { user: toPublicUser(user), ...session };
+  return { user: toPublicUser(user!), ...session };
 }
 
 export async function login(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await db.query.users.findFirst({ where: eq(users.email, email) });
   if (!user) {
     throw new AppError(401, 'invalid_credentials', 'Email ou senha inválidos');
   }
@@ -66,20 +66,20 @@ export async function refresh(rawRefreshToken: string) {
     throw new AppError(401, 'invalid_refresh_token', 'Refresh token inválido');
   }
 
-  const record = await prisma.refreshToken.findUnique({ where: { id: parsed.id } });
+  const record = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.id, parsed.id) });
   const providedHash = hashRefreshTokenSecret(parsed.secret);
 
   if (!record || record.revokedAt || record.expiresAt < new Date() || record.tokenHash !== providedHash) {
     throw new AppError(401, 'invalid_refresh_token', 'Refresh token inválido ou expirado');
   }
 
-  await prisma.refreshToken.update({ where: { id: record.id }, data: { revokedAt: new Date() } });
+  await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, record.id));
 
   return issueSession(record.userId);
 }
 
 export async function me(userId: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   if (!user) {
     throw new AppError(404, 'not_found', 'Usuário não encontrado');
   }
@@ -90,8 +90,8 @@ export async function logout(rawRefreshToken: string) {
   const parsed = parseRefreshToken(rawRefreshToken);
   if (!parsed) return;
 
-  await prisma.refreshToken.updateMany({
-    where: { id: parsed.id, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(refreshTokens.id, parsed.id), isNull(refreshTokens.revokedAt)));
 }

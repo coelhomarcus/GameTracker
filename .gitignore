@@ -19,9 +19,6 @@ mobile/*.mobileprovision
 backend/dist/
 backend/build/
 
-# Prisma
-backend/prisma/*.db
-
 # Logs
 npm-debug.log*
 *.log
@@ -32,3 +29,5 @@ npm-debug.log*
 # IDE
 .vscode/
 .idea/
+
+TODO.md

@@ -7,9 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,12 +17,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "expo-server-sdk": "^7.2.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
@@ -42,16 +41,16 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.4.0",
     "@types/pg": "^8.23.1",
-    "prisma": "^7.10.0",
+    "drizzle-kit": "^0.31.10",
     "socket.io-client": "^4.8.3",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
   "allowScripts": {
-    "@prisma/engines@7.10.0": true,
     "bcrypt@6.0.0": true,
+    "fsevents@2.3.3": true,
     "esbuild@0.28.2": true,
-    "prisma@7.10.0": true,
-    "fsevents@2.3.3": true
+    "esbuild@0.25.12": true,
+    "esbuild@0.18.20": true
   }
 }
