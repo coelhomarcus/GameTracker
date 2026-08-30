@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GameEntryStatus {
+  backlog
+  playing
+  completed
+  dropped
+}
+
+enum PostType {
+  status
+  review
+  activity
+}
+
+enum NotificationType {
+  like
+  comment
+  follow
+}
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique @db.VarChar(30)
+  email         String   @unique @db.VarChar(255)
+  passwordHash  String   @map("password_hash") @db.VarChar(255)
+  avatarUrl     String?  @map("avatar_url") @db.VarChar(500)
+  bio           String?  @db.VarChar(280)
+  expoPushToken String?  @map("expo_push_token") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  refreshTokens RefreshToken[]
+  gameEntries   GameEntry[]
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+
+  following Follow[] @relation("follower")
+  followers Follow[] @relation("following")
+
+  notificationsReceived Notification[] @relation("notificationRecipient")
+  notificationsCaused   Notification[] @relation("notificationActor")
+
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// Cache local dos jogos vindos da IGDB — populado sob demanda quando um usuário trackeia um jogo.
+model Game {
+  id        String   @id @default(uuid())
+  igdbId    Int      @unique @map("igdb_id")
+  name      String   @db.VarChar(255)
+  coverUrl  String?  @map("cover_url") @db.VarChar(500)
+  platforms String[]
+  genres    String[]
+  cachedAt  DateTime @default(now()) @map("cached_at")
+
+  gameEntries GameEntry[]
+
+  @@map("games")
+}
+
+/// Um registro por playthrough — sem unique(userId, gameId) para permitir replays.
+model GameEntry {
+  id          String          @id @default(uuid())
+  userId      String          @map("user_id")
+  gameId      String          @map("game_id")
+  platform    String          @db.VarChar(50)
+  status      GameEntryStatus @default(backlog)
+  startedAt   DateTime?       @map("started_at") @db.Date
+  finishedAt  DateTime?       @map("finished_at") @db.Date
+  hoursPlayed Decimal?        @map("hours_played") @db.Decimal(6, 1)
+  rating      Int?            @db.SmallInt
+  notes       String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game  Game   @relation(fields: [gameId], references: [id], onDelete: Restrict)
+  posts Post[]
+
+  @@index([userId])
+  @@index([gameId])
+  @@map("game_entries")
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  content     String   @db.VarChar(500)
+  gameEntryId String?  @map("game_entry_id")
+  type        PostType @default(status)
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameEntry     GameEntry?     @relation(fields: [gameEntryId], references: [id], onDelete: SetNull)
+  comments      Comment[]
+  likes         Like[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("comments")
+}
+
+/// Um like por (post, usuário) — unique constraint evita curtir duas vezes.
+model Like {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  actorId   String           @map("actor_id")
+  type      NotificationType
+  postId    String?          @map("post_id")
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user  User  @relation("notificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User  @relation("notificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post  Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String    @map("conversation_id")
+  userId         String    @map("user_id")
+  lastReadAt     DateTime? @map("last_read_at")
+  joinedAt       DateTime  @default(now()) @map("joined_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  content        String   @db.VarChar(2000)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
