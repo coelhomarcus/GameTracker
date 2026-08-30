@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Post } from '../types/models';
 
@@ -22,19 +23,22 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
 
       {post.gameEntry && (
         <View style={styles.gameTag}>
+          <Ionicons name="game-controller-outline" size={14} color="#4f46e5" />
           <Text style={styles.gameTagText}>
-            🎮 {post.gameEntry.game.name} · {post.gameEntry.platform}
+            {post.gameEntry.game.name} · {post.gameEntry.platform}
           </Text>
         </View>
       )}
 
       <View style={styles.actions}>
         <Pressable style={styles.actionButton} onPress={onToggleLike}>
-          <Text style={[styles.actionText, post.likedByMe && styles.actionTextActive]}>
-            {post.likedByMe ? '♥' : '♡'} {post.likeCount}
-          </Text>
+          <Ionicons name={post.likedByMe ? 'heart' : 'heart-outline'} size={18} color={post.likedByMe ? '#dc2626' : '#666'} />
+          <Text style={[styles.actionText, post.likedByMe && styles.actionTextActive]}>{post.likeCount}</Text>
         </Pressable>
-        <Text style={styles.actionText}>💬 {post.commentCount}</Text>
+        <View style={styles.actionButton}>
+          <Ionicons name="chatbubble-outline" size={16} color="#666" />
+          <Text style={styles.actionText}>{post.commentCount}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -54,10 +58,18 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   username: { fontWeight: '600' },
   content: { fontSize: 15, lineHeight: 20 },
-  gameTag: { backgroundColor: '#eef2ff', borderRadius: 8, padding: 8, alignSelf: 'flex-start' },
+  gameTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#eef2ff',
+    borderRadius: 8,
+    padding: 8,
+    alignSelf: 'flex-start',
+  },
   gameTagText: { color: '#4f46e5', fontSize: 13 },
   actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  actionButton: {},
+  actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionText: { color: '#666' },
   actionTextActive: { color: '#dc2626' },
 });

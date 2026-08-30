@@ -8,6 +8,13 @@
       "when": 1788119691739,
       "tag": "0000_numerous_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788122455967,
+      "tag": "0001_nifty_skrulls",
+      "breakpoints": true
     }
   ]
 }

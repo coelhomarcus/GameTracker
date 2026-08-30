@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +12,12 @@ const MESSAGE: Record<NotificationType, (username: string) => string> = {
   like: (username) => `${username} curtiu seu post`,
   comment: (username) => `${username} comentou no seu post`,
   follow: (username) => `${username} começou a seguir você`,
+};
+
+const ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
+  like: 'heart',
+  comment: 'chatbubble',
+  follow: 'person-add',
 };
 
 export default function NotificationsScreen() {
@@ -43,7 +50,7 @@ export default function NotificationsScreen() {
             : navigation.navigate('UserProfile', { userId: item.actorId })
         }
       >
-        <Text style={styles.icon}>{item.type === 'like' ? '❤️' : item.type === 'comment' ? '💬' : '👤'}</Text>
+        <Ionicons name={ICON[item.type]} size={18} color="#4f46e5" />
         <Text style={styles.text}>{MESSAGE[item.type](item.actor.username)}</Text>
       </Pressable>
     );
@@ -65,7 +72,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
   rowUnread: { backgroundColor: '#eef2ff' },
-  icon: { fontSize: 18 },
   text: { flex: 1, fontSize: 14 },
   empty: { color: '#666', textAlign: 'center', marginTop: 32 },
 });

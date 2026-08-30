@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +27,7 @@ export default function SearchScreen() {
 
   function renderItem({ item }: { item: IgdbSearchResult }) {
     return (
-      <Pressable style={styles.row} onPress={() => navigation.navigate('GameDetail', item)}>
+      <Pressable style={styles.row} onPress={() => navigation.navigate('GameFocus', { igdbId: item.igdbId })}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={styles.cover} />
         ) : (
@@ -42,13 +43,20 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Buscar jogo..."
-        value={input}
-        onChangeText={setInput}
-        autoCapitalize="none"
-      />
+      <View style={styles.searchBar}>
+        <TextInput
+          style={styles.input}
+          placeholder="Buscar jogo..."
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={() => setTerm(input.trim())}
+          returnKeyType="search"
+          autoCapitalize="none"
+        />
+        <Pressable style={styles.searchButton} onPress={() => setTerm(input.trim())}>
+          <Ionicons name="search" size={20} color="#fff" />
+        </Pressable>
+      </View>
 
       {query.isFetching && <ActivityIndicator style={styles.spinner} />}
       {query.isError && <Text style={styles.error}>{getApiErrorMessage(query.error, 'Falha na busca')}</Text>}
@@ -68,7 +76,9 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 12 },
+  searchBar: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  searchButton: { backgroundColor: '#4f46e5', borderRadius: 8, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   spinner: { marginVertical: 8 },
   error: { color: '#dc2626', marginVertical: 8 },
   empty: { color: '#666', marginVertical: 8 },

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ export default function FeedScreen() {
         <Text style={styles.title}>GameTracker</Text>
         <View style={styles.headerActions}>
           <Pressable onPress={() => navigation.navigate('Notifications')} style={styles.iconButton}>
-            <Text style={styles.icon}>🔔</Text>
+            <Ionicons name="notifications-outline" size={22} color="#111" />
             {!!notificationsQuery.data?.unreadCount && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{notificationsQuery.data.unreadCount}</Text>
@@ -50,7 +51,7 @@ export default function FeedScreen() {
             )}
           </Pressable>
           <Pressable onPress={() => navigation.navigate('CreatePost', undefined)} style={styles.iconButton}>
-            <Text style={styles.icon}>➕</Text>
+            <Ionicons name="add-circle-outline" size={22} color="#111" />
           </Pressable>
         </View>
       </View>
@@ -97,7 +98,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700' },
   headerActions: { flexDirection: 'row', gap: 8 },
   iconButton: { padding: 6 },
-  icon: { fontSize: 20 },
   badge: {
     position: 'absolute',
     top: 0,

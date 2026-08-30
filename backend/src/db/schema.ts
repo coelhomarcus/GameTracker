@@ -53,6 +53,7 @@ export const games = pgTable('games', {
   igdbId: integer('igdb_id').notNull().unique(),
   name: varchar('name', { length: 255 }).notNull(),
   coverUrl: varchar('cover_url', { length: 500 }),
+  summary: text('summary'),
   platforms: text('platforms').array().notNull(),
   genres: text('genres').array().notNull(),
   cachedAt: timestamp('cached_at', { withTimezone: true }).notNull().defaultNow(),

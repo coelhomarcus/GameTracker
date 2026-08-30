@@ -85,7 +85,7 @@ Backend migrado inteiramente de Prisma pra Drizzle ORM (`drizzle-orm` 0.45.2 + `
 - [x] `backend/Dockerfile` (multi-stage: build com devDependencies, `runner` com `npm ci --omit=dev`, roda a migration do Drizzle no start)
 - [x] `backend/.dockerignore`
 - [x] Testado localmente: build da imagem + container rodando contra Postgres/Redis reais, migration aplicada, `/api/health` respondendo
-- [ ] Resetar o Postgres real do Dokploy e rodar `npm run db:migrate` lá (schema Drizzle ainda não foi aplicado em produção)
+- [x] Resetar o Postgres real do Dokploy e rodar `npm run db:migrate` lá (tabelas antigas do Prisma removidas, schema Drizzle aplicado — 12 tabelas confirmadas)
 - [ ] Criar a Application no Dokploy apontando pro repo (root directory `backend/`, build type Dockerfile)
 - [ ] Configurar env vars no Dokploy: `DATABASE_URL`/`REDIS_URL` (mesmos valores do `.env` local, ou trocar pro hostname interno do Dokploy em vez do IP público exposto — mais seguro), `JWT_ACCESS_SECRET` (gerar um novo, forte — não usar o de dev), `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `PORT=3000`
 - [ ] Configurar domínio da API no Dokploy (ex: `api.seudominio.com` → porta 3000 do container)
@@ -93,3 +93,16 @@ Backend migrado inteiramente de Prisma pra Drizzle ORM (`drizzle-orm` 0.45.2 + `
 - [ ] Backup automático do Postgres (a definir se cron externo ou algo nativo do Dokploy)
 - [ ] Build com EAS + teste em dispositivo físico Android
 - [ ] Ajustes de UX, error states, ícone/splash
+
+## Melhorias de UX (concluído)
+
+Lista de polimento que tinha acumulado (ícones, busca, capas, tracking, página de foco do jogo):
+
+- [x] `@expo/vector-icons` (Ionicons) instalado — substituiu emojis em `PostCard`, `FeedScreen`, `NotificationsScreen`; abas do `MainTabs` ganharam ícone
+- [x] Busca: mantido o debounce de 400ms + botão de busca explícito (`SearchScreen`)
+- [x] "Meus jogos": capas em todo item, toggle lista/grid persistido (`@react-native-async-storage/async-storage`)
+- [x] Tracking: `@react-native-community/datetimepicker` pros campos de data, componente `StarRating` (10 estrelas) pra nota — `TrackingFormScreen` (antigo `GameDetailScreen`) agora serve criação **e** edição de playthrough
+- [x] Proxy de capas via VPS: `GET /api/images/cover?url=` (stream + `Cache-Control` de 1 ano, valida host `images.igdb.com`) — resolve o bloqueio da IGDB na rede da faculdade. `PUBLIC_API_URL` nova env var
+- [x] Página de "Foco" do jogo (`GameFocusScreen`): capa, sinopse (`games.summary`, novo campo), lista de playthroughs do usuário (suporta replay) com edição. Busca via `GET /api/games/igdb/:igdbId` (fetch-or-cache) e `GET /api/game-entries/me?igdbId=`
+- Testado: `tsc` limpo nos dois projetos, os 3 endpoints novos testados via curl (proxy retornando JPEG real, fetch-or-cache, filtro por igdbId com replay), bundle Metro (1120 módulos) e `expo-doctor` 21/21
+- **Não testado em dispositivo/emulador real** — sem acesso a isso neste ambiente

@@ -18,8 +18,8 @@ export function createGameEntry(input: CreateGameEntryInput) {
   return api.post<GameEntry>('/game-entries', input).then((r) => r.data);
 }
 
-export function listMyGameEntries(status?: GameEntryStatus) {
-  return api.get<GameEntry[]>('/game-entries/me', { params: status ? { status } : undefined }).then((r) => r.data);
+export function listMyGameEntries(filters: { status?: GameEntryStatus; igdbId?: number } = {}) {
+  return api.get<GameEntry[]>('/game-entries/me', { params: filters }).then((r) => r.data);
 }
 
 export function updateGameEntry(id: string, input: UpdateGameEntryInput) {

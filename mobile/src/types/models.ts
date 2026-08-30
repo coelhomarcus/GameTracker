@@ -12,6 +12,7 @@ export interface Game {
   id: string;
   igdbId: number;
   name: string;
+  summary: string | null;
   coverUrl: string | null;
   platforms: string[];
   genres: string[];

@@ -7,8 +7,11 @@ export async function createHandler(req: Request, res: Response) {
 }
 
 export async function listMineHandler(req: Request, res: Response) {
-  const { status } = res.locals.query as { status?: 'backlog' | 'playing' | 'completed' | 'dropped' };
-  const entries = await gameEntriesService.listMine(req.user!.id, status);
+  const { status, igdbId } = res.locals.query as {
+    status?: 'backlog' | 'playing' | 'completed' | 'dropped';
+    igdbId?: number;
+  };
+  const entries = await gameEntriesService.listMine(req.user!.id, { status, igdbId });
   res.json(entries);
 }
 

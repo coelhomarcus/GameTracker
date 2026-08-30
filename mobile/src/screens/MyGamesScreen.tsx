@@ -1,9 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
+import { STATUS_LABEL } from '../lib/gameEntryLabels';
+import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
 import type { GameEntry, GameEntryStatus } from '../types/models';
 
@@ -22,25 +25,33 @@ const NEXT_STATUS: Record<GameEntryStatus, GameEntryStatus> = {
   dropped: 'backlog',
 };
 
-const STATUS_LABEL: Record<GameEntryStatus, string> = {
-  backlog: 'Backlog',
-  playing: 'Jogando',
-  completed: 'Completo',
-  dropped: 'Abandonado',
-};
-
 export default function MyGamesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [filter, setFilter] = useState<GameEntryStatus | 'all'>('all');
+  const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    getViewMode().then(setViewModeState);
+  }, []);
+
+  function toggleViewMode() {
+    const next: ViewMode = viewMode === 'list' ? 'grid' : 'list';
+    setViewModeState(next);
+    setViewMode(next);
+  }
 
   const query = useQuery({
     queryKey: ['game-entries', filter],
-    queryFn: () => gameEntriesApi.listMyGameEntries(filter === 'all' ? undefined : filter),
+    queryFn: () => gameEntriesApi.listMyGameEntries({ status: filter === 'all' ? undefined : filter }),
   });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['game-entries'] });
+  }
+
+  function openFocus(entry: GameEntry) {
+    navigation.navigate('GameFocus', { igdbId: entry.game.igdbId });
   }
 
   async function advanceStatus(entry: GameEntry) {
@@ -77,51 +88,88 @@ export default function MyGamesScreen() {
     ]);
   }
 
-  function renderItem({ item }: { item: GameEntry }) {
+  function renderListItem({ item }: { item: GameEntry }) {
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.game.name}</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{STATUS_LABEL[item.status]}</Text>
+      <Pressable style={styles.card} onPress={() => openFocus(item)}>
+        {item.game.coverUrl ? (
+          <Image source={{ uri: item.game.coverUrl }} style={styles.listCover} />
+        ) : (
+          <View style={[styles.listCover, styles.coverPlaceholder]} />
+        )}
+        <View style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.game.name}
+            </Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{STATUS_LABEL[item.status]}</Text>
+            </View>
+          </View>
+          <Text style={styles.cardMeta}>
+            {item.platform}
+            {item.hoursPlayed ? ` · ${item.hoursPlayed}h` : ''}
+            {item.rating ? ` · nota ${item.rating}` : ''}
+          </Text>
+
+          <View style={styles.cardActions}>
+            <Pressable style={styles.actionButton} onPress={() => advanceStatus(item)}>
+              <Ionicons name="arrow-forward-circle-outline" size={16} color="#333" />
+              <Text style={styles.actionText}>Avançar</Text>
+            </Pressable>
+            <Pressable style={[styles.actionButton, styles.deleteButton]} onPress={() => confirmDelete(item)}>
+              <Ionicons name="trash-outline" size={16} color="#dc2626" />
+              <Text style={[styles.actionText, styles.deleteText]}>Remover</Text>
+            </Pressable>
           </View>
         </View>
-        <Text style={styles.cardMeta}>
-          {item.platform}
-          {item.hoursPlayed ? ` · ${item.hoursPlayed}h` : ''}
-          {item.rating ? ` · nota ${item.rating}` : ''}
-        </Text>
+      </Pressable>
+    );
+  }
 
-        <View style={styles.cardActions}>
-          <Pressable style={styles.actionButton} onPress={() => advanceStatus(item)}>
-            <Text style={styles.actionText}>Avançar status</Text>
-          </Pressable>
-          <Pressable style={[styles.actionButton, styles.deleteButton]} onPress={() => confirmDelete(item)}>
-            <Text style={[styles.actionText, styles.deleteText]}>Remover</Text>
-          </Pressable>
+  function renderGridItem({ item }: { item: GameEntry }) {
+    return (
+      <Pressable style={styles.gridCard} onPress={() => openFocus(item)}>
+        {item.game.coverUrl ? (
+          <Image source={{ uri: item.game.coverUrl }} style={styles.gridCover} />
+        ) : (
+          <View style={[styles.gridCover, styles.coverPlaceholder]} />
+        )}
+        <View style={styles.gridBadge}>
+          <Text style={styles.badgeText}>{STATUS_LABEL[item.status]}</Text>
         </View>
-      </View>
+        <Text style={styles.gridTitle} numberOfLines={2}>
+          {item.game.name}
+        </Text>
+      </Pressable>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.filters}>
-        {FILTERS.map((f) => (
-          <Pressable
-            key={f.value}
-            style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
-            onPress={() => setFilter(f.value)}
-          >
-            <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
-          </Pressable>
-        ))}
+      <View style={styles.topBar}>
+        <View style={styles.filters}>
+          {FILTERS.map((f) => (
+            <Pressable
+              key={f.value}
+              style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
+              onPress={() => setFilter(f.value)}
+            >
+              <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable style={styles.viewToggle} onPress={toggleViewMode}>
+          <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={20} color="#4f46e5" />
+        </Pressable>
       </View>
 
       <FlatList
+        key={viewMode}
         data={query.data ?? []}
         keyExtractor={(item) => item.id}
-        renderItem={renderItem}
+        renderItem={viewMode === 'list' ? renderListItem : renderGridItem}
+        numColumns={viewMode === 'grid' ? 2 : 1}
+        columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={query.isFetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={!query.isFetching ? <Text style={styles.empty}>Nenhum jogo por aqui ainda</Text> : null}
@@ -132,22 +180,45 @@ export default function MyGamesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  filters: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filterChip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
   filterChipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
   filterText: { color: '#333', fontSize: 13 },
   filterTextActive: { color: '#fff', fontWeight: '600' },
+  viewToggle: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8 },
   list: { gap: 12 },
-  card: { borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 12, gap: 6 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  coverPlaceholder: { backgroundColor: '#eee' },
+
+  // list mode
+  card: { flexDirection: 'row', borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 12, gap: 10 },
+  listCover: { width: 56, height: 74, borderRadius: 6 },
+  cardBody: { flex: 1, gap: 6 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   cardTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   badge: { backgroundColor: '#eef2ff', borderRadius: 12, paddingVertical: 3, paddingHorizontal: 8 },
   badgeText: { color: '#4f46e5', fontSize: 12, fontWeight: '600' },
   cardMeta: { color: '#666', fontSize: 13 },
   cardActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  actionButton: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
   actionText: { fontSize: 13, color: '#333' },
   deleteButton: { borderColor: '#fecaca' },
   deleteText: { color: '#dc2626' },
   empty: { color: '#666', textAlign: 'center', marginTop: 32 },
+
+  // grid mode
+  gridRow: { gap: 12 },
+  gridCard: { flex: 1, gap: 6 },
+  gridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: 8 },
+  gridBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#fff', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 6 },
+  gridTitle: { fontSize: 13, fontWeight: '600' },
 });

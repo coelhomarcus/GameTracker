@@ -27,6 +27,7 @@ export async function findOrCacheGameByIgdbId(igdbId: number) {
     .values({
       igdbId: fromIgdb.igdbId,
       name: fromIgdb.name,
+      summary: fromIgdb.summary,
       coverUrl: fromIgdb.coverUrl,
       platforms: fromIgdb.platforms,
       genres: fromIgdb.genres,

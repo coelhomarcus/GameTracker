@@ -1,3 +1,5 @@
+import type { GameEntryStatus } from '../types/models';
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -11,14 +13,25 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+export interface TrackingFormInitial {
+  platform: string;
+  status: GameEntryStatus;
+  startedAt: string | null;
+  finishedAt: string | null;
+  hoursPlayed: string | null;
+  rating: number | null;
+  notes: string | null;
+}
+
 export type RootStackParamList = {
   MainTabs: undefined;
-  GameDetail: {
+  GameFocus: { igdbId: number };
+  TrackingForm: {
     igdbId: number;
-    name: string;
-    coverUrl: string | null;
+    gameName: string;
     platforms: string[];
-    genres: string[];
+    entryId?: string;
+    initial?: TrackingFormInitial;
   };
   CreatePost: { gameEntryId?: string; prefillContent?: string } | undefined;
   UserProfile: { userId: string };

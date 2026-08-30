@@ -1,6 +1,6 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { gameEntries, gameEntryStatusEnum } from '../db/schema';
+import { gameEntries, gameEntryStatusEnum, games } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { findOrCacheGameByIgdbId } from './games.service';
 
@@ -52,9 +52,20 @@ export async function create(userId: string, input: CreateInput) {
   return getWithGame(created!.id);
 }
 
-export async function listMine(userId: string, status?: GameEntryStatus) {
+export async function listMine(userId: string, filters: { status?: GameEntryStatus; igdbId?: number } = {}) {
+  const conditions = [eq(gameEntries.userId, userId)];
+  if (filters.status) conditions.push(eq(gameEntries.status, filters.status));
+  if (filters.igdbId) {
+    conditions.push(
+      inArray(
+        gameEntries.gameId,
+        db.select({ id: games.id }).from(games).where(eq(games.igdbId, filters.igdbId)),
+      ),
+    );
+  }
+
   return db.query.gameEntries.findMany({
-    where: status ? and(eq(gameEntries.userId, userId), eq(gameEntries.status, status)) : eq(gameEntries.userId, userId),
+    where: and(...conditions),
     with: { game: true },
     orderBy: desc(gameEntries.createdAt),
   });

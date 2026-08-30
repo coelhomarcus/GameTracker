@@ -5,9 +5,10 @@ import AuthNavigator from './AuthNavigator';
 import MainTabs from './MainTabs';
 import ChatRoomScreen from '../screens/ChatRoomScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
-import GameDetailScreen from '../screens/GameDetailScreen';
+import GameFocusScreen from '../screens/GameFocusScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import TrackingFormScreen from '../screens/TrackingFormScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import { useAuthBootstrap } from '../hooks/useAuthBootstrap';
 import { usePushRegistration } from '../hooks/usePushRegistration';
@@ -37,7 +38,12 @@ export default function RootNavigator() {
       {isAuthenticated ? (
         <Stack.Navigator>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="GameDetail" component={GameDetailScreen} options={{ title: 'Jogo' }} />
+          <Stack.Screen name="GameFocus" component={GameFocusScreen} options={{ title: 'Jogo' }} />
+          <Stack.Screen
+            name="TrackingForm"
+            component={TrackingFormScreen}
+            options={{ title: 'Tracking', presentation: 'modal' }}
+          />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: 'Novo post' }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil' }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações' }} />

@@ -13,6 +13,7 @@ let cachedToken: CachedToken | null = null;
 interface IgdbGameRaw {
   id: number;
   name: string;
+  summary?: string;
   cover?: { url: string };
   platforms?: { name: string }[];
   genres?: { name: string }[];
@@ -21,6 +22,7 @@ interface IgdbGameRaw {
 export interface IgdbGame {
   igdbId: number;
   name: string;
+  summary: string | null;
   coverUrl: string | null;
   platforms: string[];
   genres: string[];
@@ -64,17 +66,21 @@ function escapeApicalypseString(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-function normalizeCoverUrl(url: string | undefined): string | null {
+function proxiedCoverUrl(url: string | undefined): string | null {
   if (!url) return null;
   const upsized = url.replace('t_thumb', 't_cover_big');
-  return upsized.startsWith('//') ? `https:${upsized}` : upsized;
+  const absolute = upsized.startsWith('//') ? `https:${upsized}` : upsized;
+
+  const base = process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  return `${base}/api/images/cover?url=${encodeURIComponent(absolute)}`;
 }
 
 function mapGame(raw: IgdbGameRaw): IgdbGame {
   return {
     igdbId: raw.id,
     name: raw.name,
-    coverUrl: normalizeCoverUrl(raw.cover?.url),
+    summary: raw.summary ?? null,
+    coverUrl: proxiedCoverUrl(raw.cover?.url),
     platforms: raw.platforms?.map((p) => p.name) ?? [],
     genres: raw.genres?.map((g) => g.name) ?? [],
   };
@@ -109,7 +115,7 @@ export async function searchGames(term: string): Promise<IgdbGame[]> {
 }
 
 export async function getGameByIgdbId(igdbId: number): Promise<IgdbGame | null> {
-  const query = `fields name,cover.url,platforms.name,genres.name; where id = ${igdbId};`;
+  const query = `fields name,summary,cover.url,platforms.name,genres.name; where id = ${igdbId};`;
   const results = await queryIgdb(query);
   return results[0] ? mapGame(results[0]) : null;
 }

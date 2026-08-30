@@ -25,4 +25,5 @@ export const updateGameEntrySchema = z.object({
 
 export const listGameEntriesQuerySchema = z.object({
   status: statusEnum.optional(),
+  igdbId: z.coerce.number().int().positive().optional(),
 });
