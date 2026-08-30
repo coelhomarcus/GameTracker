@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "screenshots" text[] DEFAULT '{}' NOT NULL;

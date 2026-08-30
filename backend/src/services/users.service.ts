@@ -1,8 +1,25 @@
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, ilike, ne, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { follows, gameEntries, users } from '../db/schema';
 import { AppError } from '../lib/errors';
+import { getPublicBaseUrl } from '../lib/publicUrl';
+import { deleteAvatarIfLocal, saveAvatar } from '../lib/uploads';
 import * as notificationsService from './notifications.service';
+
+export async function search(viewerId: string, term: string) {
+  return db
+    .select({
+      id: users.id,
+      username: users.username,
+      avatarUrl: users.avatarUrl,
+      bio: users.bio,
+      isFollowedByMe: sql<boolean>`${follows.id} is not null`,
+    })
+    .from(users)
+    .leftJoin(follows, and(eq(follows.followerId, viewerId), eq(follows.followingId, users.id)))
+    .where(and(ilike(users.username, `%${term}%`), ne(users.id, viewerId)))
+    .limit(20);
+}
 
 export async function getPublicProfile(viewerId: string, targetId: string) {
   const user = await db.query.users.findFirst({
@@ -53,4 +70,20 @@ export async function unfollow(followerId: string, followingId: string) {
 
 export async function setPushToken(userId: string, token: string) {
   await db.update(users).set({ expoPushToken: token }).where(eq(users.id, userId));
+}
+
+export async function updateProfile(userId: string, input: { bio?: string }) {
+  await db.update(users).set(input).where(eq(users.id, userId));
+}
+
+export async function updateAvatar(userId: string, buffer: Buffer) {
+  const current = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { avatarUrl: true } });
+
+  const relativePath = await saveAvatar(buffer);
+  const avatarUrl = `${getPublicBaseUrl()}${relativePath}`;
+
+  await db.update(users).set({ avatarUrl }).where(eq(users.id, userId));
+  void deleteAvatarIfLocal(current?.avatarUrl ?? null);
+
+  return avatarUrl;
 }

@@ -3,6 +3,7 @@ import { db } from '../db';
 import { gameEntries, gameEntryStatusEnum, games } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { findOrCacheGameByIgdbId } from './games.service';
+import * as postsService from './posts.service';
 
 type GameEntryStatus = (typeof gameEntryStatusEnum.enumValues)[number];
 
@@ -21,6 +22,24 @@ type UpdateInput = Partial<Omit<CreateInput, 'igdbId'>>;
 
 function getWithGame(id: string) {
   return db.query.gameEntries.findFirst({ where: eq(gameEntries.id, id), with: { game: true } });
+}
+
+const ACTIVITY_VERB: Partial<Record<GameEntryStatus, (gameName: string) => string>> = {
+  backlog: (name) => `adicionou ${name} ao backlog`,
+  playing: (name) => `começou a jogar ${name}`,
+  completed: (name) => `zerou ${name}! 🎉`,
+};
+
+/** Best-effort: nunca deixa o post automático quebrar o fluxo principal de criar/atualizar o registro. */
+async function createActivityPost(userId: string, entryId: string, gameName: string, status: GameEntryStatus) {
+  const content = ACTIVITY_VERB[status]?.(gameName);
+  if (!content) return;
+
+  try {
+    await postsService.create(userId, { content, gameEntryId: entryId, type: 'activity' });
+  } catch (err) {
+    console.error('Falha ao criar post de atividade automático:', err);
+  }
 }
 
 async function getOwnedEntry(userId: string, entryId: string) {
@@ -49,6 +68,8 @@ export async function create(userId: string, input: CreateInput) {
     })
     .returning();
 
+  void createActivityPost(userId, created!.id, game.name, input.status);
+
   return getWithGame(created!.id);
 }
 
@@ -72,14 +93,20 @@ export async function listMine(userId: string, filters: { status?: GameEntryStat
 }
 
 export async function update(userId: string, entryId: string, input: UpdateInput) {
-  await getOwnedEntry(userId, entryId);
+  const existing = await getOwnedEntry(userId, entryId);
 
   await db
     .update(gameEntries)
     .set({ ...input, hoursPlayed: input.hoursPlayed?.toString() })
     .where(eq(gameEntries.id, entryId));
 
-  return getWithGame(entryId);
+  const result = await getWithGame(entryId);
+
+  if (input.status && input.status !== existing.status && result && (input.status === 'playing' || input.status === 'completed')) {
+    void createActivityPost(userId, entryId, result.game.name, input.status);
+  }
+
+  return result;
 }
 
 export async function remove(userId: string, entryId: string) {

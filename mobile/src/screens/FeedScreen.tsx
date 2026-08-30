@@ -2,20 +2,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as notificationsApi from '../api/notifications';
 import * as postsApi from '../api/posts';
 import { PostCard } from '../components/PostCard';
 import type { RootStackParamList } from '../navigation/types';
-import type { Post } from '../types/models';
+import type { FeedScope, Post } from '../types/models';
+
+const SCOPES: { value: FeedScope; label: string }[] = [
+  { value: 'general', label: 'Para você' },
+  { value: 'following', label: 'Seguindo' },
+];
 
 export default function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const [scope, setScope] = useState<FeedScope>('general');
 
   const feedQuery = useInfiniteQuery({
-    queryKey: ['feed'],
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) => postsApi.getFeed(pageParam),
+    queryKey: ['feed', scope],
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) => postsApi.getFeed(scope, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
@@ -39,7 +48,7 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>GameTracker</Text>
         <View style={styles.headerActions}>
           <Pressable onPress={() => navigation.navigate('Notifications')} style={styles.iconButton}>
@@ -54,6 +63,15 @@ export default function FeedScreen() {
             <Ionicons name="add-circle-outline" size={22} color="#111" />
           </Pressable>
         </View>
+      </View>
+
+      <View style={styles.scopeTabs}>
+        {SCOPES.map((s) => (
+          <Pressable key={s.value} style={styles.scopeTab} onPress={() => setScope(s.value)}>
+            <Text style={[styles.scopeTabText, scope === s.value && styles.scopeTabTextActive]}>{s.label}</Text>
+            {scope === s.value && <View style={styles.scopeTabIndicator} />}
+          </Pressable>
+        ))}
       </View>
 
       <FlatList
@@ -76,7 +94,9 @@ export default function FeedScreen() {
         ListEmptyComponent={
           !feedQuery.isLoading ? (
             <Text style={styles.empty}>
-              Nenhum post ainda. Siga outros usuários ou crie o primeiro post!
+              {scope === 'following'
+                ? 'Nenhum post de quem você segue ainda. Que tal achar gente nova?'
+                : 'Nenhum post ainda. Crie o primeiro!'}
             </Text>
           ) : null
         }
@@ -92,8 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingBottom: 12,
   },
   title: { fontSize: 20, fontWeight: '700' },
   headerActions: { flexDirection: 'row', gap: 8 },
@@ -111,6 +130,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  scopeTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  scopeTab: { flex: 1, alignItems: 'center', paddingVertical: 12 },
+  scopeTabText: { color: '#666', fontWeight: '600', fontSize: 14 },
+  scopeTabTextActive: { color: '#111' },
+  scopeTabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '40%', backgroundColor: '#4f46e5', borderRadius: 1 },
   list: { padding: 16, gap: 12 },
   empty: { color: '#666', textAlign: 'center', marginTop: 32 },
 });

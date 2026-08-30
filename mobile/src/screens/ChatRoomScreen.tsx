@@ -1,8 +1,10 @@
-import { useFocusEffect, useRoute, type RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,17 +13,24 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as conversationsApi from '../api/conversations';
 import { getSocket } from '../lib/socket';
 import { useAuthStore } from '../store/authStore';
 import type { RootStackParamList } from '../navigation/types';
 import type { Message } from '../types/models';
 
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function ChatRoomScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'ChatRoom'>>();
-  const { conversationId } = route.params;
+  const { conversationId, otherUsername, otherUserId, otherAvatarUrl } = route.params;
   const myId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -29,7 +38,28 @@ export default function ChatRoomScreen() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isOtherOnline, setIsOtherOnline] = useState(false);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerTitle}>
+          {otherAvatarUrl ? (
+            <Image source={{ uri: otherAvatarUrl }} style={styles.headerAvatarImage} />
+          ) : (
+            <View style={styles.headerAvatar}>
+              <Text style={styles.headerAvatarText}>{otherUsername[0]?.toUpperCase()}</Text>
+            </View>
+          )}
+          <View>
+            <Text style={styles.headerUsername}>{otherUsername}</Text>
+            {isOtherOnline && <Text style={styles.headerStatus}>online</Text>}
+          </View>
+        </View>
+      ),
+    });
+  }, [navigation, otherUsername, otherAvatarUrl, isOtherOnline]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,18 +98,30 @@ export default function ChatRoomScreen() {
       setIsOtherTyping(false);
     }
 
+    function onPresenceOnline(payload: { userId: string }) {
+      if (payload.userId === otherUserId) setIsOtherOnline(true);
+    }
+
+    function onPresenceOffline(payload: { userId: string }) {
+      if (payload.userId === otherUserId) setIsOtherOnline(false);
+    }
+
     socket.on('message:receive', onMessage);
     socket.on('typing:start', onTypingStart);
     socket.on('typing:stop', onTypingStop);
+    socket.on('presence:online', onPresenceOnline);
+    socket.on('presence:offline', onPresenceOffline);
 
     return () => {
       socket.emit('conversation:leave', { conversationId });
       socket.off('message:receive', onMessage);
       socket.off('typing:start', onTypingStart);
       socket.off('typing:stop', onTypingStop);
+      socket.off('presence:online', onPresenceOnline);
+      socket.off('presence:offline', onPresenceOffline);
       if (typingTimeout.current) clearTimeout(typingTimeout.current);
     };
-  }, [conversationId, myId]);
+  }, [conversationId, myId, otherUserId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -122,6 +164,9 @@ export default function ChatRoomScreen() {
       <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
         <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
           <Text style={isMine ? styles.bubbleTextMine : styles.bubbleTextTheirs}>{item.content}</Text>
+          <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs]}>
+            {formatTime(item.createdAt)}
+          </Text>
         </View>
       </View>
     );
@@ -141,7 +186,7 @@ export default function ChatRoomScreen() {
 
       {isOtherTyping && <Text style={styles.typing}>digitando...</Text>}
 
-      <View style={styles.composer}>
+      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TextInput style={styles.input} placeholder="Mensagem..." value={input} onChangeText={handleChangeText} />
         <Pressable style={styles.sendButton} disabled={!input.trim() || sending} onPress={handleSend}>
           <Text style={styles.sendButtonText}>Enviar</Text>
@@ -153,6 +198,19 @@ export default function ChatRoomScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#4f46e5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarImage: { width: 32, height: 32, borderRadius: 16 },
+  headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  headerUsername: { fontWeight: '600', fontSize: 15 },
+  headerStatus: { color: '#16a34a', fontSize: 11 },
   list: { padding: 16, gap: 8 },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowMine: { justifyContent: 'flex-end' },
@@ -161,6 +219,9 @@ const styles = StyleSheet.create({
   bubbleTheirs: { backgroundColor: '#eee' },
   bubbleTextMine: { color: '#fff' },
   bubbleTextTheirs: { color: '#111' },
+  bubbleTime: { fontSize: 10, marginTop: 2, alignSelf: 'flex-end' },
+  bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
+  bubbleTimeTheirs: { color: '#999' },
   typing: { color: '#666', fontSize: 12, paddingHorizontal: 16, paddingBottom: 4 },
   composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#eee' },
   input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10 },

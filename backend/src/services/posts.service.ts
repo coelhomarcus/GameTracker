@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
 import { comments, follows, gameEntries, likes, postTypeEnum, posts } from '../db/schema';
 import { AppError } from '../lib/errors';
@@ -61,10 +61,7 @@ export async function create(userId: string, input: CreatePostInput) {
   return getPostById(created!.id, userId);
 }
 
-export async function getFeed(userId: string, cursor: string | undefined, limit: number) {
-  const following = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, userId));
-  const authorIds = [userId, ...following.map((f) => f.followingId)];
-
+async function paginatedPosts(viewerId: string, whereFilter: SQL | undefined, cursor: string | undefined, limit: number) {
   const cursorFilter = cursor
     ? (() => {
         const decoded = decodeCursor(cursor);
@@ -73,7 +70,7 @@ export async function getFeed(userId: string, cursor: string | undefined, limit:
     : undefined;
 
   const results = await db.query.posts.findMany({
-    where: cursorFilter ? and(inArray(posts.userId, authorIds), cursorFilter) : inArray(posts.userId, authorIds),
+    where: whereFilter && cursorFilter ? and(whereFilter, cursorFilter) : (whereFilter ?? cursorFilter),
     orderBy: [desc(posts.createdAt), desc(posts.id)],
     limit: limit + 1,
     with: postWith,
@@ -81,11 +78,31 @@ export async function getFeed(userId: string, cursor: string | undefined, limit:
 
   const hasMore = results.length > limit;
   const page = results.slice(0, limit);
-  const items = page.map((p) => mapPost(p, userId));
+  const items = page.map((p) => mapPost(p, viewerId));
   const last = page[page.length - 1];
   const nextCursor = hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
 
   return { items, nextCursor };
+}
+
+export async function getFeed(
+  userId: string,
+  cursor: string | undefined,
+  limit: number,
+  scope: 'following' | 'general' = 'following',
+) {
+  let scopeFilter: SQL | undefined;
+  if (scope === 'following') {
+    const following = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, userId));
+    const authorIds = [userId, ...following.map((f) => f.followingId)];
+    scopeFilter = inArray(posts.userId, authorIds);
+  }
+
+  return paginatedPosts(userId, scopeFilter, cursor, limit);
+}
+
+export async function getUserPosts(viewerId: string, targetUserId: string, cursor: string | undefined, limit: number) {
+  return paginatedPosts(viewerId, eq(posts.userId, targetUserId), cursor, limit);
 }
 
 async function getPostOrThrow(postId: string) {

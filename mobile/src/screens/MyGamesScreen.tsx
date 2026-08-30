@@ -3,7 +3,17 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { STATUS_LABEL } from '../lib/gameEntryLabels';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
@@ -25,11 +35,24 @@ const NEXT_STATUS: Record<GameEntryStatus, GameEntryStatus> = {
   dropped: 'backlog',
 };
 
+const STATUS_COLOR: Record<GameEntryStatus, string> = {
+  backlog: '#9ca3af',
+  playing: '#4f46e5',
+  completed: '#16a34a',
+  dropped: '#dc2626',
+};
+
+const GRID_COLUMNS = 4;
+const GRID_GAP = 8;
+const CONTAINER_PADDING = 16;
+
 export default function MyGamesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [filter, setFilter] = useState<GameEntryStatus | 'all'>('all');
   const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const queryClient = useQueryClient();
+  const { width } = useWindowDimensions();
+  const cellWidth = (width - CONTAINER_PADDING * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
   useEffect(() => {
     getViewMode().then(setViewModeState);
@@ -127,17 +150,21 @@ export default function MyGamesScreen() {
   }
 
   function renderGridItem({ item }: { item: GameEntry }) {
+    const coverHeight = cellWidth * (4 / 3);
     return (
-      <Pressable style={styles.gridCard} onPress={() => openFocus(item)}>
-        {item.game.coverUrl ? (
-          <Image source={{ uri: item.game.coverUrl }} style={styles.gridCover} />
-        ) : (
-          <View style={[styles.gridCover, styles.coverPlaceholder]} />
-        )}
-        <View style={styles.gridBadge}>
-          <Text style={styles.badgeText}>{STATUS_LABEL[item.status]}</Text>
+      <Pressable style={[styles.gridCard, { width: cellWidth }]} onPress={() => openFocus(item)}>
+        <View>
+          {item.game.coverUrl ? (
+            <Image
+              source={{ uri: item.game.coverUrl }}
+              style={[styles.gridCover, { width: cellWidth, height: coverHeight }]}
+            />
+          ) : (
+            <View style={[styles.gridCover, styles.coverPlaceholder, { width: cellWidth, height: coverHeight }]} />
+          )}
+          <View style={[styles.gridStatusDot, { backgroundColor: STATUS_COLOR[item.status] }]} />
         </View>
-        <Text style={styles.gridTitle} numberOfLines={2}>
+        <Text style={styles.gridTitle} numberOfLines={1}>
           {item.game.name}
         </Text>
       </Pressable>
@@ -168,7 +195,7 @@ export default function MyGamesScreen() {
         data={query.data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={viewMode === 'list' ? renderListItem : renderGridItem}
-        numColumns={viewMode === 'grid' ? 2 : 1}
+        numColumns={viewMode === 'grid' ? GRID_COLUMNS : 1}
         columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={query.isFetching} onRefresh={() => query.refetch()} />}
@@ -216,9 +243,18 @@ const styles = StyleSheet.create({
   empty: { color: '#666', textAlign: 'center', marginTop: 32 },
 
   // grid mode
-  gridRow: { gap: 12 },
-  gridCard: { flex: 1, gap: 6 },
-  gridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: 8 },
-  gridBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#fff', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 6 },
-  gridTitle: { fontSize: 13, fontWeight: '600' },
+  gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
+  gridCard: { gap: 4 },
+  gridCover: { borderRadius: 6 },
+  gridStatusDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  gridTitle: { fontSize: 10, color: '#333' },
 });

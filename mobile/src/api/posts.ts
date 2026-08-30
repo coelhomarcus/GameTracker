@@ -1,4 +1,4 @@
-import type { Comment, Post, PostType } from '../types/models';
+import type { Comment, FeedScope, Post, PostType } from '../types/models';
 import { api } from './client';
 
 export interface CreatePostInput {
@@ -17,8 +17,8 @@ export function createPost(input: CreatePostInput) {
   return api.post<Post>('/posts', input).then((r) => r.data);
 }
 
-export function getFeed(cursor?: string) {
-  return api.get<FeedPage>('/feed', { params: cursor ? { cursor } : undefined }).then((r) => r.data);
+export function getFeed(scope: FeedScope, cursor?: string) {
+  return api.get<FeedPage>('/feed', { params: { scope, ...(cursor ? { cursor } : {}) } }).then((r) => r.data);
 }
 
 export function likePost(postId: string) {

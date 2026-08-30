@@ -1,9 +1,23 @@
 import type { Request, Response } from 'express';
+import { AppError } from '../lib/errors';
+import * as postsService from '../services/posts.service';
 import * as usersService from '../services/users.service';
+
+export async function searchHandler(req: Request, res: Response) {
+  const { q } = res.locals.query as { q: string };
+  const results = await usersService.search(req.user!.id, q);
+  res.json(results);
+}
 
 export async function getPublicProfileHandler(req: Request, res: Response) {
   const profile = await usersService.getPublicProfile(req.user!.id, req.params.id as string);
   res.json(profile);
+}
+
+export async function getUserPostsHandler(req: Request, res: Response) {
+  const { cursor, limit } = res.locals.query as { cursor?: string; limit: number };
+  const result = await postsService.getUserPosts(req.user!.id, req.params.id as string, cursor, limit);
+  res.json(result);
 }
 
 export async function followHandler(req: Request, res: Response) {
@@ -19,4 +33,17 @@ export async function unfollowHandler(req: Request, res: Response) {
 export async function setPushTokenHandler(req: Request, res: Response) {
   await usersService.setPushToken(req.user!.id, req.body.token);
   res.status(204).send();
+}
+
+export async function updateProfileHandler(req: Request, res: Response) {
+  await usersService.updateProfile(req.user!.id, req.body);
+  res.status(204).send();
+}
+
+export async function uploadAvatarHandler(req: Request, res: Response) {
+  if (!req.file) {
+    throw new AppError(400, 'validation_error', 'Nenhum arquivo enviado');
+  }
+  const avatarUrl = await usersService.updateAvatar(req.user!.id, req.file.buffer);
+  res.json({ avatarUrl });
 }

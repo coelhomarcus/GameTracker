@@ -7,8 +7,12 @@ export async function createHandler(req: Request, res: Response) {
 }
 
 export async function feedHandler(req: Request, res: Response) {
-  const { cursor, limit } = res.locals.query as { cursor?: string; limit: number };
-  const result = await postsService.getFeed(req.user!.id, cursor, limit);
+  const { cursor, limit, scope } = res.locals.query as {
+    cursor?: string;
+    limit: number;
+    scope: 'following' | 'general';
+  };
+  const result = await postsService.getFeed(req.user!.id, cursor, limit, scope);
   res.json(result);
 }
 

@@ -1,4 +1,5 @@
 import { AppError } from './errors';
+import { getPublicBaseUrl } from './publicUrl';
 
 const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 const IGDB_BASE_URL = 'https://api.igdb.com/v4';
@@ -15,6 +16,7 @@ interface IgdbGameRaw {
   name: string;
   summary?: string;
   cover?: { url: string };
+  screenshots?: { url: string }[];
   platforms?: { name: string }[];
   genres?: { name: string }[];
 }
@@ -24,6 +26,7 @@ export interface IgdbGame {
   name: string;
   summary: string | null;
   coverUrl: string | null;
+  screenshots: string[];
   platforms: string[];
   genres: string[];
 }
@@ -66,13 +69,12 @@ function escapeApicalypseString(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-function proxiedCoverUrl(url: string | undefined): string | null {
+function proxiedImageUrl(url: string | undefined, size: string): string | null {
   if (!url) return null;
-  const upsized = url.replace('t_thumb', 't_cover_big');
+  const upsized = url.replace('t_thumb', size);
   const absolute = upsized.startsWith('//') ? `https:${upsized}` : upsized;
 
-  const base = process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
-  return `${base}/api/images/cover?url=${encodeURIComponent(absolute)}`;
+  return `${getPublicBaseUrl()}/api/images/cover?url=${encodeURIComponent(absolute)}`;
 }
 
 function mapGame(raw: IgdbGameRaw): IgdbGame {
@@ -80,7 +82,10 @@ function mapGame(raw: IgdbGameRaw): IgdbGame {
     igdbId: raw.id,
     name: raw.name,
     summary: raw.summary ?? null,
-    coverUrl: proxiedCoverUrl(raw.cover?.url),
+    coverUrl: proxiedImageUrl(raw.cover?.url, 't_cover_big'),
+    screenshots: (raw.screenshots ?? [])
+      .map((s) => proxiedImageUrl(s.url, 't_screenshot_big'))
+      .filter((url): url is string => url !== null),
     platforms: raw.platforms?.map((p) => p.name) ?? [],
     genres: raw.genres?.map((g) => g.name) ?? [],
   };
@@ -115,7 +120,7 @@ export async function searchGames(term: string): Promise<IgdbGame[]> {
 }
 
 export async function getGameByIgdbId(igdbId: number): Promise<IgdbGame | null> {
-  const query = `fields name,summary,cover.url,platforms.name,genres.name; where id = ${igdbId};`;
+  const query = `fields name,summary,cover.url,screenshots.url,platforms.name,genres.name; where id = ${igdbId};`;
   const results = await queryIgdb(query);
   return results[0] ? mapGame(results[0]) : null;
 }

@@ -106,10 +106,11 @@ export default function TrackingFormScreen() {
           value={startedAt ?? new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(_event, date) => {
+          onValueChange={(_event, date) => {
             setShowStartPicker(Platform.OS === 'ios');
-            if (date) setStartedAt(date);
+            setStartedAt(date);
           }}
+          onDismiss={() => setShowStartPicker(false)}
         />
       )}
 
@@ -124,10 +125,11 @@ export default function TrackingFormScreen() {
           value={finishedAt ?? new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(_event, date) => {
+          onValueChange={(_event, date) => {
             setShowFinishPicker(Platform.OS === 'ios');
-            if (date) setFinishedAt(date);
+            setFinishedAt(date);
           }}
+          onDismiss={() => setShowFinishPicker(false)}
         />
       )}
 

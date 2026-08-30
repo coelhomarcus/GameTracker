@@ -14,6 +14,7 @@ export interface Game {
   name: string;
   summary: string | null;
   coverUrl: string | null;
+  screenshots: string[];
   platforms: string[];
   genres: string[];
 }
@@ -119,3 +120,13 @@ export interface ConversationSummary {
   lastMessage: { id: string; content: string; createdAt: string; senderId: string } | null;
   unread: boolean;
 }
+
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  isFollowedByMe: boolean;
+}
+
+export type FeedScope = 'following' | 'general';

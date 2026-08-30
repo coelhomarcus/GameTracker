@@ -15,6 +15,13 @@
       "when": 1788122455967,
       "tag": "0001_nifty_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788127661544,
+      "tag": "0002_gorgeous_saracen",
+      "breakpoints": true
     }
   ]
 }

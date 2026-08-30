@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Post } from '../types/models';
 
 interface Props {
@@ -10,12 +10,34 @@ interface Props {
 }
 
 export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) {
+  if (post.type === 'activity') {
+    return (
+      <Pressable style={styles.activityCard} onPress={onPress}>
+        <Ionicons name="game-controller" size={16} color="#4f46e5" />
+        <Text style={styles.activityText}>
+          <Text style={styles.activityUsername} onPress={onAuthorPress}>
+            {post.user.username}{' '}
+          </Text>
+          {post.content}
+        </Text>
+        <Pressable style={styles.activityLike} onPress={onToggleLike}>
+          <Ionicons name={post.likedByMe ? 'heart' : 'heart-outline'} size={14} color={post.likedByMe ? '#dc2626' : '#999'} />
+          {post.likeCount > 0 && <Text style={styles.activityLikeCount}>{post.likeCount}</Text>}
+        </Pressable>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <Pressable style={styles.header} onPress={onAuthorPress}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{post.user.username[0]?.toUpperCase()}</Text>
-        </View>
+        {post.user.avatarUrl ? (
+          <Image source={{ uri: post.user.avatarUrl }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{post.user.username[0]?.toUpperCase()}</Text>
+          </View>
+        )}
         <Text style={styles.username}>{post.user.username}</Text>
       </Pressable>
 
@@ -56,6 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  avatarImage: { width: 32, height: 32, borderRadius: 16 },
   username: { fontWeight: '600' },
   content: { fontSize: 15, lineHeight: 20 },
   gameTag: {
@@ -72,4 +95,19 @@ const styles = StyleSheet.create({
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionText: { color: '#666' },
   actionTextActive: { color: '#dc2626' },
+
+  // post de atividade automática — mais discreto, sem o "cartão" cheio
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  activityText: { flex: 1, fontSize: 13, color: '#555', lineHeight: 18 },
+  activityUsername: { fontWeight: '600', color: '#333' },
+  activityLike: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  activityLikeCount: { fontSize: 11, color: '#999' },
 });

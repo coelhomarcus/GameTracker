@@ -65,6 +65,14 @@ export default function GameFocusScreen() {
       {game.platforms.length > 0 && <Text style={styles.platforms}>{game.platforms.slice(0, 5).join(' · ')}</Text>}
       {game.summary && <Text style={styles.summary}>{game.summary}</Text>}
 
+      {game.screenshots.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.screenshots} contentContainerStyle={styles.screenshotsContent}>
+          {game.screenshots.map((url) => (
+            <Image key={url} source={{ uri: url }} style={styles.screenshot} />
+          ))}
+        </ScrollView>
+      )}
+
       <Text style={styles.sectionTitle}>Seus playthroughs</Text>
       {entriesQuery.data?.length ? (
         entriesQuery.data.map((entry) => (
@@ -101,6 +109,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 2 },
   platforms: { fontSize: 13, color: '#4f46e5', textAlign: 'center', marginTop: 4 },
   summary: { fontSize: 14, color: '#333', lineHeight: 20, marginTop: 16 },
+  screenshots: { marginTop: 16 },
+  screenshotsContent: { gap: 8 },
+  screenshot: { width: 240, height: 135, borderRadius: 8, backgroundColor: '#eee' },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 24, marginBottom: 8 },
   empty: { color: '#666' },
   entryCard: { borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 12, gap: 4, marginBottom: 8 },

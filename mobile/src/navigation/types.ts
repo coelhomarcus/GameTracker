@@ -37,5 +37,6 @@ export type RootStackParamList = {
   UserProfile: { userId: string };
   Notifications: undefined;
   PostDetail: { postId: string };
-  ChatRoom: { conversationId: string; otherUsername: string };
+  ChatRoom: { conversationId: string; otherUsername: string; otherUserId: string; otherAvatarUrl: string | null };
+  FindUsers: undefined;
 };

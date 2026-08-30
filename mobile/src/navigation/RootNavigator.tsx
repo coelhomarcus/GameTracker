@@ -5,6 +5,7 @@ import AuthNavigator from './AuthNavigator';
 import MainTabs from './MainTabs';
 import ChatRoomScreen from '../screens/ChatRoomScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import FindUsersScreen from '../screens/FindUsersScreen';
 import GameFocusScreen from '../screens/GameFocusScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -45,14 +46,11 @@ export default function RootNavigator() {
             options={{ title: 'Tracking', presentation: 'modal' }}
           />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: 'Novo post' }} />
+          <Stack.Screen name="FindUsers" component={FindUsersScreen} options={{ title: 'Encontrar pessoas' }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil' }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações' }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
-          <Stack.Screen
-            name="ChatRoom"
-            component={ChatRoomScreen}
-            options={({ route }) => ({ title: route.params.otherUsername })}
-          />
+          <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />
