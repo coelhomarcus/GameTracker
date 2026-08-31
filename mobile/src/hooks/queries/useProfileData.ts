@@ -7,7 +7,7 @@ import type { GameEntryStatus, PublicProfile, User } from '../../types/models';
 import { useFavoriteGames } from './useFavorites';
 import { useInfiniteList } from './useInfiniteList';
 
-export type ProfileTab = 'backlog' | 'activities' | 'posts' | 'replies';
+export type ProfileTab = 'backlog' | 'activities' | 'posts';
 
 /**
  * As duas telas de perfil liam identidade de fontes diferentes (a store do
@@ -88,11 +88,5 @@ export function useProfileData({ userId, isSelf, tab, gameFilter, enabled = true
     enabled: enabled && !!userId && tab === 'posts',
   });
 
-  const replies = useInfiniteList({
-    queryKey: qk.userReplies(userId),
-    fetchPage: (cursor?: string) => usersApi.getUserReplies(userId, cursor),
-    enabled: enabled && !!userId && tab === 'replies',
-  });
-
-  return { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts, replies };
+  return { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts };
 }

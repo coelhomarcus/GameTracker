@@ -13,7 +13,6 @@ export const qk = {
 
   userProfile: (userId?: string) => ['user-profile', userId] as const,
   userPosts: (userId?: string, type?: 'activity' | 'post') => ['user-posts', userId, type] as const,
-  userReplies: (userId?: string) => ['user-replies', userId] as const,
   userGameEntries: (userId?: string, status?: GameEntryStatus | 'all') =>
     ['user-game-entries', userId, status] as const,
 

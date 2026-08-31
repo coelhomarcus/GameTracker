@@ -102,14 +102,6 @@ export interface Comment {
   replies: Comment[];
 }
 
-export interface UserReply {
-  id: string;
-  postId: string;
-  userId: string;
-  content: string;
-  createdAt: string;
-  post: { id: string; content: string; user: PostAuthor };
-}
 
 export interface PublicProfile {
   id: string;

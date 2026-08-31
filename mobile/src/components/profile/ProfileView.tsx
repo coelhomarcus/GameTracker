@@ -8,13 +8,12 @@ import { useProfileData, type ProfileTab } from '../../hooks/queries/useProfileD
 import { useToggleLike } from '../../hooks/queries/useToggleLike';
 import type { RootStackParamList } from '../../navigation/types';
 import { colors, GRID, opacity, radius, space, type, useGridCellWidth } from '../../theme';
-import type { Game, GameEntry, GameEntryStatus, Post, UserReply } from '../../types/models';
+import type { Game, GameEntry, GameEntryStatus, Post } from '../../types/models';
 import { ActivityRow } from '../ActivityRow';
 import { GameEntryGridCell } from '../GameEntryGridCell';
 import { ImageViewerModal } from '../ImageViewerModal';
 import { LoadingState } from '../LoadingState';
 import { PostCard } from '../PostCard';
-import { ReplyThreadCard } from '../ReplyThreadCard';
 import { StatusFilterChips } from '../StatusFilterChips';
 import { Button, ErrorState, ListFooter, ListState, RemoteImage, SegmentedTabs, type Tab } from '../ui';
 import { ProfileHeader } from './ProfileHeader';
@@ -23,7 +22,6 @@ const TABS: readonly Tab<ProfileTab>[] = [
   { value: 'backlog', label: 'Coleção' },
   { value: 'activities', label: 'Atividades' },
   { value: 'posts', label: 'Posts' },
-  { value: 'replies', label: 'Respostas' },
 ];
 
 /** Prévias estilo Letterboxd (Favoritos, Jogando agora, Completos recentemente) — sem paginação. */
@@ -43,8 +41,12 @@ export function ProfileView({ userId, isSelf }: Props) {
   const [viewer, setViewer] = useState<'avatar' | 'banner' | null>(null);
   const cellWidth = useGridCellWidth();
 
-  const { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts, replies } =
-    useProfileData({ userId, isSelf, tab, gameFilter });
+  const { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts } = useProfileData({
+    userId,
+    isSelf,
+    tab,
+    gameFilter,
+  });
 
   const toggleLike = useToggleLike();
   const follow = useFollow();
@@ -80,14 +82,6 @@ export function ProfileView({ userId, isSelf }: Props) {
       );
     },
     [navigation, openPost, toggleLike],
-  );
-
-  const renderReply = useCallback(
-    ({ item }: { item: UserReply }) => {
-      if (!profile.data) return null;
-      return <ReplyThreadCard reply={item} author={profile.data} onPress={() => openPost(item.post.id)} />;
-    },
-    [openPost, profile.data],
   );
 
   // Antes era `isLoading || !data`: num erro de rede o perfil girava pra sempre.
@@ -209,28 +203,6 @@ export function ProfileView({ userId, isSelf }: Props) {
                 subtitle: isSelf
                   ? 'Busque um jogo na aba de Busca pra começar a trackear'
                   : 'Esta pessoa ainda não trackeou jogos por aqui',
-              }}
-            />
-          }
-        />
-      ) : tab === 'replies' ? (
-        <FlatList
-          key="replies"
-          data={replies.items}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={renderReply}
-          onEndReached={replies.onEndReached}
-          onEndReachedThreshold={0.4}
-          ListHeaderComponent={header}
-          ListFooterComponent={<ListFooter loading={replies.isFetchingNextPage} />}
-          ListEmptyComponent={
-            <ListState
-              query={replies}
-              empty={{
-                icon: 'chatbubble-outline',
-                title: 'Nenhuma resposta ainda',
-                subtitle: isSelf ? 'Suas respostas em posts aparecem aqui' : 'As respostas desta pessoa aparecem aqui',
               }}
             />
           }
