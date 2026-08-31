@@ -6,6 +6,7 @@
   "build": {
     "development": {
       "distribution": "internal",
+      "environment": "development",
       "ios": {
         "simulator": true
       },
@@ -15,11 +16,13 @@
     },
     "preview": {
       "distribution": "internal",
+      "environment": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true
     }
   },
