@@ -15,6 +15,7 @@ export function StatusFilterChips({ value, onChange }: Props) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
       keyboardShouldPersistTaps="handled"
     >
@@ -46,5 +47,8 @@ export function StatusFilterChips({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // flexGrow: 0 é essencial no Android: sem altura própria, um ScrollView
+  // horizontal pode se expandir pra ocupar espaço vertical além do seu conteúdo.
+  scroll: { flexGrow: 0 },
   row: { gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md },
 });
