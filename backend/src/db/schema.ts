@@ -86,6 +86,8 @@ export const gameEntries = pgTable(
   (table) => ({
     userIdIdx: index('game_entries_user_id_idx').on(table.userId),
     gameIdIdx: index('game_entries_game_id_idx').on(table.gameId),
+    // Usado pelas stats agregadas e pela lista de "quem está jogando" (filtro gameId + status).
+    gameStatusIdx: index('game_entries_game_status_idx').on(table.gameId, table.status),
   }),
 );
 
@@ -98,6 +100,10 @@ export const posts = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     content: varchar('content', { length: 500 }).notNull(),
     gameEntryId: uuid('game_entry_id').references(() => gameEntries.id, { onDelete: 'set null' }),
+    // Verdade única de "sobre qual jogo é este post": resolvida a partir do
+    // gameEntryId quando existe (playthrough próprio), ou setada direto
+    // quando o post é vinculado a um jogo que o autor nunca trackeou.
+    gameId: uuid('game_id').references(() => games.id, { onDelete: 'set null' }),
     type: postTypeEnum('type').notNull().default('status'),
     imageUrl: varchar('image_url', { length: 500 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -106,6 +112,7 @@ export const posts = pgTable(
     userIdIdx: index('posts_user_id_idx').on(table.userId),
     // composto pra keyset pagination (order by created_at desc, id desc)
     createdAtIdx: index('posts_created_at_id_idx').on(table.createdAt, table.id),
+    gameIdIdx: index('posts_game_id_idx').on(table.gameId),
   }),
 );
 
@@ -285,6 +292,7 @@ export const gameEntriesRelations = relations(gameEntries, ({ one, many }) => ({
 export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, { fields: [posts.userId], references: [users.id] }),
   gameEntry: one(gameEntries, { fields: [posts.gameEntryId], references: [gameEntries.id] }),
+  game: one(games, { fields: [posts.gameId], references: [games.id] }),
   comments: many(comments),
   likes: many(likes),
   notifications: many(notifications),

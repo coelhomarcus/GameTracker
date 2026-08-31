@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const createPostSchema = z.object({
   content: z.string().min(1).max(500),
   gameEntryId: z.string().uuid().optional(),
+  // Vínculo livre a qualquer jogo do catálogo, sem exigir um playthrough
+  // trackeado. Se gameEntryId também vier, o service deriva o gameId dali
+  // e ignora este campo.
+  gameId: z.string().uuid().optional(),
   type: z.enum(['status', 'review', 'activity']).optional().default('status'),
   imageUrl: z.string().url().max(500).optional(),
 });

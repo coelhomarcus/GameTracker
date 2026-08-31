@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
-import { commentLikes, comments, follows, gameEntries, likes, postTypeEnum, posts } from '../db/schema';
+import { commentLikes, comments, follows, gameEntries, games, likes, postTypeEnum, posts } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { decodeCursor, encodeCursor } from '../lib/cursor';
 import * as notificationsService from './notifications.service';
@@ -12,6 +12,7 @@ const userColumns = { id: true, username: true, name: true, avatarUrl: true } as
 const postWith = {
   user: { columns: userColumns },
   gameEntry: { with: { game: true } },
+  game: true,
   likes: { columns: { userId: true } },
   comments: { columns: { id: true } },
 } as const;
@@ -41,16 +42,27 @@ export async function getById(id: string, viewerId: string) {
 interface CreatePostInput {
   content: string;
   gameEntryId?: string;
+  gameId?: string;
   type: PostType;
   imageUrl?: string;
 }
 
 export async function create(userId: string, input: CreatePostInput) {
+  // gameId é a verdade única de "sobre qual jogo é este post": deriva do
+  // gameEntryId quando existe (o playthrough já sabe o jogo), senão usa o
+  // gameId manual — que só precisa existir no catálogo, sem exigir posse
+  // (diferente de gameEntryId, que continua exigindo dono).
+  let resolvedGameId: string | undefined = input.gameId;
+
   if (input.gameEntryId) {
     const entry = await db.query.gameEntries.findFirst({ where: eq(gameEntries.id, input.gameEntryId) });
     if (!entry || entry.userId !== userId) {
       throw new AppError(404, 'not_found', 'Registro de jogo não encontrado');
     }
+    resolvedGameId = entry.gameId;
+  } else if (input.gameId) {
+    const game = await db.query.games.findFirst({ where: eq(games.id, input.gameId) });
+    if (!game) throw new AppError(404, 'not_found', 'Jogo não encontrado');
   }
 
   const [created] = await db
@@ -59,6 +71,7 @@ export async function create(userId: string, input: CreatePostInput) {
       userId,
       content: input.content,
       gameEntryId: input.gameEntryId,
+      gameId: resolvedGameId,
       type: input.type,
       imageUrl: input.imageUrl,
     })
@@ -119,6 +132,10 @@ export async function getUserPosts(
   const typeFilter = type === 'activity' ? eq(posts.type, 'activity') : type === 'post' ? ne(posts.type, 'activity') : undefined;
   const whereFilter = typeFilter ? and(eq(posts.userId, targetUserId), typeFilter) : eq(posts.userId, targetUserId);
   return paginatedPosts(viewerId, whereFilter, cursor, limit);
+}
+
+export async function getGamePosts(gameId: string, viewerId: string, cursor: string | undefined, limit: number) {
+  return paginatedPosts(viewerId, eq(posts.gameId, gameId), cursor, limit);
 }
 
 export async function getUserComments(targetUserId: string, cursor: string | undefined, limit: number) {
