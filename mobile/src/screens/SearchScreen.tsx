@@ -85,11 +85,13 @@ export default function SearchScreen() {
 
   const renderUserItem = useCallback(
     ({ item }: { item: UserSearchResult }) => (
+      // Sem accessibilityRole: a linha já contém dois botões reais (mensagem,
+      // seguir) e um <button> não pode conter outro — vira <button> aninhado
+      // no React Native Web, que o navegador corrige sozinho e quebra a
+      // hidratação.
       <Pressable
         style={({ pressed }) => [styles.row, pressed && { opacity: opacity.pressed }]}
         onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
-        accessibilityRole="button"
-        accessibilityLabel={`Perfil de ${displayName(item)}`}
       >
         <Avatar user={item} size="lg" />
         <View style={styles.rowInfo}>

@@ -34,11 +34,12 @@ function DateField({ label, value, onChange }: DateFieldProps) {
   return (
     <View>
       <Text style={forms.label}>{label}</Text>
+      {/* Sem accessibilityRole: quando há uma data, a linha contém o botão real
+          de limpar — um <button> não pode conter outro (vira <button> aninhado
+          no React Native Web, HTML inválido que quebra a hidratação). */}
       <Pressable
         style={({ pressed }) => [styles.dateRow, pressed && { opacity: opacity.pressed }]}
         onPress={() => setShowPicker(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ? formatDate(value) : 'nenhuma data'}`}
       >
         <Ionicons name="calendar-outline" size={icon.md} color={colors.textSecondary} />
         <Text style={value ? styles.dateText : styles.datePlaceholder}>

@@ -90,11 +90,13 @@ export default function MyGamesScreen() {
 
   const renderListItem = useCallback(
     ({ item }: { item: GameEntry }) => (
+      // Sem accessibilityRole: o card já contém dois botões reais (avançar,
+      // remover) e um <button> não pode conter outro — vira <button> aninhado
+      // no React Native Web, que o navegador corrige sozinho e quebra a
+      // hidratação.
       <Pressable
         style={({ pressed }) => [styles.card, pressed && { opacity: opacity.pressed }]}
         onPress={() => openFocus(item)}
-        accessibilityRole="button"
-        accessibilityLabel={item.game.name}
       >
         <RemoteImage uri={item.game.coverUrl} style={styles.listCover} />
         <View style={styles.cardBody}>

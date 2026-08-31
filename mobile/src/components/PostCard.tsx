@@ -19,12 +19,14 @@ const ROW_GAP = space.md;
 
 function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Post de ${displayName(post.user)}`}
-    >
+    // Sem accessibilityRole aqui de propósito: o card contém avatar, like e
+    // contador de comentários, cada um já com seu próprio role="button". Um
+    // <button> não pode conter outro — no React Native Web isso vira <button>
+    // aninhado, HTML inválido que o navegador corrige sozinho e quebra a
+    // hidratação. O card continua tocável (onPress funciona sem o role), só
+    // não é anunciado como botão pra leitor de tela — os controles reais
+    // dentro dele são.
+    <Pressable style={({ pressed }) => [styles.card, pressed && styles.cardPressed]} onPress={onPress}>
       {post.type === 'activity' && (
         <View style={styles.activityTag}>
           <Ionicons name="game-controller-outline" size={icon.xs} color={colors.textSecondary} />
