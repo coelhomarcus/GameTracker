@@ -72,6 +72,8 @@ export default function MyGamesScreen() {
           onConfirm: () =>
             navigation.navigate('CreatePost', {
               gameEntryId: entry.id,
+              gameName: entry.game.name,
+              gameCoverUrl: entry.game.coverUrl,
               prefillContent: `Acabei de zerar ${entry.game.name}! 🎮`,
             }),
         });

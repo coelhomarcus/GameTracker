@@ -64,11 +64,18 @@ export interface Post {
   userId: string;
   content: string;
   gameEntryId: string | null;
+  gameId: string | null;
   type: PostType;
   imageUrl: string | null;
   createdAt: string;
   user: PostAuthor;
   gameEntry: (GameEntry & { game: Game }) | null;
+  /**
+   * Verdade única de "sobre qual jogo é este post" — sempre presente quando
+   * `gameEntry` está, mas também pode vir sozinho (post vinculado a um jogo
+   * que o autor nunca trackeou).
+   */
+  game: Game | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -149,3 +156,16 @@ export interface UserSearchResult {
 }
 
 export type FeedScope = 'following' | 'general';
+
+export interface GameStats {
+  backlog: number;
+  playing: number;
+  completed: number;
+  dropped: number;
+}
+
+export interface GamePlayerEntry {
+  user: PostAuthor;
+  status: GameEntryStatus;
+  hoursPlayed: string | null;
+}

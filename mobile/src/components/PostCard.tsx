@@ -17,6 +17,10 @@ interface Props {
 const ROW_GAP = space.md;
 
 function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
+  // gameEntry (playthrough próprio) tem prioridade — carrega plataforma; post.game
+  // é o vínculo livre a um jogo que o autor nunca trackeou.
+  const taggedGame = post.gameEntry?.game ?? post.game;
+
   return (
     // Sem accessibilityRole aqui de propósito: o card contém avatar, like e
     // contador de comentários, cada um já com seu próprio role="button". Um
@@ -37,15 +41,18 @@ function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props
 
           <Text style={styles.content}>{post.content}</Text>
 
-          {post.gameEntry && (
+          {taggedGame && (
             <View style={styles.gameTag}>
-              {post.gameEntry.game.coverUrl ? (
-                <RemoteImage uri={post.gameEntry.game.coverUrl} style={styles.gameTagCover} />
+              {taggedGame.coverUrl ? (
+                <RemoteImage uri={taggedGame.coverUrl} style={styles.gameTagCover} />
               ) : (
                 <Ionicons name="game-controller-outline" size={icon.sm} color={colors.accent} />
               )}
               <Text style={styles.gameTagText}>
-                {post.gameEntry.game.name} · {post.gameEntry.platform}
+                {taggedGame.name}
+                {/* Plataforma só existe quando o post está ligado a um playthrough
+                    específico — vínculo livre (post.game solto) não tem uma. */}
+                {post.gameEntry ? ` · ${post.gameEntry.platform}` : ''}
               </Text>
             </View>
           )}

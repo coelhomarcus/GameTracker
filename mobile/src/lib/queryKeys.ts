@@ -22,6 +22,11 @@ export const qk = {
   gameEntriesByIgdb: (igdbId: number) => ['game-entries', 'igdb', igdbId] as const,
   gameFocus: (igdbId: number) => ['game-focus', igdbId] as const,
 
+  gameStats: (gameId: string) => ['game-stats', gameId] as const,
+  gamePlayers: (gameId: string, status: GameEntryStatus, scope: 'all' | 'following') =>
+    ['game-players', gameId, status, scope] as const,
+  gamePosts: (gameId: string) => ['game-posts', gameId] as const,
+
   notifications: () => ['notifications'] as const,
   conversations: () => ['conversations'] as const,
   usersSearch: (term?: string) => (term === undefined ? (['users', 'search'] as const) : (['users', 'search', term] as const)),

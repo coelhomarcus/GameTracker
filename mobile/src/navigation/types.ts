@@ -33,7 +33,18 @@ export type RootStackParamList = {
     entryId?: string;
     initial?: TrackingFormInitial;
   };
-  CreatePost: { gameEntryId?: string; prefillContent?: string } | undefined;
+  CreatePost:
+    | {
+        // Playthrough específico (ex: "zerei, quero postar") — precisa de
+        // gameName/gameCoverUrl junto pra mostrar o chip sem round-trip extra.
+        gameEntryId?: string;
+        // Jogo qualquer, sem playthrough associado (ex: "postar sobre este jogo").
+        gameId?: string;
+        gameName?: string;
+        gameCoverUrl?: string | null;
+        prefillContent?: string;
+      }
+    | undefined;
   UserProfile: { userId: string };
   Profile: undefined;
   EditProfile: undefined;

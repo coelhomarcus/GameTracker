@@ -4,6 +4,8 @@ import { api } from './client';
 export interface CreatePostInput {
   content: string;
   gameEntryId?: string;
+  /** Vínculo livre a qualquer jogo do catálogo — não exige um playthrough trackeado. */
+  gameId?: string;
   type?: PostType;
   imageUrl?: string;
 }
