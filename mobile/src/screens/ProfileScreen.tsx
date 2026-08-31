@@ -241,7 +241,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   list: { paddingBottom: 24, backgroundColor: colors.background },
-  banner: { height: 100, backgroundColor: colors.backgroundElevated },
+  banner: { height: 100, backgroundColor: colors.surface },
   avatarRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 16, marginTop: -40 },
   avatar: {
     width: 80,

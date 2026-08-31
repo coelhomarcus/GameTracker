@@ -152,7 +152,7 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingBottom: 32, backgroundColor: colors.background },
-  banner: { height: 100, backgroundColor: colors.backgroundElevated },
+  banner: { height: 100, backgroundColor: colors.surface },
   bannerEditBadge: {
     position: 'absolute',
     bottom: 8,

@@ -288,7 +288,7 @@ export default function UserProfileScreen() {
 
 const styles = StyleSheet.create({
   list: { paddingBottom: 24, backgroundColor: colors.background },
-  banner: { height: 100, backgroundColor: colors.backgroundElevated },
+  banner: { height: 100, backgroundColor: colors.surface },
   bannerImage: { width: '100%', height: '100%' },
   avatarRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 16, marginTop: -40 },
   header: { paddingHorizontal: 16, paddingTop: 8, gap: 2, alignItems: 'flex-start' },

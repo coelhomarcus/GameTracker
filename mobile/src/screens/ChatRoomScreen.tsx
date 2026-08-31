@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   bubbleAvatarText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   bubble: { maxWidth: '75%', borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14 },
   bubbleMine: { backgroundColor: colors.accent },
-  bubbleTheirs: { backgroundColor: colors.backgroundElevated },
+  bubbleTheirs: { backgroundColor: colors.surface },
   bubbleTailMine: { borderBottomRightRadius: 6 },
   bubbleTailTheirs: { borderBottomLeftRadius: 6 },
   bubbleTextMine: { color: '#fff', fontSize: 15, lineHeight: 20 },

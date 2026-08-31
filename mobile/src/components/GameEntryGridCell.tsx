@@ -31,7 +31,7 @@ export function GameEntryGridCell({ entry, width, onPress }: Props) {
 const styles = StyleSheet.create({
   card: { gap: 4 },
   cover: { borderRadius: 6 },
-  coverPlaceholder: { backgroundColor: colors.backgroundElevated },
+  coverPlaceholder: { backgroundColor: colors.surface },
   statusDot: {
     position: 'absolute',
     top: 4,

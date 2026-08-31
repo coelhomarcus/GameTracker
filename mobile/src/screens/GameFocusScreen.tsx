@@ -114,7 +114,7 @@ export default function GameFocusScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 4, backgroundColor: colors.background },
-  cover: { width: 140, height: 187, borderRadius: radius.md, backgroundColor: colors.backgroundElevated, alignSelf: 'center' },
+  cover: { width: 140, height: 187, borderRadius: radius.lg, backgroundColor: colors.surface, alignSelf: 'center' },
   coverPlaceholder: {},
   title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 12, color: colors.textPrimary },
   subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 2 },
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   summary: { fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginTop: 16 },
   screenshots: { marginTop: 16 },
   screenshotsContent: { gap: 8 },
-  screenshot: { width: 240, height: 135, borderRadius: radius.md, backgroundColor: colors.backgroundElevated },
+  screenshot: { width: 240, height: 135, borderRadius: radius.lg, backgroundColor: colors.surface },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: colors.textSecondary,
   },
-  entryCard: { backgroundColor: colors.backgroundElevated, borderRadius: radius.md, padding: 14, gap: 6, marginBottom: 8 },
+  entryCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14, gap: 6, marginBottom: 8 },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   entryPlatform: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   badge: { backgroundColor: colors.background, borderRadius: radius.pill, paddingVertical: 4, paddingHorizontal: 10 },

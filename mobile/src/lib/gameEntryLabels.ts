@@ -8,11 +8,12 @@ export const STATUS_LABEL: Record<GameEntryStatus, string> = {
   dropped: 'Abandonado',
 };
 
+/** Rampa própria: status não pode dividir cor com o accent, senão vira cromo. */
 export const STATUS_COLOR: Record<GameEntryStatus, string> = {
-  backlog: colors.textSecondary,
-  playing: colors.accent,
-  completed: colors.success,
-  dropped: colors.like,
+  backlog: colors.statusBacklog,
+  playing: colors.statusPlaying,
+  completed: colors.statusCompleted,
+  dropped: colors.statusDropped,
 };
 
 export const STATUS_FILTERS: { value: GameEntryStatus | 'all'; label: string }[] = [

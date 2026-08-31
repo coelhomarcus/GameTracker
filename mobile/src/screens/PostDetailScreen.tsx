@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.backgroundElevated,
+    backgroundColor: colors.surface,
   },
   replyBannerText: { color: colors.textSecondary, fontSize: 13 },
   replyBannerUsername: { color: colors.accent, fontWeight: '600' },

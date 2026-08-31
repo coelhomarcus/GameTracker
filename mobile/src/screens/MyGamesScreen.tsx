@@ -184,10 +184,10 @@ const styles = StyleSheet.create({
   viewToggle: { padding: 10, marginRight: 12 },
   list: { gap: 12, paddingBottom: 24 },
   listPadded: { paddingHorizontal: 16 },
-  coverPlaceholder: { backgroundColor: colors.backgroundElevated },
+  coverPlaceholder: { backgroundColor: colors.surface },
 
   // list mode
-  card: { flexDirection: 'row', backgroundColor: colors.backgroundElevated, borderRadius: radius.md, padding: 12, gap: 12 },
+  card: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.lg, padding: 12, gap: 12 },
   listCover: { width: 56, height: 74, borderRadius: 8 },
   cardBody: { flex: 1, gap: 6 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },

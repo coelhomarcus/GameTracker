@@ -32,7 +32,7 @@ export function StatusFilterChips({ value, onChange }: Props) {
 const styles = StyleSheet.create({
   row: { gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
   chip: {
-    backgroundColor: colors.backgroundElevated,
+    backgroundColor: colors.surface,
     borderRadius: radius.pill,
     paddingVertical: 6,
     paddingHorizontal: 14,

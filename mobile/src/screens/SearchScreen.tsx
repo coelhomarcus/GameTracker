@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   tabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '40%', backgroundColor: colors.accent, borderRadius: 1 },
   list: { padding: 16, gap: 12 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  cover: { width: 48, height: 64, borderRadius: 6, backgroundColor: colors.backgroundElevated },
+  cover: { width: 48, height: 64, borderRadius: 6, backgroundColor: colors.surface },
   coverPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   rowInfo: { flex: 1 },
   userHeaderRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },

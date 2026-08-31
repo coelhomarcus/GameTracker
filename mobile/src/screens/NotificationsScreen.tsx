@@ -112,6 +112,6 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.textPrimary },
   tabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '50%', backgroundColor: colors.accent, borderRadius: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
-  rowUnread: { backgroundColor: colors.backgroundElevated },
+  rowUnread: { backgroundColor: colors.surface },
   text: { flex: 1, fontSize: 14, color: colors.textPrimary },
 });

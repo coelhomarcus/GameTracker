@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.backgroundElevated,
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 8,
     alignSelf: 'flex-start',
