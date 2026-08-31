@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
 import { STATUS_COLOR, STATUS_ICON } from '../lib/gameEntryLabels';
 import { formatRelativeTime } from '../lib/relativeTime';
+import type { RootStackParamList } from '../navigation/types';
 import { colors, hit, icon, opacity, radius, space, type } from '../theme';
 import type { Post } from '../types/models';
 import { RemoteImage } from './ui';
@@ -29,9 +32,10 @@ const COVER_HEIGHT = 37;
  * playthrough e faria o ícone de um post antigo mudar sozinho).
  */
 function ActivityRowComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const badgeColor = post.activityStatus ? STATUS_COLOR[post.activityStatus] : colors.textTertiary;
   const badgeIcon = post.activityStatus ? STATUS_ICON[post.activityStatus] : 'game-controller-outline';
-  const coverUrl = post.gameEntry?.game.coverUrl ?? post.game?.coverUrl;
+  const taggedGame = post.gameEntry?.game ?? post.game;
 
   return (
     <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]} onPress={onPress}>
@@ -83,7 +87,16 @@ function ActivityRowComponent({ post, onPress, onAuthorPress, onToggleLike }: Pr
         </View>
       </View>
 
-      {coverUrl && <RemoteImage uri={coverUrl} style={styles.cover} />}
+      {taggedGame && (
+        <Pressable
+          onPress={() => navigation.navigate('GameFocus', { igdbId: taggedGame.igdbId })}
+          accessibilityRole="button"
+          accessibilityLabel={`Ver ${taggedGame.name}`}
+          style={({ pressed }) => pressed && { opacity: opacity.pressed }}
+        >
+          <RemoteImage uri={taggedGame.coverUrl} style={styles.cover} />
+        </Pressable>
+      )}
     </Pressable>
   );
 }

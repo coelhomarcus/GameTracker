@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
+import type { RootStackParamList } from '../navigation/types';
 import { colors, hit, icon, opacity, radius, space, type } from '../theme';
 import type { Post } from '../types/models';
 import { LikeButton } from './LikeButton';
@@ -17,6 +20,7 @@ interface Props {
 const ROW_GAP = space.md;
 
 function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   // gameEntry (playthrough próprio) tem prioridade — carrega plataforma; post.game
   // é o vínculo livre a um jogo que o autor nunca trackeou.
   const taggedGame = post.gameEntry?.game ?? post.game;
@@ -42,7 +46,12 @@ function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props
           <Text style={styles.content}>{post.content}</Text>
 
           {taggedGame && (
-            <View style={styles.gameTag}>
+            <Pressable
+              style={({ pressed }) => [styles.gameTag, pressed && { opacity: opacity.pressed }]}
+              onPress={() => navigation.navigate('GameFocus', { igdbId: taggedGame.igdbId })}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver ${taggedGame.name}`}
+            >
               {taggedGame.coverUrl ? (
                 <RemoteImage uri={taggedGame.coverUrl} style={styles.gameTagCover} />
               ) : (
@@ -54,7 +63,7 @@ function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props
                     específico — vínculo livre (post.game solto) não tem uma. */}
                 {post.gameEntry ? ` · ${post.gameEntry.platform}` : ''}
               </Text>
-            </View>
+            </Pressable>
           )}
 
           <View style={styles.actions}>
