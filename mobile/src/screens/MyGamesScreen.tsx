@@ -189,7 +189,12 @@ export default function MyGamesScreen() {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.sortScroll}
+        contentContainerStyle={styles.sortRow}
+      >
         {SORT_OPTIONS.map((option) => (
           <Chip
             key={option.value}
@@ -261,7 +266,11 @@ const styles = StyleSheet.create({
   },
   filtersWrap: { flex: 1 },
   viewToggle: { marginRight: space.md },
-  sortRow: { gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.sm },
+  // flexGrow: 0 é essencial no Android: sem altura própria, um ScrollView
+  // horizontal direto dentro de um container flex:1 se expande pra ocupar
+  // todo o espaço vertical restante em vez de ficar do tamanho do seu conteúdo.
+  sortScroll: { flexGrow: 0 },
+  sortRow: { gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.sm },
   // Folga extra pro FAB não cobrir a última linha.
   list: { gap: space.md, paddingBottom: space.huge + space.xl },
   listPadded: { paddingHorizontal: space.lg },

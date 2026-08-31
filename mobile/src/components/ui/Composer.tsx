@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, forms, icon, opacity, radius, space } from '../../theme';
@@ -29,14 +29,24 @@ export function Composer({
   const insets = useSafeAreaInsets();
   const canSend = value.trim().length > 0 && !sending;
 
+  // multiline sem altura controlada renderiza grande demais no Android (reserva
+  // espaço de várias linhas por padrão) — cresce a partir de uma linha só,
+  // do tamanho do botão de enviar, até o teto de ~4 linhas.
+  const [contentHeight, setContentHeight] = useState(MIN_INPUT_HEIGHT);
+  useEffect(() => {
+    if (value === '') setContentHeight(MIN_INPUT_HEIGHT);
+  }, [value]);
+  const inputHeight = Math.min(Math.max(contentHeight, MIN_INPUT_HEIGHT), MAX_INPUT_HEIGHT);
+
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, space.sm) }]}>
       {banner}
       <View style={styles.row}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { height: inputHeight }]}
           value={value}
           onChangeText={onChangeText}
+          onContentSizeChange={(e) => setContentHeight(e.nativeEvent.contentSize.height)}
           placeholder={placeholder}
           placeholderTextColor={colors.textTertiary}
           multiline
@@ -68,6 +78,8 @@ export function Composer({
 }
 
 const SEND_SIZE = 40;
+const MIN_INPUT_HEIGHT = SEND_SIZE;
+const MAX_INPUT_HEIGHT = 120;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -81,8 +93,6 @@ const styles = StyleSheet.create({
   input: {
     ...forms.inputPill,
     flex: 1,
-    // Cresce até ~4 linhas e então rola — antes era linha única.
-    maxHeight: 120,
   },
   send: {
     width: SEND_SIZE,

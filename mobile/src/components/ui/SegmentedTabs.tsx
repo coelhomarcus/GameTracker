@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { colors, duration, opacity, radius, space, type } from '../../theme';
+import { colors, duration, fonts, opacity, radius, space, type } from '../../theme';
 
 export interface Tab<T extends string> {
   value: T;
@@ -78,8 +78,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   tab: { flex: 1, alignItems: 'center', paddingVertical: space.md },
-  label: { ...type.label, color: colors.textSecondary },
-  labelActive: { ...type.bodyStrong, fontSize: type.label.fontSize, color: colors.textPrimary },
+  // lineHeight um pouco maior que o de type.label (17): fonte customizada
+  // corta a base de letras com descendente (g, j, p) em telas Android
+  // quando a caixa da linha é justa demais.
+  label: { ...type.label, lineHeight: 20, color: colors.textSecondary },
+  labelActive: { ...type.label, lineHeight: 20, fontFamily: fonts.bold, color: colors.textPrimary },
   indicator: {
     position: 'absolute',
     bottom: 0,
