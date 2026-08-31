@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { StatusFilterChips } from '../components/StatusFilterChips';
 import { IconButton, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import { useGameEntryMutations } from '../hooks/queries/useGameEntryMutations';
 import { confirmAction } from '../lib/alert';
+import { getPlatformIcon } from '../lib/platformIcon';
 import { qk } from '../lib/queryKeys';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
@@ -110,12 +111,15 @@ export default function MyGamesScreen() {
             </Text>
             <StatusBadge status={item.status} />
           </View>
-          <Text style={styles.cardMeta}>
-            {item.platform}
-            {item.hoursPlayed ? ` · ${item.hoursPlayed}h` : ''}
-            {/* Nota é 0–10: exibir em escala de 5 arredondava 7 pra 8. */}
-            {item.rating ? ` · nota ${item.rating}/10` : ''}
-          </Text>
+          <View style={styles.cardMetaRow}>
+            <MaterialCommunityIcons name={getPlatformIcon(item.platform)} size={icon.sm} color={colors.textSecondary} />
+            <Text style={styles.cardMeta}>
+              {item.platform}
+              {item.hoursPlayed ? ` · ${item.hoursPlayed}h` : ''}
+              {/* Nota é 0–10: exibir em escala de 5 arredondava 7 pra 8. */}
+              {item.rating ? ` · nota ${item.rating}/10` : ''}
+            </Text>
+          </View>
 
           <View style={styles.cardActions}>
             <Pressable
@@ -210,6 +214,7 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1, gap: space.sm },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm },
   cardTitle: { ...type.bodyLg, fontFamily: type.bodyStrong.fontFamily, flex: 1, color: colors.textPrimary },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   // Plataforma, horas e nota são dado de ficha: mono.
   cardMeta: { ...type.data, color: colors.textSecondary },
   cardActions: { flexDirection: 'row', gap: space.sm, marginTop: space.xs },

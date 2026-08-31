@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { ScrollView, StyleSheet } from 'react-native';
-import { STATUS_COLOR, STATUS_FILTERS } from '../lib/gameEntryLabels';
-import { space } from '../theme';
+import { STATUS_COLOR, STATUS_FILTERS, STATUS_ICON } from '../lib/gameEntryLabels';
+import { colors, icon as iconScale, space } from '../theme';
 import type { GameEntryStatus } from '../types/models';
 import { Chip } from './ui';
 
@@ -17,17 +18,29 @@ export function StatusFilterChips({ value, onChange }: Props) {
       contentContainerStyle={styles.row}
       keyboardShouldPersistTaps="handled"
     >
-      {STATUS_FILTERS.map((filter) => (
-        <Chip
-          key={filter.value}
-          label={filter.label}
-          selected={value === filter.value}
-          onPress={() => onChange(filter.value)}
-          // O filtro pinta com a própria cor do status — o chip vira legenda.
-          tone={filter.value === 'all' ? 'neutral' : 'status'}
-          statusColor={filter.value === 'all' ? undefined : STATUS_COLOR[filter.value]}
-        />
-      ))}
+      {STATUS_FILTERS.map((filter) => {
+        const selected = value === filter.value;
+        return (
+          <Chip
+            key={filter.value}
+            label={filter.label}
+            selected={selected}
+            onPress={() => onChange(filter.value)}
+            // O filtro pinta com a própria cor do status — o chip vira legenda.
+            tone={filter.value === 'all' ? 'neutral' : 'status'}
+            statusColor={filter.value === 'all' ? undefined : STATUS_COLOR[filter.value]}
+            icon={
+              filter.value !== 'all' && (
+                <Ionicons
+                  name={STATUS_ICON[filter.value]}
+                  size={iconScale.sm}
+                  color={selected ? colors.textOnStatus : colors.textSecondary}
+                />
+              )
+            }
+          />
+        );
+      })}
     </ScrollView>
   );
 }

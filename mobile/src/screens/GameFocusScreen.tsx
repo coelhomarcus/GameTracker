@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -9,8 +10,9 @@ import { EmptyState } from '../components/EmptyState';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
 import { Button, ErrorState, RemoteImage, Screen, StatusBadge } from '../components/ui';
+import { getPlatformIcon } from '../lib/platformIcon';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, opacity, radius, space, type } from '../theme';
+import { colors, icon, opacity, radius, space, type } from '../theme';
 import type { GameEntry } from '../types/models';
 
 export default function GameFocusScreen() {
@@ -112,7 +114,10 @@ export default function GameFocusScreen() {
             accessibilityLabel={`Editar playthrough de ${entry.platform}`}
           >
             <View style={styles.entryHeader}>
-              <Text style={styles.entryPlatform}>{entry.platform}</Text>
+              <View style={styles.entryPlatformRow}>
+                <MaterialCommunityIcons name={getPlatformIcon(entry.platform)} size={icon.sm} color={colors.textPrimary} />
+                <Text style={styles.entryPlatform}>{entry.platform}</Text>
+              </View>
               <StatusBadge status={entry.status} />
             </View>
             <Text style={styles.entryMeta}>
@@ -162,6 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  entryPlatformRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   entryPlatform: { ...type.bodyStrong, color: colors.textPrimary },
   // Horas e nota em mono: é o dado da ficha.
   entryMeta: { ...type.data, color: colors.textSecondary },

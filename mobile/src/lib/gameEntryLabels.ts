@@ -1,3 +1,4 @@
+import type { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import type { GameEntryStatus } from '../types/models';
 
@@ -6,6 +7,13 @@ export const STATUS_LABEL: Record<GameEntryStatus, string> = {
   playing: 'Jogando',
   completed: 'Completo',
   dropped: 'Abandonado',
+};
+
+export const STATUS_ICON: Record<GameEntryStatus, keyof typeof Ionicons.glyphMap> = {
+  backlog: 'bookmark-outline',
+  playing: 'play-circle-outline',
+  completed: 'checkmark-circle-outline',
+  dropped: 'close-circle-outline',
 };
 
 /** Rampa própria: status não pode dividir cor com o accent, senão vira cromo. */

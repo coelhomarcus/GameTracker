@@ -1,5 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +11,8 @@ import { Button, Chip, IconButton, Screen } from '../components/ui';
 import { notify } from '../lib/alert';
 import { getApiErrorMessage } from '../lib/apiError';
 import { parseDecimal, toApiDate } from '../lib/date';
-import { STATUS_COLOR, STATUS_LABEL } from '../lib/gameEntryLabels';
+import { STATUS_COLOR, STATUS_ICON, STATUS_LABEL } from '../lib/gameEntryLabels';
+import { getPlatformIcon } from '../lib/platformIcon';
 import { qk } from '../lib/queryKeys';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, forms, icon, opacity, radius, space, type } from '../theme';
@@ -127,14 +128,24 @@ export default function TrackingFormScreen() {
           <Text style={forms.label}>Plataforma</Text>
           {platforms.length > 0 ? (
             <View style={styles.chipsRow}>
-              {platforms.map((option) => (
-                <Chip
-                  key={option}
-                  label={option}
-                  selected={platform === option}
-                  onPress={() => setPlatform(option)}
-                />
-              ))}
+              {platforms.map((option) => {
+                const selected = platform === option;
+                return (
+                  <Chip
+                    key={option}
+                    label={option}
+                    selected={selected}
+                    onPress={() => setPlatform(option)}
+                    icon={
+                      <MaterialCommunityIcons
+                        name={getPlatformIcon(option)}
+                        size={icon.sm}
+                        color={selected ? colors.textOnAccent : colors.textSecondary}
+                      />
+                    }
+                  />
+                );
+              })}
             </View>
           ) : (
             <TextInput
@@ -152,16 +163,26 @@ export default function TrackingFormScreen() {
         <View style={styles.section}>
           <Text style={forms.label}>Status</Text>
           <View style={styles.chipsRow}>
-            {STATUS_OPTIONS.map((option) => (
-              <Chip
-                key={option}
-                label={STATUS_LABEL[option]}
-                selected={status === option}
-                onPress={() => setStatus(option)}
-                tone="status"
-                statusColor={STATUS_COLOR[option]}
-              />
-            ))}
+            {STATUS_OPTIONS.map((option) => {
+              const selected = status === option;
+              return (
+                <Chip
+                  key={option}
+                  label={STATUS_LABEL[option]}
+                  selected={selected}
+                  onPress={() => setStatus(option)}
+                  tone="status"
+                  statusColor={STATUS_COLOR[option]}
+                  icon={
+                    <Ionicons
+                      name={STATUS_ICON[option]}
+                      size={icon.sm}
+                      color={selected ? colors.textOnStatus : colors.textSecondary}
+                    />
+                  }
+                />
+              );
+            })}
           </View>
         </View>
 
