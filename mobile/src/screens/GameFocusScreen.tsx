@@ -11,7 +11,19 @@ import { EmptyState } from '../components/EmptyState';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
-import { Avatar, Button, ErrorState, ExpandableText, ListFooter, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
+import {
+  Avatar,
+  Button,
+  ErrorState,
+  ExpandableText,
+  IconButton,
+  ListFooter,
+  ListState,
+  RemoteImage,
+  Screen,
+  StatusBadge,
+} from '../components/ui';
+import { useToggleFavorite } from '../hooks/queries/useFavorites';
 import { useGamePlayers, useGamePosts, useGameStats } from '../hooks/queries/useGameSocial';
 import { useToggleLike } from '../hooks/queries/useToggleLike';
 import { displayName } from '../lib/displayName';
@@ -45,6 +57,7 @@ export default function GameFocusScreen() {
   const friendsQuery = useGamePlayers(gameId, 'playing', 'following', hasGame);
   const gamePosts = useGamePosts(gameId, hasGame);
   const toggleLike = useToggleLike();
+  const toggleFavorite = useToggleFavorite();
 
   const renderPost = useCallback(
     ({ item }: { item: Post }) => {
@@ -126,7 +139,16 @@ export default function GameFocusScreen() {
 
   const header = (
     <View>
-      <RemoteImage uri={game.coverUrl} style={styles.cover} accessibilityLabel={`Capa de ${game.name}`} />
+      <View style={styles.coverWrap}>
+        <RemoteImage uri={game.coverUrl} style={styles.cover} accessibilityLabel={`Capa de ${game.name}`} />
+        <IconButton
+          name={game.isFavoritedByMe ? 'star' : 'star-outline'}
+          color={game.isFavoritedByMe ? colors.rating : colors.textPrimary}
+          onPress={() => toggleFavorite.mutate(game)}
+          accessibilityLabel={game.isFavoritedByMe ? 'Remover dos favoritos' : 'Favoritar jogo'}
+          style={styles.favoriteButton}
+        />
+      </View>
       <Text style={styles.title}>{game.name}</Text>
       {game.genres.length > 0 && <Text style={styles.subtitle}>{game.genres.join(', ')}</Text>}
       {game.platforms.length > 0 && <Text style={styles.platforms}>{game.platforms.slice(0, 5).join(' · ')}</Text>}
@@ -245,12 +267,19 @@ export default function GameFocusScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background },
   list: { padding: space.lg, gap: space.xs, paddingBottom: space.xxl },
+  coverWrap: { alignSelf: 'center' },
   cover: {
     width: 140,
     height: 187,
     borderRadius: radius.lg,
     backgroundColor: colors.skeleton,
-    alignSelf: 'center',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: space.xs,
+    right: space.xs,
+    backgroundColor: colors.overlay,
+    borderRadius: radius.pill,
   },
   title: { ...type.title, color: colors.textPrimary, textAlign: 'center', marginTop: space.md },
   subtitle: { ...type.caption, color: colors.textSecondary, textAlign: 'center', marginTop: space.hair },

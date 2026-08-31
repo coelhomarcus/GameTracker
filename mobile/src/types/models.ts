@@ -19,6 +19,8 @@ export interface Game {
   screenshots: string[];
   platforms: string[];
   genres: string[];
+  /** Só vem preenchido em GET /games/:id, /games/igdb/:igdbId e na lista de favoritos. */
+  isFavoritedByMe?: boolean;
 }
 
 export interface IgdbSearchResult {

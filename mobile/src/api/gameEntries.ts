@@ -14,11 +14,15 @@ export interface CreateGameEntryInput {
 
 export type UpdateGameEntryInput = Partial<Omit<CreateGameEntryInput, 'igdbId'>>;
 
+export type GameEntrySort = 'recent' | 'oldest' | 'most_played';
+
 export function createGameEntry(input: CreateGameEntryInput) {
   return api.post<GameEntry>('/game-entries', input).then((r) => r.data);
 }
 
-export function listMyGameEntries(filters: { status?: GameEntryStatus; igdbId?: number } = {}) {
+export function listMyGameEntries(
+  filters: { status?: GameEntryStatus; igdbId?: number; sort?: GameEntrySort } = {},
+) {
   return api.get<GameEntry[]>('/game-entries/me', { params: filters }).then((r) => r.data);
 }
 

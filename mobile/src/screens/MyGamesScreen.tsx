@@ -3,12 +3,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
+import type { GameEntrySort } from '../api/gameEntries';
 import { GameEntryGridCell } from '../components/GameEntryGridCell';
 import { GamePickerModal, type PickedGame } from '../components/GamePickerModal';
 import { StatusFilterChips } from '../components/StatusFilterChips';
-import { IconButton, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
+import { Chip, IconButton, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import { useGameEntryMutations } from '../hooks/queries/useGameEntryMutations';
 import { confirmAction } from '../lib/alert';
 import { getPlatformIcon } from '../lib/platformIcon';
@@ -25,9 +26,16 @@ const NEXT_STATUS: Record<GameEntryStatus, GameEntryStatus> = {
   dropped: 'backlog',
 };
 
+const SORT_OPTIONS: { value: GameEntrySort; label: string }[] = [
+  { value: 'recent', label: 'Mais recentes' },
+  { value: 'oldest', label: 'Mais antigos' },
+  { value: 'most_played', label: 'Mais jogados' },
+];
+
 export default function MyGamesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [filter, setFilter] = useState<GameEntryStatus | 'all'>('all');
+  const [sort, setSort] = useState<GameEntrySort>('recent');
   const [viewMode, setViewModeState] = useState<ViewMode>('grid');
   const [pickerVisible, setPickerVisible] = useState(false);
   const cellWidth = useGridCellWidth();
@@ -60,8 +68,8 @@ export default function MyGamesScreen() {
   }
 
   const query = useQuery({
-    queryKey: qk.gameEntriesFiltered(filter),
-    queryFn: () => gameEntriesApi.listMyGameEntries({ status: filter === 'all' ? undefined : filter }),
+    queryKey: qk.gameEntriesFiltered(filter, sort),
+    queryFn: () => gameEntriesApi.listMyGameEntries({ status: filter === 'all' ? undefined : filter, sort }),
   });
 
   const openFocus = useCallback(
@@ -181,6 +189,17 @@ export default function MyGamesScreen() {
         />
       </View>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
+        {SORT_OPTIONS.map((option) => (
+          <Chip
+            key={option.value}
+            label={option.label}
+            selected={sort === option.value}
+            onPress={() => setSort(option.value)}
+          />
+        ))}
+      </ScrollView>
+
       <FlatList
         key={viewMode}
         data={query.data ?? []}
@@ -242,6 +261,7 @@ const styles = StyleSheet.create({
   },
   filtersWrap: { flex: 1 },
   viewToggle: { marginRight: space.md },
+  sortRow: { gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.sm },
   // Folga extra pro FAB não cobrir a última linha.
   list: { gap: space.md, paddingBottom: space.huge + space.xl },
   listPadded: { paddingHorizontal: space.lg },

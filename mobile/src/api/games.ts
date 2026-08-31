@@ -35,3 +35,16 @@ export function getGamePosts(gameId: string, cursor?: string) {
     .get<GamePostsPage>(`/games/${gameId}/posts`, { params: cursor ? { cursor } : undefined })
     .then((r) => r.data);
 }
+
+export function addFavorite(gameId: string) {
+  return api.post(`/games/${gameId}/favorite`);
+}
+
+export function removeFavorite(gameId: string) {
+  return api.delete(`/games/${gameId}/favorite`);
+}
+
+/** Jogos favoritos de um perfil — mais recentes primeiro. */
+export function getFavoriteGames(userId: string) {
+  return api.get<Game[]>(`/users/${userId}/favorites`).then((r) => r.data);
+}

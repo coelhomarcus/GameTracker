@@ -18,7 +18,8 @@ export const qk = {
     ['user-game-entries', userId, status] as const,
 
   gameEntries: () => ['game-entries'] as const,
-  gameEntriesFiltered: (status: GameEntryStatus | 'all') => ['game-entries', status] as const,
+  gameEntriesFiltered: (status: GameEntryStatus | 'all', sort?: string) =>
+    ['game-entries', status, sort] as const,
   gameEntriesByIgdb: (igdbId: number) => ['game-entries', 'igdb', igdbId] as const,
   gameFocus: (igdbId: number) => ['game-focus', igdbId] as const,
 
@@ -26,6 +27,7 @@ export const qk = {
   gamePlayers: (gameId: string, status: GameEntryStatus, scope: 'all' | 'following') =>
     ['game-players', gameId, status, scope] as const,
   gamePosts: (gameId: string) => ['game-posts', gameId] as const,
+  userFavorites: (userId?: string) => ['user-favorites', userId] as const,
 
   notifications: () => ['notifications'] as const,
   conversations: () => ['conversations'] as const,
