@@ -7,6 +7,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type Layou
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as postsApi from '../api/posts';
 import { ActivityRow } from '../components/ActivityRow';
+import { NotificationsHeaderButton } from '../components/NotificationsHeaderButton';
 import { PostCard } from '../components/PostCard';
 import { Avatar, ListFooter, ListState, Screen, SegmentedTabs, type Tab } from '../components/ui';
 import { useInfiniteList } from '../hooks/queries/useInfiniteList';
@@ -106,7 +107,7 @@ export default function FeedScreen() {
             accessibilityLabel="Abrir meu perfil"
           />
           <Text style={styles.wordmark}>GameTracker</Text>
-          <View style={styles.headerSpacer} />
+          <NotificationsHeaderButton />
         </View>
 
         <SegmentedTabs tabs={SCOPES} value={scope} onChange={setScope} />
@@ -116,7 +117,6 @@ export default function FeedScreen() {
 }
 
 const FAB_SIZE = 56;
-const AVATAR_SIZE = 28;
 /** Folga pra tab bar + FAB não cobrirem o último post. */
 const LIST_BOTTOM_CLEARANCE = 96;
 
@@ -130,7 +130,6 @@ const styles = StyleSheet.create({
   },
   // Wordmark na face de display; o resto do app não a usa em lugar nenhum.
   wordmark: { ...type.heading, fontFamily: fonts.wordmark, color: colors.textPrimary },
-  headerSpacer: { width: AVATAR_SIZE },
   list: { paddingBottom: LIST_BOTTOM_CLEARANCE },
   headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   fab: {

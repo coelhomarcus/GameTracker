@@ -10,6 +10,7 @@ import ChatRoomScreen from '../screens/ChatRoomScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import GameFocusScreen from '../screens/GameFocusScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -71,6 +72,7 @@ export default function RootNavigator() {
             options={{ title: 'Editar perfil', presentation: 'modal' }}
           />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações' }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
           {/* Título real vem do próprio ChatRoom; este é o fallback do 1º frame. */}
           <Stack.Screen name="ChatRoom" component={ChatRoomScreen} options={{ title: 'Conversa' }} />

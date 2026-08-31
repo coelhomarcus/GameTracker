@@ -10,7 +10,9 @@ export type MainTabParamList = {
   Search: undefined;
   MyGames: undefined;
   Chat: undefined;
-  Notifications: undefined;
+  // Não renderiza tela própria: o tabPress é interceptado e navega pra
+  // rota "Profile" da RootStack (nome diferente pra não colidir com ela).
+  ProfileTab: undefined;
 };
 
 export interface TrackingFormInitial {
@@ -49,6 +51,7 @@ export type RootStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
   Settings: undefined;
+  Notifications: undefined;
   PostDetail: { postId: string };
   ChatRoom: {
     conversationId: string;
