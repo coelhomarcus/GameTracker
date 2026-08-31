@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
+import { STATUS_COLOR, STATUS_ICON } from '../lib/gameEntryLabels';
 import { formatRelativeTime } from '../lib/relativeTime';
 import { colors, hit, icon, opacity, radius, space, type } from '../theme';
 import type { Post } from '../types/models';
-import { Avatar, RemoteImage, StatusBadge } from './ui';
+import { RemoteImage } from './ui';
 
 interface Props {
   post: Post;
@@ -14,23 +15,28 @@ interface Props {
   onToggleLike: () => void;
 }
 
-const COVER_WIDTH = 32;
-const COVER_HEIGHT = 42;
+const BADGE_SIZE = 34;
+const BADGE_ICON_SIZE = 17;
+const COVER_WIDTH = 28;
+const COVER_HEIGHT = 37;
 
 /**
- * Linha compacta pra `post.type === 'activity'` (sempre criado com gameEntry
- * pelo backend — ver `createActivityPost` em gameEntries.service.ts), no
- * estilo do feed de atividade da Steam: capa pequena, frase pronta que já vem
- * do servidor, hora relativa — sem o peso visual de um post escrito.
+ * Linha compacta pra `post.type === 'activity'`, no estilo dos ícones de
+ * notificação da X: um badge colorido lidera a linha (no lugar de um avatar),
+ * a capa do jogo vira miniatura secundária. A cor/ícone vêm de
+ * `post.activityStatus` — o snapshot imutável tirado na criação do post
+ * (nunca de `gameEntry.status`, que é o status ATUAL e mutável do
+ * playthrough e faria o ícone de um post antigo mudar sozinho).
  */
 function ActivityRowComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
-  const entry = post.gameEntry;
+  const badgeColor = post.activityStatus ? STATUS_COLOR[post.activityStatus] : colors.textTertiary;
+  const badgeIcon = post.activityStatus ? STATUS_ICON[post.activityStatus] : 'game-controller-outline';
+  const coverUrl = post.gameEntry?.game.coverUrl ?? post.game?.coverUrl;
 
   return (
     <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]} onPress={onPress}>
-      <View style={styles.coverWrap}>
-        {entry && <RemoteImage uri={entry.game.coverUrl} style={styles.cover} />}
-        {entry && <StatusBadge status={entry.status} variant="dot" />}
+      <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+        <Ionicons name={badgeIcon} size={BADGE_ICON_SIZE} color={colors.textOnStatus} />
       </View>
 
       <View style={styles.body}>
@@ -61,15 +67,23 @@ function ActivityRowComponent({ post, onPress, onAuthorPress, onToggleLike }: Pr
               {post.likeCount > 0 && <Text style={styles.actionText}>{post.likeCount}</Text>}
             </Pressable>
 
-            {post.commentCount > 0 && (
-              <View style={styles.actionButton}>
-                <Ionicons name="chatbubble-outline" size={icon.xs} color={colors.textTertiary} />
-                <Text style={styles.actionText}>{post.commentCount}</Text>
-              </View>
-            )}
+            {/* Sempre visível — comentar em post de atividade já funciona de
+                ponta a ponta, só a UI compacta escondia a affordance. */}
+            <Pressable
+              onPress={onPress}
+              hitSlop={hit.sm}
+              accessibilityRole="button"
+              accessibilityLabel={`${post.commentCount} comentários`}
+              style={({ pressed }) => [styles.actionButton, pressed && { opacity: opacity.pressed }]}
+            >
+              <Ionicons name="chatbubble-outline" size={icon.xs} color={colors.textTertiary} />
+              <Text style={styles.actionText}>{post.commentCount}</Text>
+            </Pressable>
           </View>
         </View>
       </View>
+
+      {coverUrl && <RemoteImage uri={coverUrl} style={styles.cover} />}
     </Pressable>
   );
 }
@@ -79,6 +93,7 @@ export const ActivityRow = memo(ActivityRowComponent);
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: space.md,
     backgroundColor: colors.surface,
     paddingVertical: space.sm,
@@ -87,9 +102,15 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowPressed: { backgroundColor: colors.surfaceRaised },
-  coverWrap: { width: COVER_WIDTH },
+  badge: {
+    width: BADGE_SIZE,
+    height: BADGE_SIZE,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cover: { width: COVER_WIDTH, height: COVER_HEIGHT, borderRadius: radius.xs, backgroundColor: colors.skeleton },
-  body: { flex: 1, justifyContent: 'center', gap: space.xs },
+  body: { flex: 1, gap: space.xs },
   line: { ...type.caption },
   author: { ...type.label, color: colors.textPrimary },
   content: { ...type.caption, color: colors.textSecondary },

@@ -65,6 +65,12 @@ export interface Post {
   content: string;
   gameEntryId: string | null;
   gameId: string | null;
+  /**
+   * Snapshot imutável do status no momento em que a atividade aconteceu —
+   * só presente em posts `type: 'activity'`. Nunca deriva de
+   * `gameEntry.status` (esse é o status ATUAL do playthrough, que muda).
+   */
+  activityStatus: GameEntryStatus | null;
   type: PostType;
   imageUrl: string | null;
   createdAt: string;
