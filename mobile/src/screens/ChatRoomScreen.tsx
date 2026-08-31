@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ import * as conversationsApi from '../api/conversations';
 import { getSocket } from '../lib/socket';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 import { radius } from '../theme/radius';
 import type { RootStackParamList } from '../navigation/types';
 import type { Message } from '../types/models';
@@ -168,15 +170,42 @@ export default function ChatRoomScreen() {
     setInput('');
   }
 
-  function renderItem({ item }: { item: Message }) {
+  function renderItem({ item, index }: { item: Message; index: number }) {
     const isMine = item.senderId === myId;
+    // A lista é `inverted`: o índice menor aparece embaixo, o maior em cima.
+    const below = messages[index - 1];
+    const above = messages[index + 1];
+    const isGroupEnd = !below || below.senderId !== item.senderId;
+    const isGroupStart = !above || above.senderId !== item.senderId;
+
     return (
-      <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}>
-        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
+      <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine, isGroupStart && styles.groupSpacing]}>
+        {!isMine &&
+          (isGroupEnd ? (
+            otherAvatarUrl ? (
+              <Image source={{ uri: otherAvatarUrl }} style={styles.bubbleAvatar} />
+            ) : (
+              <View style={[styles.bubbleAvatar, styles.bubbleAvatarFallback]}>
+                <Text style={styles.bubbleAvatarText}>{otherDisplayName[0]?.toUpperCase()}</Text>
+              </View>
+            )
+          ) : (
+            <View style={styles.bubbleAvatar} />
+          ))}
+
+        <View
+          style={[
+            styles.bubble,
+            isMine ? styles.bubbleMine : styles.bubbleTheirs,
+            isGroupEnd && (isMine ? styles.bubbleTailMine : styles.bubbleTailTheirs),
+          ]}
+        >
           <Text style={isMine ? styles.bubbleTextMine : styles.bubbleTextTheirs}>{item.content}</Text>
-          <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs]}>
-            {formatTime(item.createdAt)}
-          </Text>
+          {isGroupEnd && (
+            <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs]}>
+              {formatTime(item.createdAt)}
+            </Text>
+          )}
         </View>
       </View>
     );
@@ -197,9 +226,19 @@ export default function ChatRoomScreen() {
       {isOtherTyping && <Text style={styles.typing}>digitando...</Text>}
 
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput style={styles.input} placeholder="Mensagem..." value={input} onChangeText={handleChangeText} />
-        <Pressable style={styles.sendButton} disabled={!input.trim() || sending} onPress={handleSend}>
-          <Text style={styles.sendButtonText}>Enviar</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Mensagem..."
+          placeholderTextColor={colors.textSecondary}
+          value={input}
+          onChangeText={handleChangeText}
+        />
+        <Pressable
+          style={[styles.sendButton, (!input.trim() || sending) && styles.sendButtonDisabled]}
+          disabled={!input.trim() || sending}
+          onPress={handleSend}
+        >
+          <Ionicons name="arrow-up" size={18} color="#fff" />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -221,27 +260,35 @@ const styles = StyleSheet.create({
   headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   headerUsername: { fontWeight: '600', fontSize: 15, color: colors.textPrimary },
   headerStatus: { color: colors.success, fontSize: 11 },
-  list: { padding: 16, gap: 8 },
-  bubbleRow: { flexDirection: 'row' },
+  list: { padding: 16, gap: 3 },
+  // A lista é invertida, então `marginBottom` aparece visualmente ACIMA do item —
+  // é o respiro entre um grupo de mensagens e o grupo anterior.
+  groupSpacing: { marginBottom: 12 },
+  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   bubbleRowMine: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '75%', borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12 },
+  bubbleAvatar: { width: 28, height: 28, borderRadius: 14 },
+  bubbleAvatarFallback: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  bubbleAvatarText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  bubble: { maxWidth: '75%', borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14 },
   bubbleMine: { backgroundColor: colors.accent },
   bubbleTheirs: { backgroundColor: colors.backgroundElevated },
-  bubbleTextMine: { color: '#fff' },
-  bubbleTextTheirs: { color: colors.textPrimary },
-  bubbleTime: { fontSize: 10, marginTop: 2, alignSelf: 'flex-end' },
+  bubbleTailMine: { borderBottomRightRadius: 6 },
+  bubbleTailTheirs: { borderBottomLeftRadius: 6 },
+  bubbleTextMine: { color: '#fff', fontSize: 15, lineHeight: 20 },
+  bubbleTextTheirs: { color: colors.textPrimary, fontSize: 15, lineHeight: 20 },
+  bubbleTime: { fontSize: 10, marginTop: 3, alignSelf: 'flex-end' },
   bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
   bubbleTimeTheirs: { color: colors.textSecondary },
   typing: { color: colors.textSecondary, fontSize: 12, paddingHorizontal: 16, paddingBottom: 4 },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 10,
-    color: colors.textPrimary,
+  composer: { flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border },
+  input: { ...forms.inputPill, flex: 1 },
+  sendButton: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sendButton: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
+  sendButtonDisabled: { opacity: 0.4 },
 });

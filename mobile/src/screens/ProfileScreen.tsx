@@ -11,9 +11,9 @@ import { ImageViewerModal } from '../components/ImageViewerModal';
 import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
+import { ReplyThreadCard } from '../components/ReplyThreadCard';
+import { StatusFilterChips } from '../components/StatusFilterChips';
 import { displayName } from '../lib/displayName';
-import { STATUS_FILTERS } from '../lib/gameEntryLabels';
-import { formatRelativeTime } from '../lib/relativeTime';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
@@ -87,48 +87,13 @@ export default function ProfileScreen() {
   });
 
   function renderReply({ item }: { item: UserReply }) {
+    if (!user) return null;
     return (
-      <Pressable style={styles.replyContainer} onPress={() => navigation.navigate('PostDetail', { postId: item.post.id })}>
-        <View style={styles.threadRow}>
-          <View style={styles.threadAvatarCol}>
-            {item.post.user.avatarUrl ? (
-              <Image source={{ uri: item.post.user.avatarUrl }} style={styles.threadAvatarImage} />
-            ) : (
-              <View style={styles.threadAvatar}>
-                <Text style={styles.threadAvatarText}>{displayName(item.post.user)[0]?.toUpperCase()}</Text>
-              </View>
-            )}
-            <View style={styles.threadLine} />
-          </View>
-          <View style={styles.threadBody}>
-            <View style={styles.threadHeaderRow}>
-              <Text style={styles.threadName}>{displayName(item.post.user)}</Text>
-              <Text style={styles.threadHandle}>@{item.post.user.username}</Text>
-            </View>
-            <Text style={styles.threadContent} numberOfLines={3}>
-              {item.post.content}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.threadRow}>
-          {user?.avatarUrl ? (
-            <Image source={{ uri: user.avatarUrl }} style={styles.threadAvatarImage} />
-          ) : (
-            <View style={styles.threadAvatar}>
-              <Text style={styles.threadAvatarText}>{user ? displayName(user)[0]?.toUpperCase() : '?'}</Text>
-            </View>
-          )}
-          <View style={styles.threadBody}>
-            <View style={styles.threadHeaderRow}>
-              <Text style={styles.threadName}>{user ? displayName(user) : ''}</Text>
-              <Text style={styles.threadHandle}>@{user?.username}</Text>
-              <Text style={styles.threadHandle}>· {formatRelativeTime(item.createdAt)}</Text>
-            </View>
-            <Text style={styles.threadContent}>{item.content}</Text>
-          </View>
-        </View>
-      </Pressable>
+      <ReplyThreadCard
+        reply={item}
+        author={user}
+        onPress={() => navigation.navigate('PostDetail', { postId: item.post.id })}
+      />
     );
   }
 
@@ -193,19 +158,7 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      {tab === 'backlog' && (
-        <View style={styles.filters}>
-          {STATUS_FILTERS.map((f) => (
-            <Pressable
-              key={f.value}
-              style={[styles.filterChip, gameFilter === f.value && styles.filterChipActive]}
-              onPress={() => setGameFilter(f.value)}
-            >
-              <Text style={[styles.filterText, gameFilter === f.value && styles.filterTextActive]}>{f.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+      {tab === 'backlog' && <StatusFilterChips value={gameFilter} onChange={setGameFilter} />}
     </View>
   );
 
@@ -318,29 +271,5 @@ const styles = StyleSheet.create({
   tabText: { color: colors.textSecondary, fontWeight: '600', fontSize: 13 },
   tabTextActive: { color: colors.textPrimary },
   tabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '50%', backgroundColor: colors.accent, borderRadius: 1 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
-  filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
-  filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  filterText: { color: colors.textPrimary, fontSize: 13 },
-  filterTextActive: { color: '#fff', fontWeight: '600' },
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP, paddingHorizontal: 16 },
-  replyContainer: { padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 8 },
-  threadRow: { flexDirection: 'row', gap: 10 },
-  threadAvatarCol: { alignItems: 'center' },
-  threadAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  threadAvatarImage: { width: 32, height: 32, borderRadius: 16 },
-  threadAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  threadLine: { width: 2, flex: 1, backgroundColor: colors.border, marginTop: 4, marginBottom: -4 },
-  threadBody: { flex: 1, gap: 2, paddingBottom: 4 },
-  threadHeaderRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },
-  threadName: { fontWeight: '600', color: colors.textPrimary, fontSize: 13 },
-  threadHandle: { color: colors.textSecondary, fontSize: 12 },
-  threadContent: { color: colors.textPrimary, fontSize: 14 },
 });

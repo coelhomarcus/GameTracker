@@ -86,11 +86,10 @@ Backend migrado inteiramente de Prisma pra Drizzle ORM (`drizzle-orm` 0.45.2 + `
 - [x] `backend/.dockerignore`
 - [x] Testado localmente: build da imagem + container rodando contra Postgres/Redis reais, migration aplicada, `/api/health` respondendo
 - [x] Resetar o Postgres real do Dokploy e rodar `npm run db:migrate` lá (tabelas antigas do Prisma removidas, schema Drizzle aplicado — 12 tabelas confirmadas)
-- [ ] Criar a Application no Dokploy apontando pro repo (root directory `backend/`, build type Dockerfile)
-- [ ] Configurar env vars no Dokploy: `DATABASE_URL`/`REDIS_URL` (mesmos valores do `.env` local, ou trocar pro hostname interno do Dokploy em vez do IP público exposto — mais seguro), `JWT_ACCESS_SECRET` (gerar um novo, forte — não usar o de dev), `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `PORT=3000`
-- [ ] Configurar domínio da API no Dokploy (ex: `api.seudominio.com` → porta 3000 do container)
-- [ ] Apontar `mobile/.env` de produção (`EXPO_PUBLIC_API_URL`) pra esse domínio antes do build EAS
-- [ ] Backup automático do Postgres (a definir se cron externo ou algo nativo do Dokploy)
+- [x] Criar a Application no Dokploy apontando pro repo (root directory `backend/`, build type Dockerfile)
+- [x] Configurar env vars no Dokploy: `DATABASE_URL`/`REDIS_URL` (mesmos valores do `.env` local, ou trocar pro hostname interno do Dokploy em vez do IP público exposto — mais seguro), `JWT_ACCESS_SECRET` (gerar um novo, forte — não usar o de dev), `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `PORT=3000`
+- [x] Configurar domínio da API no Dokploy (ex: `api.seudominio.com` → porta 3000 do container)
+- [x] Apontar `mobile/.env` de produção (`EXPO_PUBLIC_API_URL`) pra esse domínio antes do build EAS
 - [ ] Build com EAS + teste em dispositivo físico Android
 - [ ] Ajustes de UX, error states, ícone/splash
 
@@ -236,3 +235,35 @@ Layout de 3 colunas com breakpoints de desktop, `position:sticky`/`backdrop-filt
 
 - `tsc --noEmit` limpo, `expo export --platform ios` **e** `--platform web` sem erros (o usuário testa pela web também), `expo-doctor` 21/21
 - **`expo-blur` é um módulo nativo novo** — como o usuário testa localmente via `expo start --web`/Expo Go, isso funciona direto; só quando for buildar de novo nativo pro iPhone físico (`expo run:ios --device`) que vai precisar rodar de novo (o comando já cuida disso sozinho, detecta a dependência nova)
+
+## Fase 15 — Header padronizado e correção do "próprio perfil parece de outra pessoa"
+
+- [x] **15.1 — Header inconsistente**: causa raiz — `MainTabs.tsx` forçava `headerStyle: {backgroundColor: colors.background}` (preto puro) nas 4 abas com header padrão (Busca/Meus jogos/Chat/Notificações), mas `RootNavigator.tsx` não definia nada, caindo no `card` do `navigationTheme` (`colors.backgroundElevated`, cinza) pras outras ~9 telas (Foco do jogo, Tracking, Novo post, Perfil de terceiros, Perfil, Editar perfil, Configurações, Post, Chat) — resultado: metade dos headers pretos, metade cinza. Corrigido adicionando o mesmo `headerStyle`/`headerTintColor` como `screenOptions` do `Stack.Navigator` no `RootNavigator`, e alinhando o `card` do `navigationTheme.ts` pra `colors.background` também, eliminando o token órfão que causava a divergência. De quebra, a aba de Notificações ganhou o botão de avatar no header (só faltava ali, as outras 3 abas já tinham)
+- [x] **15.2 — "Meu perfil parece que não é meu"**: causa raiz — ao tocar no próprio nome/avatar num post do feed, a navegação ia pra `UserProfileScreen` (a tela de "perfil de terceiros"), que só escondia os botões de Seguir/Mensagem quando `isMe` — mas não ganhava nada das capacidades reais do próprio perfil (botão de Editar Perfil, engrenagem de Configurações, etc.), então parecia uma versão incompleta "de visitante" do próprio perfil. Corrigido na raiz: `UserProfileScreen` agora detecta `isMe` antes de buscar qualquer dado (`enabled: !isMe` nas queries, sem gastar requisição à toa) e redireciona (`navigation.replace('Profile')`) pra tela real do próprio perfil — não existe mais um caminho onde "meu perfil" é renderizado por um componente diferente da experiência oficial, então essa divergência não pode mais acontecer nem aqui nem em qualquer ponto futuro que navegue pra `UserProfile`
+
+### Verificação
+
+- `tsc --noEmit` limpo, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+## Fase 16 — Feed "Seguindo" sem os próprios posts e modernização visual
+
+- [x] **16.1 — Próprios posts fora da aba "Seguindo"**: `postsService.getFeed` montava `authorIds = [userId, ...seguindo]`, incluindo o próprio usuário de propósito. Agora a aba lista só quem o usuário segue de verdade; se ele não segue ninguém, retorna página vazia direto (evita depender do comportamento do `inArray` com lista vazia)
+- [x] **16.2 — Filtros de status compactos**: os chips de Backlog/Jogando/Completo/Abandonado quebravam em duas linhas e ocupavam um bloco enorme nos perfis. Viraram `StatusFilterChips.tsx` — uma linha só, rolável na horizontal, chips menores e preenchidos — usado nos 3 lugares (Meus jogos + os dois perfis), removendo a duplicação de estilo que existia em cada tela
+- [x] **16.3 — Inputs preenchidos em todo o app**: `theme/forms.ts` novo (input preenchido com fundo elevado e sem borda dura, variante pílula e variante multilinha). Aplicado em Login, Registro, Novo post, Editar perfil, Busca, composer de comentário e composer do chat — sai o visual de "caixinha com contorno" que dava o ar amador
+- [x] **16.4 — Tela de trackear repaginada**: hierarquia corrigida (nome do jogo como título, tipo de playthrough como rótulo acima), campos de data viraram linhas com ícone de calendário **e botão de limpar** (antes não dava pra desmarcar uma data depois de escolher), horas com sufixo "horas", nota num bloco centralizado, chips preenchidos e datas lado a lado em duas colunas
+- [x] **16.5 — Retoques gerais**: botões desabilitados agora têm feedback visual (opacidade) em Login/Registro/Novo post/Trackear — antes pareciam clicáveis e não faziam nada; botões de enviar (comentário e chat) viraram botões circulares com seta em vez de texto "Enviar"; títulos de seção viraram rótulos pequenos em maiúsculas; cards de jogo (Meus jogos e Foco do jogo) passaram de contorno pra fundo preenchido, com badges e ações em pílula
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+- **Sem teste ao vivo** — mesma limitação de ambiente das fases anteriores
+
+## Fase 17 — Bug do visualizador de screenshots, chat agrupado e respostas em thread
+
+- [x] **17.1 — Screenshot sempre abria a primeira**: causa raiz — o `ImageViewerModal` posicionava a lista com a prop `contentOffset` do `ScrollView`, que é **exclusiva do iOS** e só vale no momento da montagem. Como o modal fica montado entre aberturas, ele nunca reposicionava e sempre voltava pra primeira imagem. Trocado por um `ref` + `scrollTo`, disparado no `onLayout` e sempre que o modal abre — funciona nas duas plataformas
+- [x] **17.2 — Design do chat**: mensagens consecutivas do mesmo autor agora são agrupadas — espaçamento apertado dentro do grupo e respiro entre grupos, "rabinho" (canto menos arredondado) só no último balão do grupo, horário só no fim do grupo em vez de repetido em toda mensagem, e o avatar da outra pessoa aparece ao lado do último balão dela. Balões maiores e com mais respiro interno
+- [x] **17.3 — Aba de Respostas em thread**: `ReplyThreadCard.tsx` novo (compartilhado — antes o layout estava duplicado inteiro nos dois perfis, com ~15 estilos repetidos em cada). Agora o post pai e a resposta ficam claramente separados: pai com texto em tom secundário e menor, linha de thread ligando os dois avatares, resposta em destaque com a legenda "Respondendo a @fulano" — bem mais perto de como a X apresenta
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+- **Sem teste ao vivo** — vale conferir principalmente o chat (o agrupamento depende da lista invertida) e o visualizador de screenshots

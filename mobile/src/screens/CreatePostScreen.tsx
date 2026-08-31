@@ -8,6 +8,7 @@ import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { getApiErrorMessage } from '../lib/apiError';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 import { radius } from '../theme/radius';
 
 export default function CreatePostScreen() {
@@ -41,7 +42,11 @@ export default function CreatePostScreen() {
 
       {mutation.isError && <Text style={styles.error}>{getApiErrorMessage(mutation.error)}</Text>}
 
-      <Pressable style={styles.button} disabled={!content.trim() || mutation.isPending} onPress={() => mutation.mutate()}>
+      <Pressable
+        style={[styles.button, (!content.trim() || mutation.isPending) && styles.buttonDisabled]}
+        disabled={!content.trim() || mutation.isPending}
+        onPress={() => mutation.mutate()}
+      >
         {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Publicar</Text>}
       </Pressable>
     </View>
@@ -51,18 +56,10 @@ export default function CreatePostScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: colors.background },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    color: colors.textPrimary,
-  },
+  input: { ...forms.input, ...forms.multiline, minHeight: 140, fontSize: 16 },
   counter: { color: colors.textSecondary, textAlign: 'right', marginTop: 4 },
   error: { color: colors.like, marginTop: 8 },
   button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 16 },
+  buttonDisabled: { opacity: 0.5 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

@@ -14,6 +14,7 @@ import { getApiErrorMessage } from '../lib/apiError';
 import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 import { radius } from '../theme/radius';
 import type { IgdbSearchResult, UserSearchResult } from '../types/models';
 
@@ -189,7 +190,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   searchBar: { flexDirection: 'row', gap: 8, padding: 16, paddingBottom: 12 },
-  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, padding: 12, paddingHorizontal: 16, fontSize: 16, color: colors.textPrimary },
+  input: { ...forms.inputPill, flex: 1, paddingVertical: 12 },
   searchButton: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 12 },

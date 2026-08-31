@@ -1,7 +1,7 @@
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
 import * as postsApi from '../api/posts';
@@ -11,9 +11,9 @@ import { GameEntryGridCell } from '../components/GameEntryGridCell';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
+import { ReplyThreadCard } from '../components/ReplyThreadCard';
+import { StatusFilterChips } from '../components/StatusFilterChips';
 import { displayName } from '../lib/displayName';
-import { STATUS_FILTERS } from '../lib/gameEntryLabels';
-import { formatRelativeTime } from '../lib/relativeTime';
 import { useAuthStore } from '../store/authStore';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -38,6 +38,7 @@ export default function UserProfileScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'UserProfile'>>();
   const { userId } = route.params;
   const myId = useAuthStore((state) => state.user?.id);
+  const isMe = !!myId && userId === myId;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ProfileTab>('backlog');
   const [viewer, setViewer] = useState<'avatar' | 'banner' | null>(null);
@@ -45,15 +46,23 @@ export default function UserProfileScreen() {
   const { width } = useWindowDimensions();
   const cellWidth = (width - CONTAINER_PADDING * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
+  // "Meu perfil" tem uma tela própria (com edição, configurações etc.) — se chegou
+  // aqui vendo a si mesmo (ex: tocando no próprio nome num post do feed), redireciona
+  // pra lá em vez de mostrar uma versão incompleta "de visitante" do próprio perfil.
+  useEffect(() => {
+    if (isMe) navigation.replace('Profile');
+  }, [isMe, navigation]);
+
   const profileQuery = useQuery({
     queryKey: ['user-profile', userId],
     queryFn: () => usersApi.getPublicProfile(userId),
+    enabled: !isMe,
   });
 
   const backlogQuery = useQuery({
     queryKey: ['user-game-entries', userId, gameFilter],
     queryFn: () => usersApi.getUserGameEntries(userId, gameFilter === 'all' ? undefined : gameFilter),
-    enabled: tab === 'backlog',
+    enabled: !isMe && tab === 'backlog',
   });
 
   const activitiesQuery = useInfiniteQuery({
@@ -61,7 +70,7 @@ export default function UserProfileScreen() {
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => usersApi.getUserPosts(userId, pageParam, 'activity'),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: tab === 'activities',
+    enabled: !isMe && tab === 'activities',
   });
 
   const postsTabQuery = useInfiniteQuery({
@@ -69,7 +78,7 @@ export default function UserProfileScreen() {
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => usersApi.getUserPosts(userId, pageParam, 'post'),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: tab === 'posts',
+    enabled: !isMe && tab === 'posts',
   });
 
   const repliesQuery = useInfiniteQuery({
@@ -77,7 +86,7 @@ export default function UserProfileScreen() {
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => usersApi.getUserReplies(userId, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: tab === 'replies',
+    enabled: !isMe && tab === 'replies',
   });
 
   const followMutation = useMutation({
@@ -105,56 +114,19 @@ export default function UserProfileScreen() {
     },
   });
 
-  if (profileQuery.isLoading || !profileQuery.data) {
+  if (isMe || profileQuery.isLoading || !profileQuery.data) {
     return <LoadingState fullScreen />;
   }
 
   const profile = profileQuery.data;
-  const isMe = myId === userId;
 
   function renderReply({ item }: { item: UserReply }) {
     return (
-      <Pressable style={styles.replyContainer} onPress={() => navigation.navigate('PostDetail', { postId: item.post.id })}>
-        <View style={styles.threadRow}>
-          <View style={styles.threadAvatarCol}>
-            {item.post.user.avatarUrl ? (
-              <Image source={{ uri: item.post.user.avatarUrl }} style={styles.threadAvatarImage} />
-            ) : (
-              <View style={styles.threadAvatar}>
-                <Text style={styles.threadAvatarText}>{displayName(item.post.user)[0]?.toUpperCase()}</Text>
-              </View>
-            )}
-            <View style={styles.threadLine} />
-          </View>
-          <View style={styles.threadBody}>
-            <View style={styles.threadHeaderRow}>
-              <Text style={styles.threadName}>{displayName(item.post.user)}</Text>
-              <Text style={styles.threadHandle}>@{item.post.user.username}</Text>
-            </View>
-            <Text style={styles.threadContent} numberOfLines={3}>
-              {item.post.content}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.threadRow}>
-          {profile.avatarUrl ? (
-            <Image source={{ uri: profile.avatarUrl }} style={styles.threadAvatarImage} />
-          ) : (
-            <View style={styles.threadAvatar}>
-              <Text style={styles.threadAvatarText}>{displayName(profile)[0]?.toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={styles.threadBody}>
-            <View style={styles.threadHeaderRow}>
-              <Text style={styles.threadName}>{displayName(profile)}</Text>
-              <Text style={styles.threadHandle}>@{profile.username}</Text>
-              <Text style={styles.threadHandle}>· {formatRelativeTime(item.createdAt)}</Text>
-            </View>
-            <Text style={styles.threadContent}>{item.content}</Text>
-          </View>
-        </View>
-      </Pressable>
+      <ReplyThreadCard
+        reply={item}
+        author={profile}
+        onPress={() => navigation.navigate('PostDetail', { postId: item.post.id })}
+      />
     );
   }
 
@@ -185,26 +157,24 @@ export default function UserProfileScreen() {
           )}
         </Pressable>
 
-        {!isMe && (
-          <View style={styles.actions}>
-            <Pressable
-              style={[styles.button, profile.isFollowedByMe && styles.buttonFollowing]}
-              disabled={followMutation.isPending}
-              onPress={() => followMutation.mutate()}
-            >
-              <Text style={[styles.buttonText, profile.isFollowedByMe && styles.buttonTextFollowing]}>
-                {profile.isFollowedByMe ? 'Seguindo' : 'Seguir'}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.button, styles.buttonFollowing]}
-              disabled={messageMutation.isPending}
-              onPress={() => messageMutation.mutate()}
-            >
-              <Text style={[styles.buttonText, styles.buttonTextFollowing]}>Mensagem</Text>
-            </Pressable>
-          </View>
-        )}
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.button, profile.isFollowedByMe && styles.buttonFollowing]}
+            disabled={followMutation.isPending}
+            onPress={() => followMutation.mutate()}
+          >
+            <Text style={[styles.buttonText, profile.isFollowedByMe && styles.buttonTextFollowing]}>
+              {profile.isFollowedByMe ? 'Seguindo' : 'Seguir'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.button, styles.buttonFollowing]}
+            disabled={messageMutation.isPending}
+            onPress={() => messageMutation.mutate()}
+          >
+            <Text style={[styles.buttonText, styles.buttonTextFollowing]}>Mensagem</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.header}>
@@ -237,19 +207,7 @@ export default function UserProfileScreen() {
         ))}
       </View>
 
-      {tab === 'backlog' && (
-        <View style={styles.filters}>
-          {STATUS_FILTERS.map((f) => (
-            <Pressable
-              key={f.value}
-              style={[styles.filterChip, gameFilter === f.value && styles.filterChipActive]}
-              onPress={() => setGameFilter(f.value)}
-            >
-              <Text style={[styles.filterText, gameFilter === f.value && styles.filterTextActive]}>{f.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+      {tab === 'backlog' && <StatusFilterChips value={gameFilter} onChange={setGameFilter} />}
     </View>
   );
 
@@ -363,29 +321,5 @@ const styles = StyleSheet.create({
   tabText: { color: colors.textSecondary, fontWeight: '600', fontSize: 13 },
   tabTextActive: { color: colors.textPrimary },
   tabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '50%', backgroundColor: colors.accent, borderRadius: 1 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
-  filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
-  filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  filterText: { color: colors.textPrimary, fontSize: 13 },
-  filterTextActive: { color: '#fff', fontWeight: '600' },
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP, paddingHorizontal: 16 },
-  replyContainer: { padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 8 },
-  threadRow: { flexDirection: 'row', gap: 10 },
-  threadAvatarCol: { alignItems: 'center' },
-  threadAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  threadAvatarImage: { width: 32, height: 32, borderRadius: 16 },
-  threadAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  threadLine: { width: 2, flex: 1, backgroundColor: colors.border, marginTop: 4, marginBottom: -4 },
-  threadBody: { flex: 1, gap: 2, paddingBottom: 4 },
-  threadHeaderRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },
-  threadName: { fontWeight: '600', color: colors.textPrimary, fontSize: 13 },
-  threadHandle: { color: colors.textSecondary, fontSize: 12 },
-  threadContent: { color: colors.textPrimary, fontSize: 14 },
 });

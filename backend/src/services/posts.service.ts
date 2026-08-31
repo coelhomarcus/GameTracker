@@ -100,7 +100,9 @@ export async function getFeed(
   let scopeFilter: SQL | undefined;
   if (scope === 'following') {
     const following = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, userId));
-    const authorIds = [userId, ...following.map((f) => f.followingId)];
+    // Só quem o usuário segue — os posts dele mesmo ficam fora dessa aba.
+    const authorIds = following.map((f) => f.followingId);
+    if (authorIds.length === 0) return { items: [], nextCursor: null };
     scopeFilter = inArray(posts.userId, authorIds);
   }
 

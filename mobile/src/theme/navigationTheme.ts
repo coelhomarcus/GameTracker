@@ -7,7 +7,7 @@ export const navigationTheme: Theme = {
     ...DarkTheme.colors,
     primary: colors.accent,
     background: colors.background,
-    card: colors.backgroundElevated,
+    card: colors.background,
     text: colors.textPrimary,
     border: colors.border,
     notification: colors.like,

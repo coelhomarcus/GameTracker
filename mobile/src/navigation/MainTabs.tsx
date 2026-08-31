@@ -70,7 +70,11 @@ export default function MainTabs() {
         component={ConversationsScreen}
         options={{ title: 'Chat', headerShown: true, headerLeft: () => <AvatarHeaderButton /> }}
       />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações', headerShown: true }} />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notificações', headerShown: true, headerLeft: () => <AvatarHeaderButton /> }}
+      />
     </Tab.Navigator>
   );
 }

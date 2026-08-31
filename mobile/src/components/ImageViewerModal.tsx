@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useEffect, useRef } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,18 +13,33 @@ interface Props {
 export function ImageViewerModal({ visible, images, initialIndex, onClose }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+
+  /**
+   * `contentOffset` do ScrollView só existe no iOS e só vale na montagem — como o
+   * modal fica montado entre aberturas, ele abriria sempre na primeira imagem.
+   * Posicionar via ref (no layout e a cada abertura) resolve nas duas plataformas.
+   */
+  const scrollToInitial = useCallback(() => {
+    scrollRef.current?.scrollTo({ x: initialIndex * width, animated: false });
+  }, [initialIndex, width]);
+
+  useEffect(() => {
+    if (visible) scrollToInitial();
+  }, [visible, scrollToInitial]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <ScrollView
+          ref={scrollRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          contentOffset={{ x: initialIndex * width, y: 0 }}
+          onLayout={scrollToInitial}
         >
-          {images.map((url) => (
-            <Pressable key={url} style={[styles.page, { width, height }]} onPress={onClose}>
+          {images.map((url, index) => (
+            <Pressable key={`${index}-${url}`} style={[styles.page, { width, height }]} onPress={onClose}>
               <Image source={{ uri: url }} style={{ width, height }} resizeMode="contain" />
             </Pressable>
           ))}

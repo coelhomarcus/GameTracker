@@ -17,7 +17,8 @@ import {
 import * as gameEntriesApi from '../api/gameEntries';
 import { EmptyState } from '../components/EmptyState';
 import { GameEntryGridCell } from '../components/GameEntryGridCell';
-import { STATUS_FILTERS, STATUS_LABEL } from '../lib/gameEntryLabels';
+import { StatusFilterChips } from '../components/StatusFilterChips';
+import { STATUS_LABEL } from '../lib/gameEntryLabels';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -145,19 +146,11 @@ export default function MyGamesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <View style={styles.filters}>
-          {STATUS_FILTERS.map((f) => (
-            <Pressable
-              key={f.value}
-              style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
-              onPress={() => setFilter(f.value)}
-            >
-              <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.filtersWrap}>
+          <StatusFilterChips value={filter} onChange={setFilter} />
         </View>
         <Pressable style={styles.viewToggle} onPress={toggleViewMode}>
-          <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={20} color={colors.accent} />
+          <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={20} color={colors.textSecondary} />
         </Pressable>
       </View>
 
@@ -168,7 +161,7 @@ export default function MyGamesScreen() {
         renderItem={viewMode === 'list' ? renderListItem : renderGridItem}
         numColumns={viewMode === 'grid' ? GRID_COLUMNS : 1}
         columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, viewMode === 'list' && styles.listPadded]}
         refreshControl={<RefreshControl refreshing={query.isFetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={
           !query.isFetching ? (
@@ -185,24 +178,21 @@ export default function MyGamesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: colors.background },
-  topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  filters: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
-  filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  filterText: { color: colors.textPrimary, fontSize: 13 },
-  filterTextActive: { color: '#fff', fontWeight: '600' },
-  viewToggle: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 8 },
-  list: { gap: 12 },
+  container: { flex: 1, backgroundColor: colors.background },
+  topBar: { flexDirection: 'row', alignItems: 'center' },
+  filtersWrap: { flex: 1 },
+  viewToggle: { padding: 10, marginRight: 12 },
+  list: { gap: 12, paddingBottom: 24 },
+  listPadded: { paddingHorizontal: 16 },
   coverPlaceholder: { backgroundColor: colors.backgroundElevated },
 
   // list mode
-  card: { flexDirection: 'row', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, gap: 10 },
-  listCover: { width: 56, height: 74, borderRadius: 6 },
+  card: { flexDirection: 'row', backgroundColor: colors.backgroundElevated, borderRadius: radius.md, padding: 12, gap: 12 },
+  listCover: { width: 56, height: 74, borderRadius: 8 },
   cardBody: { flex: 1, gap: 6 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   cardTitle: { fontSize: 16, fontWeight: '600', flex: 1, color: colors.textPrimary },
-  badge: { backgroundColor: colors.backgroundElevated, borderRadius: 12, paddingVertical: 3, paddingHorizontal: 8 },
+  badge: { backgroundColor: colors.background, borderRadius: radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
   badgeText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
   cardMeta: { color: colors.textSecondary, fontSize: 13 },
   cardActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
@@ -210,16 +200,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    backgroundColor: colors.background,
+    borderRadius: radius.pill,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
-  actionText: { fontSize: 13, color: colors.textPrimary },
-  deleteButton: { borderColor: colors.like },
+  actionText: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  deleteButton: {},
   deleteText: { color: colors.like },
 
   // grid mode
-  gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
+  gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP, paddingHorizontal: 16 },
 });

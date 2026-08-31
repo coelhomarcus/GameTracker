@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '../lib/apiError';
 import { applySession } from '../lib/session';
 import type { AuthStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 import { radius } from '../theme/radius';
 
 export default function RegisterScreen() {
@@ -64,7 +65,10 @@ export default function RegisterScreen() {
       {mutation.isError && <Text style={styles.error}>{getApiErrorMessage(mutation.error)}</Text>}
 
       <Pressable
-        style={styles.button}
+        style={[
+          styles.button,
+          (mutation.isPending || !name || !username || !email || password.length < 8) && styles.buttonDisabled,
+        ]}
         disabled={mutation.isPending || !name || !username || !email || password.length < 8}
         onPress={() => mutation.mutate()}
       >
@@ -82,8 +86,9 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12, backgroundColor: colors.background },
   title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 24, color: colors.textPrimary },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, color: colors.textPrimary },
+  input: { ...forms.input, paddingVertical: 14 },
   button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 8 },
+  buttonDisabled: { opacity: 0.5 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   link: { color: colors.accent, textAlign: 'center', marginTop: 16 },
   error: { color: colors.like },

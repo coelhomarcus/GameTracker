@@ -23,6 +23,7 @@ import { displayName } from '../lib/displayName';
 import { formatRelativeTime } from '../lib/relativeTime';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 import { radius } from '../theme/radius';
 import type { Comment } from '../types/models';
 
@@ -189,11 +190,11 @@ export default function PostDetailScreen() {
           onChangeText={setContent}
         />
         <Pressable
-          style={styles.sendButton}
+          style={[styles.sendButton, (!content.trim() || commentMutation.isPending) && styles.sendButtonDisabled]}
           disabled={!content.trim() || commentMutation.isPending}
           onPress={() => commentMutation.mutate()}
         >
-          <Text style={styles.sendButtonText}>Enviar</Text>
+          <Ionicons name="arrow-up" size={18} color="#fff" />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -204,13 +205,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { paddingBottom: 16 },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
-    padding: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   comment: { flexDirection: 'row', gap: 10, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   commentNested: { paddingVertical: 12, paddingLeft: 0, borderBottomWidth: 0, marginLeft: 16, borderLeftWidth: 2, borderLeftColor: colors.border },
@@ -244,8 +246,15 @@ const styles = StyleSheet.create({
   },
   replyBannerText: { color: colors.textSecondary, fontSize: 13 },
   replyBannerUsername: { color: colors.accent, fontWeight: '600' },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.textPrimary },
-  sendButton: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600' },
+  composer: { flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border },
+  input: { ...forms.inputPill, flex: 1 },
+  sendButton: {
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonDisabled: { opacity: 0.4 },
 });

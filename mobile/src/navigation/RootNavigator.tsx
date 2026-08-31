@@ -41,7 +41,12 @@ export default function RootNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
       {isAuthenticated ? (
-        <Stack.Navigator>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.textPrimary,
+          }}
+        >
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="GameFocus" component={GameFocusScreen} options={{ title: 'Jogo' }} />
           <Stack.Screen

@@ -12,6 +12,7 @@ import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
+import { forms } from '../theme/forms';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -192,14 +193,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.background,
   },
-  form: { padding: 16, gap: 6, marginTop: 12 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 12 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.textPrimary, fontSize: 15 },
-  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  form: { padding: 16, gap: 4, marginTop: 12 },
+  label: { ...forms.label, marginTop: 12 },
+  input: forms.input,
+  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   usernamePrefix: { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
   usernameInput: { flex: 1 },
-  hint: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
-  bioInput: { minHeight: 80, textAlignVertical: 'top' },
+  hint: { color: colors.textSecondary, fontSize: 12, marginTop: 6 },
+  bioInput: forms.multiline,
   error: { color: colors.like, fontSize: 12, marginTop: 8 },
   saveText: { color: colors.accent, fontWeight: '700', fontSize: 15 },
   saveTextDisabled: { color: colors.textSecondary },
