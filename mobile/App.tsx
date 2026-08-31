@@ -12,6 +12,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AppDialog } from './src/components/AppDialog';
 import RootNavigator from './src/navigation/RootNavigator';
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <RootNavigator />
+        <AppDialog />
         <StatusBar style="light" />
       </SafeAreaProvider>
     </QueryClientProvider>
