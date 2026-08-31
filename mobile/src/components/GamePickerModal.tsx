@@ -22,20 +22,24 @@ import { IconButton, RemoteImage } from './ui';
 
 export interface PickedGame {
   id: string;
+  igdbId: number;
   name: string;
   coverUrl: string | null;
+  platforms: string[];
 }
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   onSelect: (game: PickedGame) => void;
+  /** "Vincular a um jogo" (composer) ou "Buscar jogo" (Meus Jogos), por exemplo. */
+  title?: string;
 }
 
 const MIN_TERM = 2;
 
-/** Busca no catálogo (IGDB) pra vincular um post a qualquer jogo, trackeado ou não. */
-export function GamePickerModal({ visible, onClose, onSelect }: Props) {
+/** Busca no catálogo (IGDB) — reusado tanto pra vincular um post a um jogo quanto pra achar um jogo pra trackear. */
+export function GamePickerModal({ visible, onClose, onSelect, title = 'Vincular a um jogo' }: Props) {
   const [input, setInput] = useState('');
   const [term, setTerm] = useState('');
   const [resolvingId, setResolvingId] = useState<number | null>(null);
@@ -66,7 +70,7 @@ export function GamePickerModal({ visible, onClose, onSelect }: Props) {
     try {
       // Resolve (ou cacheia) pra ter o id interno — só ele serve pra vincular o post.
       const game = await gamesApi.getGameByIgdb(result.igdbId);
-      onSelect({ id: game.id, name: game.name, coverUrl: game.coverUrl });
+      onSelect({ id: game.id, igdbId: game.igdbId, name: game.name, coverUrl: game.coverUrl, platforms: game.platforms });
     } finally {
       setResolvingId(null);
     }
@@ -80,7 +84,7 @@ export function GamePickerModal({ visible, onClose, onSelect }: Props) {
       <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Vincular a um jogo</Text>
+            <Text style={styles.title}>{title}</Text>
             <IconButton name="close" onPress={onClose} accessibilityLabel="Fechar" />
           </View>
 

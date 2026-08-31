@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { GameEntryGridCell } from '../components/GameEntryGridCell';
+import { GamePickerModal, type PickedGame } from '../components/GamePickerModal';
 import { StatusFilterChips } from '../components/StatusFilterChips';
 import { IconButton, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import { useGameEntryMutations } from '../hooks/queries/useGameEntryMutations';
@@ -14,7 +15,7 @@ import { getPlatformIcon } from '../lib/platformIcon';
 import { qk } from '../lib/queryKeys';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, GRID, icon, opacity, radius, space, type, useGridCellWidth } from '../theme';
+import { colors, elevation, GRID, icon, opacity, radius, space, type, useGridCellWidth } from '../theme';
 import type { GameEntry, GameEntryStatus } from '../types/models';
 
 const NEXT_STATUS: Record<GameEntryStatus, GameEntryStatus> = {
@@ -28,8 +29,18 @@ export default function MyGamesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [filter, setFilter] = useState<GameEntryStatus | 'all'>('all');
   const [viewMode, setViewModeState] = useState<ViewMode>('grid');
+  const [pickerVisible, setPickerVisible] = useState(false);
   const cellWidth = useGridCellWidth();
   const { setStatus, remove } = useGameEntryMutations();
+
+  function handlePickGame(picked: PickedGame) {
+    setPickerVisible(false);
+    navigation.navigate('TrackingForm', {
+      igdbId: picked.igdbId,
+      gameName: picked.name,
+      platforms: picked.platforms,
+    });
+  }
 
   const mounted = useRef(true);
   useEffect(() => {
@@ -188,20 +199,51 @@ export default function MyGamesScreen() {
             empty={{
               icon: 'game-controller-outline',
               title: filter === 'all' ? 'Nenhum jogo por aqui ainda' : 'Nenhum jogo nesse status',
-              subtitle: 'Busque um jogo na aba de Busca pra começar a trackear',
+              subtitle: 'Toque no + pra buscar um jogo e começar a trackear',
             }}
           />
         }
+      />
+
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && { opacity: opacity.pressed }]}
+        onPress={() => setPickerVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Buscar jogo pra adicionar"
+      >
+        <Ionicons name="add" size={icon.hero} color={colors.textOnAccent} />
+      </Pressable>
+
+      <GamePickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={handlePickGame}
+        title="Buscar jogo"
       />
     </Screen>
   );
 }
 
+const FAB_SIZE = 56;
+
 const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center' },
+  fab: {
+    position: 'absolute',
+    right: space.xl,
+    bottom: space.xl,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...elevation.raised,
+  },
   filtersWrap: { flex: 1 },
   viewToggle: { marginRight: space.md },
-  list: { gap: space.md, paddingBottom: space.xl },
+  // Folga extra pro FAB não cobrir a última linha.
+  list: { gap: space.md, paddingBottom: space.huge + space.xl },
   listPadded: { paddingHorizontal: space.lg },
 
   // modo lista

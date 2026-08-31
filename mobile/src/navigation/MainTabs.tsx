@@ -71,6 +71,9 @@ export default function MainTabs() {
         component={MyGamesScreen}
         options={{
           title: 'Meus jogos',
+          // Label da tab bar mais curto — "Meus jogos" cortava no espaço de
+          // 5 abas; o header em si continua com o título completo.
+          tabBarLabel: 'Jogos',
           headerShown: true,
           headerLeft: () => <AvatarHeaderButton />,
           headerRight: () => <NotificationsHeaderButton style={styles.headerRight} />,
@@ -89,7 +92,9 @@ export default function MainTabs() {
       <Tab.Screen
         name="ProfileTab"
         component={ProfileTabStub}
-        options={{ tabBarAccessibilityLabel: 'Abrir meu perfil' }}
+        // Sem label: é só o avatar, como o resto do app já identifica "abrir
+        // meu perfil" — sem isso a tab bar cai no nome da rota ("ProfileTab").
+        options={{ tabBarLabel: () => null, tabBarAccessibilityLabel: 'Abrir meu perfil' }}
         listeners={{
           tabPress: (e) => {
             e.preventDefault();
