@@ -11,9 +11,14 @@ interface Props {
 
 const STARS = [1, 2, 3, 4, 5];
 
+/** Nota 0–10 (escala armazenada) → estrelas preenchidas (escala exibida, 0–5). */
+export function starsFromRating(value: number): number {
+  return Math.round(value / 2);
+}
+
 /** Widget de entrada: 5 estrelas escrevem 0–10. A exibição da nota é numérica. */
 export function StarRating({ value, onChange, size = 36 }: Props) {
-  const filledStars = value ? Math.round(value / 2) : 0;
+  const filledStars = value ? starsFromRating(value) : 0;
 
   return (
     <View style={styles.row} accessibilityRole="adjustable" accessibilityLabel={`Nota ${value ?? 0} de 10`}>

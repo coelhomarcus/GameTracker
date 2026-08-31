@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
-import { StarRating } from '../components/StarRating';
+import { StarRating, starsFromRating } from '../components/StarRating';
 import { Button, Chip, DatePickerField, Screen } from '../components/ui';
 import { notify } from '../lib/alert';
 import { getApiErrorMessage } from '../lib/apiError';
@@ -192,7 +192,10 @@ export default function TrackingFormScreen() {
           <Text style={forms.label}>Nota</Text>
           <View style={styles.ratingBox}>
             <StarRating value={rating} onChange={setRating} />
-            {rating !== null && <Text style={styles.ratingValue}>{rating}/10</Text>}
+            {/* Mesma conta que decide quantas estrelas acendem — nunca destoa
+                do que a pessoa está vendo, mesmo com nota ímpar vinda de fora
+                deste formulário (ex.: dado antigo/seed). */}
+            {rating !== null && <Text style={styles.ratingValue}>{starsFromRating(rating)}/5</Text>}
           </View>
         </View>
 
