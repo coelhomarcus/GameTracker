@@ -28,7 +28,8 @@ function formatTime(iso: string) {
 export default function ChatRoomScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'ChatRoom'>>();
-  const { conversationId, otherUsername, otherUserId, otherAvatarUrl } = route.params;
+  const { conversationId, otherUsername, otherName, otherUserId, otherAvatarUrl } = route.params;
+  const otherDisplayName = otherName?.trim() || otherUsername;
   const myId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -50,17 +51,17 @@ export default function ChatRoomScreen() {
             <Image source={{ uri: otherAvatarUrl }} style={styles.headerAvatarImage} />
           ) : (
             <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>{otherUsername[0]?.toUpperCase()}</Text>
+              <Text style={styles.headerAvatarText}>{otherDisplayName[0]?.toUpperCase()}</Text>
             </View>
           )}
           <View>
-            <Text style={styles.headerUsername}>{otherUsername}</Text>
+            <Text style={styles.headerUsername}>{otherDisplayName}</Text>
             {isOtherOnline && <Text style={styles.headerStatus}>online</Text>}
           </View>
         </View>
       ),
     });
-  }, [navigation, otherUsername, otherAvatarUrl, isOtherOnline]);
+  }, [navigation, otherDisplayName, otherAvatarUrl, isOtherOnline]);
 
   useEffect(() => {
     let cancelled = false;

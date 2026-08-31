@@ -169,3 +169,40 @@ Itens levantados usando o app de verdade no celular (`TODO.md`). Ordem de execu�
 ### Verificação
 
 - `tsc --noEmit` limpo, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+
+## Fase 10 — Comentários curtíveis e aninhados (respostas a comentários)
+
+Referência: screenshot da página de post da X, pedindo comentários com curtida e resposta próprias, estilo mais parecido com a X.
+
+- [x] **10.1 — Schema**: `comments.parent_comment_id` novo (self-FK nullable, cascade) permite comentário responder outro comentário; tabela `comment_likes` nova (mesmo padrão de `likes`: unique em `comment_id`+`user_id`). Migration `0004_slimy_lady_deathstrike.sql` gerada e aplicada
+- [x] **10.2 — Backend**: `postsService.addComment` aceita `parentCommentId` opcional (valida que pertence ao mesmo post); `listComments` agora monta uma árvore (comentários de topo com `replies: []` aninhado) e calcula `likeCount`/`likedByMe` por comentário; notificação de resposta vai pro autor do comentário-pai (não mais sempre pro dono do post) quando é uma resposta aninhada. Novo `likeComment`/`unlikeComment` + router `comments.routes.ts` (`POST`/`DELETE /api/comments/:id/like`), montado em `/api/comments`
+- [x] **10.3 — Mobile**: `PostDetailScreen.tsx` — `CommentItem` virou um componente recursivo (curtir, responder, "Ver N respostas" pra expandir aninhamento, indentado com borda à esquerda); composer ganhou um banner "Respondendo a @fulano" quando você toca em "Responder" num comentário, com botão pra cancelar
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+- **Sem teste end-to-end ao vivo** — Docker não estava rodando pra usar o sandbox local, e evitei testar direto no banco de produção compartilhado pra não sujar com dados de teste. A verificação ficou só na tipagem (que é forte aqui, os tipos do Drizzle fluem do schema até o service sem `any`) — vale testar na prática assim que possível
+
+## Fase 11 — Nome de exibição, edição de perfil em página própria e respostas estilo X
+
+- [x] **11.1 — Nome de exibição (name) separado do username**: `users.name` novo (nullable, migration `0005_perpetual_carnage.sql`) — `username` continua único e imutável (usado pro @handle e login), `name` é editável livremente. Cadastro (`RegisterScreen`) ganhou campo "Nome"; busca (`GET /api/users/search`) agora casa `username` OU `name`. `name` propagado em todo lugar que já selecionava `username`+`avatarUrl` de forma compacta: `posts.service.ts`, `conversations.service.ts`, `socket/chatHandlers.ts`, `notifications.service.ts`. Helper `lib/displayName.ts` novo (`name` com fallback pro `username`) usado em todo componente que exibe autor: `PostCard`, comentários, resultados de busca, conversas, header do chat, texto de notificações, avatares-placeholder
+- [x] **11.2 — Página de Editar Perfil**: `EditProfileScreen.tsx` nova (modal) — nome, bio e upload de avatar/banner centralizados ali, com "Salvar" no header. `ProfileScreen` não edita mais nada inline: perfil virou somente leitura + botão "Editar perfil" (estilo X, alinhado à direita do avatar)
+- [x] **11.3 — Avatar/banner abrem em modal**: tocar no avatar ou banner (próprio perfil ou de terceiros) abre o `ImageViewerModal` (o mesmo componente das screenshots de jogo) em vez de abrir o picker direto — visualização em tela cheia, igual X. Botão "Seguir"/"Mensagem" (perfil de terceiros) moveu pra a mesma linha do avatar, alinhado à direita, no lugar de ficar embaixo das estatísticas
+- [x] **11.4 — Aba "Respostas" com post original vinculado**: `ProfileScreen`/`UserProfileScreen` — cada resposta agora mostra o post original (avatar, nome, @handle, conteúdo) com uma linha de thread conectando até a resposta embaixo (avatar, nome, @handle, conteúdo, tempo relativo), igual a página de post da X — antes era só uma linha de texto cru "Respondeu a @fulano: ..."
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+- Migration `0005` aplicada no banco real (banco único, dev = produção)
+- **Sem teste end-to-end ao vivo** — mesmo motivo da Fase 10 (Docker não disponível, evitei mexer no banco de produção com dados de teste)
+
+## Fase 12 — Username editável, login por username, bug de upload na web
+
+- [x] **12.1 — Username editável com checagem de unicidade**: `PATCH /users/me` aceita `username` opcional agora (mesma regex do cadastro, `usernameSchema` extraído pra `auth.schema.ts` e reaproveitado); `updateProfile` no service valida que o novo username não pertence a outro usuário antes de salvar (409 se já estiver em uso). `EditProfileScreen.tsx` ganhou o campo com prefixo "@" e uma dica de validação
+- [x] **12.2 — Login por email ou username**: `loginSchema` trocou `email` por `identifier`; `authService.login` busca por `email` OU `username` (`or(eq(...), eq(...))`). `LoginScreen.tsx` — campo "Email ou username" no lugar de só "Email"
+- [x] **12.3 — Bug de upload de banner/avatar na web**: causa raiz — no navegador, `FormData` é o nativo do DOM e exige um `Blob`/`File` de verdade; o shape `{uri, name, type}` que funciona no React Native nativo (iOS/Android) virava `"[object Object]"` no web, chegando no backend sem arquivo nenhum (daí o 400 "Nenhum arquivo enviado"). Novo helper `lib/uploadFile.ts` detecta `Platform.OS === 'web'` e faz `fetch(uri)` + `.blob()` antes de anexar; mantém o comportamento nativo intacto nas outras plataformas
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos
+- **Confirmado sem teste ao vivo** (mesma limitação de ambiente) — o bug do upload web foi diagnosticado a partir do log de erro que o usuário colou, não reproduzido aqui

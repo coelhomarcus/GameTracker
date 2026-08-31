@@ -4,7 +4,7 @@ import { conversationParticipants, conversations, messages, users } from '../db/
 import { AppError } from '../lib/errors';
 import { decodeCursor, encodeCursor } from '../lib/cursor';
 
-const userColumns = { id: true, username: true, avatarUrl: true } as const;
+const userColumns = { id: true, username: true, name: true, avatarUrl: true } as const;
 
 export async function listMine(userId: string) {
   const participations = await db.query.conversationParticipants.findMany({

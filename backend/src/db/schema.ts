@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -22,6 +23,7 @@ export const notificationTypeEnum = pgEnum('notification_type', ['like', 'commen
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   username: varchar('username', { length: 30 }).notNull().unique(),
+  name: varchar('name', { length: 50 }),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   avatarUrl: varchar('avatar_url', { length: 500 }),
@@ -117,11 +119,13 @@ export const comments = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    parentCommentId: uuid('parent_comment_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
     content: varchar('content', { length: 500 }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     postIdIdx: index('comments_post_id_idx').on(table.postId),
+    parentCommentIdIdx: index('comments_parent_comment_id_idx').on(table.parentCommentId),
   }),
 );
 
@@ -140,6 +144,24 @@ export const likes = pgTable(
   },
   (table) => ({
     postUserUnique: unique('likes_post_id_user_id_unique').on(table.postId, table.userId),
+  }),
+);
+
+/** Um like por (comentário, usuário) — mesmo padrão de `likes`, mas pra comentários. */
+export const commentLikes = pgTable(
+  'comment_likes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    commentId: uuid('comment_id')
+      .notNull()
+      .references(() => comments.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    commentUserUnique: unique('comment_likes_comment_id_user_id_unique').on(table.commentId, table.userId),
   }),
 );
 
@@ -268,14 +290,26 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   notifications: many(notifications),
 }));
 
-export const commentsRelations = relations(comments, ({ one }) => ({
+export const commentsRelations = relations(comments, ({ one, many }) => ({
   post: one(posts, { fields: [comments.postId], references: [posts.id] }),
   user: one(users, { fields: [comments.userId], references: [users.id] }),
+  parentComment: one(comments, {
+    fields: [comments.parentCommentId],
+    references: [comments.id],
+    relationName: 'commentReplies',
+  }),
+  replies: many(comments, { relationName: 'commentReplies' }),
+  likes: many(commentLikes),
 }));
 
 export const likesRelations = relations(likes, ({ one }) => ({
   post: one(posts, { fields: [likes.postId], references: [posts.id] }),
   user: one(users, { fields: [likes.userId], references: [users.id] }),
+}));
+
+export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
+  comment: one(comments, { fields: [commentLikes.commentId], references: [comments.id] }),
+  user: one(users, { fields: [commentLikes.userId], references: [users.id] }),
 }));
 
 export const followsRelations = relations(follows, ({ one }) => ({

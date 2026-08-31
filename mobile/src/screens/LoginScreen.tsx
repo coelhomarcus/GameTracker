@@ -12,11 +12,11 @@ import { colors } from '../theme/colors';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
 
   const mutation = useMutation({
-    mutationFn: () => authApi.login({ email, password }),
+    mutationFn: () => authApi.login({ identifier, password }),
     onSuccess: applySession,
   });
 
@@ -27,12 +27,11 @@ export default function LoginScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Email ou username"
         placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
+        value={identifier}
+        onChangeText={setIdentifier}
       />
       <TextInput
         style={styles.input}
@@ -47,7 +46,7 @@ export default function LoginScreen() {
 
       <Pressable
         style={styles.button}
-        disabled={mutation.isPending || !email || !password}
+        disabled={mutation.isPending || !identifier || !password}
         onPress={() => mutation.mutate()}
       >
         {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}

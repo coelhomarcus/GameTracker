@@ -15,4 +15,5 @@ export const feedQuerySchema = z.object({
 
 export const createCommentSchema = z.object({
   content: z.string().min(1).max(500),
+  parentCommentId: z.string().uuid().optional(),
 });

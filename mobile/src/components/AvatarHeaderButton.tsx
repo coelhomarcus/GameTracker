@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
@@ -15,7 +16,7 @@ export function AvatarHeaderButton() {
         <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
       ) : (
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
+          <Text style={styles.avatarText}>{user ? displayName(user)[0]?.toUpperCase() : '?'}</Text>
         </View>
       )}
     </Pressable>

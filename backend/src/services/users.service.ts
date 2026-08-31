@@ -1,4 +1,4 @@
-import { and, count, eq, ilike, ne, sql } from 'drizzle-orm';
+import { and, count, eq, ilike, ne, or, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { follows, gameEntries, users } from '../db/schema';
 import { AppError } from '../lib/errors';
@@ -11,20 +11,21 @@ export async function search(viewerId: string, term: string) {
     .select({
       id: users.id,
       username: users.username,
+      name: users.name,
       avatarUrl: users.avatarUrl,
       bio: users.bio,
       isFollowedByMe: sql<boolean>`${follows.id} is not null`,
     })
     .from(users)
     .leftJoin(follows, and(eq(follows.followerId, viewerId), eq(follows.followingId, users.id)))
-    .where(and(ilike(users.username, `%${term}%`), ne(users.id, viewerId)))
+    .where(and(or(ilike(users.username, `%${term}%`), ilike(users.name, `%${term}%`)), ne(users.id, viewerId)))
     .limit(20);
 }
 
 export async function getPublicProfile(viewerId: string, targetId: string) {
   const user = await db.query.users.findFirst({
     where: eq(users.id, targetId),
-    columns: { id: true, username: true, avatarUrl: true, bannerUrl: true, bio: true, createdAt: true },
+    columns: { id: true, username: true, name: true, avatarUrl: true, bannerUrl: true, bio: true, createdAt: true },
   });
   if (!user) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
@@ -72,7 +73,14 @@ export async function setPushToken(userId: string, token: string) {
   await db.update(users).set({ expoPushToken: token }).where(eq(users.id, userId));
 }
 
-export async function updateProfile(userId: string, input: { bio?: string }) {
+export async function updateProfile(userId: string, input: { username?: string; name?: string; bio?: string }) {
+  if (input.username) {
+    const existing = await db.query.users.findFirst({ where: eq(users.username, input.username) });
+    if (existing && existing.id !== userId) {
+      throw new AppError(409, 'conflict', 'Username já está em uso');
+    }
+  }
+
   await db.update(users).set(input).where(eq(users.id, userId));
 }
 

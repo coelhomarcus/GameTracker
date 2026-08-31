@@ -4,7 +4,7 @@ import { db } from '../db';
 import { conversationParticipants, messages } from '../db/schema';
 import { sendPushNotification } from '../lib/push';
 
-const userColumns = { id: true, username: true, avatarUrl: true } as const;
+const userColumns = { id: true, username: true, name: true, avatarUrl: true } as const;
 
 // Contagem de conexões por usuário (várias abas/dispositivos) — só emite offline quando chega a zero.
 // Em memória por processo: presença fica por instância; se escalar o backend horizontalmente,

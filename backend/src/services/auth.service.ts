@@ -21,6 +21,7 @@ interface Session {
 function toPublicUser(user: {
   id: string;
   username: string;
+  name: string | null;
   email: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
@@ -29,6 +30,7 @@ function toPublicUser(user: {
   return {
     id: user.id,
     username: user.username,
+    name: user.name,
     email: user.email,
     avatarUrl: user.avatarUrl,
     bannerUrl: user.bannerUrl,
@@ -46,28 +48,30 @@ async function issueSession(userId: string): Promise<Session> {
   return { accessToken, refreshToken: `${record!.id}.${secret}` };
 }
 
-export async function register(username: string, email: string, password: string) {
+export async function register(username: string, name: string, email: string, password: string) {
   const existing = await db.query.users.findFirst({ where: or(eq(users.username, username), eq(users.email, email)) });
   if (existing) {
     throw new AppError(409, 'conflict', 'Username ou email já cadastrado');
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const [user] = await db.insert(users).values({ username, email, passwordHash }).returning();
+  const [user] = await db.insert(users).values({ username, name, email, passwordHash }).returning();
   const session = await issueSession(user!.id);
 
   return { user: toPublicUser(user!), ...session };
 }
 
-export async function login(email: string, password: string) {
-  const user = await db.query.users.findFirst({ where: eq(users.email, email) });
+export async function login(identifier: string, password: string) {
+  const user = await db.query.users.findFirst({
+    where: or(eq(users.email, identifier), eq(users.username, identifier)),
+  });
   if (!user) {
-    throw new AppError(401, 'invalid_credentials', 'Email ou senha inválidos');
+    throw new AppError(401, 'invalid_credentials', 'Credenciais inválidas');
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    throw new AppError(401, 'invalid_credentials', 'Email ou senha inválidos');
+    throw new AppError(401, 'invalid_credentials', 'Credenciais inválidas');
   }
 
   const session = await issueSession(user.id);

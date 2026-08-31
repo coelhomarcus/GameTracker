@@ -9,6 +9,7 @@ import * as postsApi from '../api/posts';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
+import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
@@ -52,7 +53,7 @@ export default function FeedScreen() {
             <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
+              <Text style={styles.avatarText}>{user ? displayName(user)[0]?.toUpperCase() : '?'}</Text>
             </View>
           )}
         </Pressable>

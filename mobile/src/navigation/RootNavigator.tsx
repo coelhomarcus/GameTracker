@@ -6,6 +6,7 @@ import AuthNavigator from './AuthNavigator';
 import MainTabs from './MainTabs';
 import ChatRoomScreen from '../screens/ChatRoomScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import GameFocusScreen from '../screens/GameFocusScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -62,6 +63,7 @@ export default function RootNavigator() {
               ),
             })}
           />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
           <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />

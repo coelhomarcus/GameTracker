@@ -12,12 +12,13 @@ import { colors } from '../theme/colors';
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const mutation = useMutation({
-    mutationFn: () => authApi.register({ username, email, password }),
+    mutationFn: () => authApi.register({ username, name, email, password }),
     onSuccess: applySession,
   });
 
@@ -26,6 +27,13 @@ export default function RegisterScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Criar conta</Text>
 
+      <TextInput
+        style={styles.input}
+        placeholder="Nome"
+        placeholderTextColor={colors.textSecondary}
+        value={name}
+        onChangeText={setName}
+      />
       <TextInput
         style={styles.input}
         placeholder="Username"
@@ -56,7 +64,7 @@ export default function RegisterScreen() {
 
       <Pressable
         style={styles.button}
-        disabled={mutation.isPending || !username || !email || password.length < 8}
+        disabled={mutation.isPending || !name || !username || !email || password.length < 8}
         onPress={() => mutation.mutate()}
       >
         {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Cadastrar</Text>}

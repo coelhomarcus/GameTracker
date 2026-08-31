@@ -2,14 +2,14 @@ import type { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 
 export async function registerHandler(req: Request, res: Response) {
-  const { username, email, password } = req.body;
-  const result = await authService.register(username, email, password);
+  const { username, name, email, password } = req.body;
+  const result = await authService.register(username, name, email, password);
   res.status(201).json(result);
 }
 
 export async function loginHandler(req: Request, res: Response) {
-  const { email, password } = req.body;
-  const result = await authService.login(email, password);
+  const { identifier, password } = req.body;
+  const result = await authService.login(identifier, password);
   res.status(200).json(result);
 }
 

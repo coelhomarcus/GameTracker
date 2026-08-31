@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState';
 import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { LoadingState } from '../components/LoadingState';
 import { getApiErrorMessage } from '../lib/apiError';
+import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import type { IgdbSearchResult, UserSearchResult } from '../types/models';
@@ -58,6 +59,7 @@ export default function SearchScreen() {
       navigation.navigate('ChatRoom', {
         conversationId: conversation.id,
         otherUsername: target?.username ?? '',
+        otherName: target?.name ?? null,
         otherUserId: userId,
         otherAvatarUrl: target?.avatarUrl ?? null,
       });
@@ -104,11 +106,14 @@ export default function SearchScreen() {
           <Image source={{ uri: item.avatarUrl }} style={styles.avatarImage} />
         ) : (
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.username[0]?.toUpperCase()}</Text>
+            <Text style={styles.avatarText}>{displayName(item)[0]?.toUpperCase()}</Text>
           </View>
         )}
         <View style={styles.rowInfo}>
-          <Text style={styles.rowTitle}>{item.username}</Text>
+          <View style={styles.userHeaderRow}>
+            <Text style={styles.rowTitle}>{displayName(item)}</Text>
+            <Text style={styles.handle}>@{item.username}</Text>
+          </View>
           {item.bio && (
             <Text style={styles.rowSubtitle} numberOfLines={1}>
               {item.bio}
@@ -195,7 +200,9 @@ const styles = StyleSheet.create({
   cover: { width: 48, height: 64, borderRadius: 6, backgroundColor: colors.backgroundElevated },
   coverPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   rowInfo: { flex: 1 },
+  userHeaderRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },
   rowTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  handle: { fontSize: 13, color: colors.textSecondary },
   rowSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   avatar: {
     width: 40,

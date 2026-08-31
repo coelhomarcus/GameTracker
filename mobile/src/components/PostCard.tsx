@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { displayName } from '../lib/displayName';
 import { colors } from '../theme/colors';
 import type { Post } from '../types/models';
 
@@ -29,14 +30,15 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
             <Image source={{ uri: post.user.avatarUrl }} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{post.user.username[0]?.toUpperCase()}</Text>
+              <Text style={styles.avatarText}>{displayName(post.user)[0]?.toUpperCase()}</Text>
             </View>
           )}
         </Pressable>
 
         <View style={styles.body}>
-          <Pressable onPress={onAuthorPress}>
-            <Text style={styles.username}>{post.user.username}</Text>
+          <Pressable onPress={onAuthorPress} style={styles.headerRow}>
+            <Text style={styles.username}>{displayName(post.user)}</Text>
+            <Text style={styles.handle}>@{post.user.username}</Text>
           </Pressable>
 
           <Text style={styles.content}>{post.content}</Text>
@@ -96,7 +98,9 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 },
   body: { flex: 1, gap: 4 },
+  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   username: { fontWeight: '600', color: colors.textPrimary },
+  handle: { color: colors.textSecondary, fontSize: 13 },
   content: { fontSize: 15, lineHeight: 20, color: colors.textPrimary },
   gameTag: {
     flexDirection: 'row',

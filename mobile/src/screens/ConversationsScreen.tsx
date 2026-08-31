@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
 import { EmptyState } from '../components/EmptyState';
+import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import type { ConversationSummary } from '../types/models';
@@ -26,6 +27,7 @@ export default function ConversationsScreen() {
 
   function renderItem({ item }: { item: ConversationSummary }) {
     const username = item.otherUser?.username ?? 'Usuário';
+    const name = item.otherUser ? displayName(item.otherUser) : username;
     return (
       <Pressable
         style={styles.row}
@@ -33,6 +35,7 @@ export default function ConversationsScreen() {
           navigation.navigate('ChatRoom', {
             conversationId: item.id,
             otherUsername: username,
+            otherName: item.otherUser?.name ?? null,
             otherUserId: item.otherUser?.id ?? '',
             otherAvatarUrl: item.otherUser?.avatarUrl ?? null,
           })
@@ -42,11 +45,11 @@ export default function ConversationsScreen() {
           <Image source={{ uri: item.otherUser.avatarUrl }} style={styles.avatarImage} />
         ) : (
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{username[0]?.toUpperCase()}</Text>
+            <Text style={styles.avatarText}>{name[0]?.toUpperCase()}</Text>
           </View>
         )}
         <View style={styles.info}>
-          <Text style={styles.username}>{username}</Text>
+          <Text style={styles.username}>{name}</Text>
           <Text style={[styles.preview, item.unread && styles.previewUnread]} numberOfLines={1}>
             {item.lastMessage?.content ?? 'Nenhuma mensagem ainda'}
           </Text>

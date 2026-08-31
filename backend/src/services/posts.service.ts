@@ -1,13 +1,13 @@
 import { and, asc, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
-import { comments, follows, gameEntries, likes, postTypeEnum, posts } from '../db/schema';
+import { commentLikes, comments, follows, gameEntries, likes, postTypeEnum, posts } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { decodeCursor, encodeCursor } from '../lib/cursor';
 import * as notificationsService from './notifications.service';
 
 type PostType = (typeof postTypeEnum.enumValues)[number];
 
-const userColumns = { id: true, username: true, avatarUrl: true } as const;
+const userColumns = { id: true, username: true, name: true, avatarUrl: true } as const;
 
 const postWith = {
   user: { columns: userColumns },
@@ -163,25 +163,90 @@ export async function unlike(userId: string, postId: string) {
   await db.delete(likes).where(and(eq(likes.postId, postId), eq(likes.userId, userId)));
 }
 
-export async function addComment(userId: string, postId: string, content: string) {
+async function getCommentOrThrow(commentId: string) {
+  const comment = await db.query.comments.findFirst({ where: eq(comments.id, commentId) });
+  if (!comment) throw new AppError(404, 'not_found', 'Comentário não encontrado');
+  return comment;
+}
+
+export async function addComment(userId: string, postId: string, content: string, parentCommentId?: string) {
   const post = await getPostOrThrow(postId);
 
-  const [created] = await db.insert(comments).values({ postId, userId, content }).returning();
+  let notifyUserId = post.userId;
+  if (parentCommentId) {
+    const parent = await getCommentOrThrow(parentCommentId);
+    if (parent.postId !== postId) throw new AppError(400, 'invalid_operation', 'Comentário pai não pertence a esse post');
+    notifyUserId = parent.userId;
+  }
+
+  const [created] = await db.insert(comments).values({ postId, userId, content, parentCommentId }).returning();
   const comment = await db.query.comments.findFirst({
     where: eq(comments.id, created!.id),
     with: { user: { columns: userColumns } },
   });
 
-  await notificationsService.notify({ userId: post.userId, actorId: userId, type: 'comment', postId });
+  await notificationsService.notify({ userId: notifyUserId, actorId: userId, type: 'comment', postId });
 
   return comment;
 }
 
-export async function listComments(postId: string) {
+interface FlatComment {
+  id: string;
+  parentCommentId: string | null;
+  createdAt: Date;
+  likes: { userId: string }[];
+  [key: string]: unknown;
+}
+
+function buildCommentTree(flat: FlatComment[], viewerId: string) {
+  const mapped = flat.map((c) => {
+    const { likes: commentLikeRows, parentCommentId, ...rest } = c;
+    return {
+      ...rest,
+      parentCommentId,
+      likeCount: commentLikeRows.length,
+      likedByMe: commentLikeRows.some((l) => l.userId === viewerId),
+      replies: [] as unknown[],
+    };
+  });
+
+  const byId = new Map(mapped.map((c) => [c.id, c]));
+  const roots: (typeof mapped)[number][] = [];
+
+  for (const c of mapped) {
+    if (c.parentCommentId) {
+      const parent = byId.get(c.parentCommentId);
+      if (parent) {
+        parent.replies.push(c);
+        continue;
+      }
+    }
+    roots.push(c);
+  }
+
+  return roots;
+}
+
+export async function listComments(postId: string, viewerId: string) {
   await getPostOrThrow(postId);
-  return db.query.comments.findMany({
+  const flat = await db.query.comments.findMany({
     where: eq(comments.postId, postId),
     orderBy: asc(comments.createdAt),
-    with: { user: { columns: userColumns } },
+    with: { user: { columns: userColumns }, likes: { columns: { userId: true } } },
   });
+  return buildCommentTree(flat, viewerId);
+}
+
+export async function likeComment(userId: string, commentId: string) {
+  await getCommentOrThrow(commentId);
+
+  await db
+    .insert(commentLikes)
+    .values({ commentId, userId })
+    .onConflictDoNothing({ target: [commentLikes.commentId, commentLikes.userId] });
+}
+
+export async function unlikeComment(userId: string, commentId: string) {
+  await getCommentOrThrow(commentId);
+  await db.delete(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
 }

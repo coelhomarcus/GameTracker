@@ -36,7 +36,14 @@ export type RootStackParamList = {
   CreatePost: { gameEntryId?: string; prefillContent?: string } | undefined;
   UserProfile: { userId: string };
   Profile: undefined;
+  EditProfile: undefined;
   Settings: undefined;
   PostDetail: { postId: string };
-  ChatRoom: { conversationId: string; otherUsername: string; otherUserId: string; otherAvatarUrl: string | null };
+  ChatRoom: {
+    conversationId: string;
+    otherUsername: string;
+    otherName: string | null;
+    otherUserId: string;
+    otherAvatarUrl: string | null;
+  };
 };

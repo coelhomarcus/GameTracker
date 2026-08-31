@@ -42,7 +42,7 @@ export async function list(userId: string) {
       where: eq(notifications.userId, userId),
       orderBy: desc(notifications.createdAt),
       limit: 50,
-      with: { actor: { columns: { id: true, username: true, avatarUrl: true } } },
+      with: { actor: { columns: { id: true, username: true, name: true, avatarUrl: true } } },
     }),
     db
       .select({ value: count() })

@@ -33,10 +33,18 @@ export function unlikePost(postId: string) {
   return api.delete(`/posts/${postId}/like`);
 }
 
-export function addComment(postId: string, content: string) {
-  return api.post<Comment>(`/posts/${postId}/comments`, { content }).then((r) => r.data);
+export function addComment(postId: string, content: string, parentCommentId?: string) {
+  return api.post<Comment>(`/posts/${postId}/comments`, { content, parentCommentId }).then((r) => r.data);
 }
 
 export function listComments(postId: string) {
   return api.get<Comment[]>(`/posts/${postId}/comments`).then((r) => r.data);
+}
+
+export function likeComment(commentId: string) {
+  return api.post(`/comments/${commentId}/like`);
+}
+
+export function unlikeComment(commentId: string) {
+  return api.delete(`/comments/${commentId}/like`);
 }

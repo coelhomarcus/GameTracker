@@ -1,11 +1,11 @@
 import type { Session, User } from '../types/models';
 import { api } from './client';
 
-export function register(input: { username: string; email: string; password: string }) {
+export function register(input: { username: string; name: string; email: string; password: string }) {
   return api.post<Session>('/auth/register', input).then((r) => r.data);
 }
 
-export function login(input: { email: string; password: string }) {
+export function login(input: { identifier: string; password: string }) {
   return api.post<Session>('/auth/login', input).then((r) => r.data);
 }
 

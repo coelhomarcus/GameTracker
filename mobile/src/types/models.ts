@@ -3,6 +3,7 @@ export type GameEntryStatus = 'backlog' | 'playing' | 'completed' | 'dropped';
 export interface User {
   id: string;
   username: string;
+  name: string | null;
   email: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
@@ -54,6 +55,7 @@ export type PostType = 'status' | 'review' | 'activity';
 export interface PostAuthor {
   id: string;
   username: string;
+  name: string | null;
   avatarUrl: string | null;
 }
 
@@ -76,9 +78,13 @@ export interface Comment {
   id: string;
   postId: string;
   userId: string;
+  parentCommentId: string | null;
   content: string;
   createdAt: string;
   user: PostAuthor;
+  likeCount: number;
+  likedByMe: boolean;
+  replies: Comment[];
 }
 
 export interface UserReply {
@@ -93,6 +99,7 @@ export interface UserReply {
 export interface PublicProfile {
   id: string;
   username: string;
+  name: string | null;
   avatarUrl: string | null;
   bannerUrl: string | null;
   bio: string | null;
@@ -135,6 +142,7 @@ export interface ConversationSummary {
 export interface UserSearchResult {
   id: string;
   username: string;
+  name: string | null;
   avatarUrl: string | null;
   bio: string | null;
   isFollowedByMe: boolean;

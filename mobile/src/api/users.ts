@@ -1,3 +1,4 @@
+import { appendFileToFormData } from '../lib/uploadFile';
 import type { Post, PublicProfile, UserReply, UserSearchResult } from '../types/models';
 import { api } from './client';
 
@@ -21,14 +22,13 @@ export function setPushToken(token: string) {
   return api.post('/users/me/push-token', { token });
 }
 
-export function updateProfile(input: { bio?: string }) {
+export function updateProfile(input: { username?: string; name?: string; bio?: string }) {
   return api.patch('/users/me', input);
 }
 
-export function uploadAvatar(uri: string) {
+export async function uploadAvatar(uri: string) {
   const formData = new FormData();
-  // @ts-expect-error -- React Native's FormData aceita esse shape de arquivo, diferente do DOM
-  formData.append('avatar', { uri, name: 'avatar.jpg', type: 'image/jpeg' });
+  await appendFileToFormData(formData, 'avatar', uri, 'avatar.jpg', 'image/jpeg');
 
   return api
     .post<{ avatarUrl: string }>('/users/me/avatar', formData, {
@@ -37,10 +37,9 @@ export function uploadAvatar(uri: string) {
     .then((r) => r.data);
 }
 
-export function uploadBanner(uri: string) {
+export async function uploadBanner(uri: string) {
   const formData = new FormData();
-  // @ts-expect-error -- React Native's FormData aceita esse shape de arquivo, diferente do DOM
-  formData.append('banner', { uri, name: 'banner.jpg', type: 'image/jpeg' });
+  await appendFileToFormData(formData, 'banner', uri, 'banner.jpg', 'image/jpeg');
 
   return api
     .post<{ bannerUrl: string }>('/users/me/banner', formData, {

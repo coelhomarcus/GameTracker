@@ -7,14 +7,15 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as notificationsApi from '../api/notifications';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
+import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import type { AppNotification, NotificationType } from '../types/models';
 
-const MESSAGE: Record<NotificationType, (username: string) => string> = {
-  like: (username) => `${username} curtiu seu post`,
-  comment: (username) => `${username} comentou no seu post`,
-  follow: (username) => `${username} começou a seguir você`,
+const MESSAGE: Record<NotificationType, (name: string) => string> = {
+  like: (name) => `${name} curtiu seu post`,
+  comment: (name) => `${name} comentou no seu post`,
+  follow: (name) => `${name} começou a seguir você`,
 };
 
 const ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
@@ -71,7 +72,7 @@ export default function NotificationsScreen() {
         }
       >
         <Ionicons name={ICON[item.type]} size={18} color={colors.accent} />
-        <Text style={styles.text}>{MESSAGE[item.type](item.actor.username)}</Text>
+        <Text style={styles.text}>{MESSAGE[item.type](displayName(item.actor))}</Text>
       </Pressable>
     );
   }
