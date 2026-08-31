@@ -28,6 +28,7 @@ const ACTIVITY_VERB: Partial<Record<GameEntryStatus, (gameName: string) => strin
   backlog: (name) => `adicionou ${name} ao backlog`,
   playing: (name) => `começou a jogar ${name}`,
   completed: (name) => `zerou ${name}! 🎉`,
+  dropped: (name) => `abandonou ${name}`,
 };
 
 /** Best-effort: nunca deixa o post automático quebrar o fluxo principal de criar/atualizar o registro. */
@@ -36,7 +37,9 @@ async function createActivityPost(userId: string, entryId: string, gameName: str
   if (!content) return;
 
   try {
-    await postsService.create(userId, { content, gameEntryId: entryId, type: 'activity' });
+    // activityStatus é o snapshot imutável do status no momento desta
+    // atividade — não pode vir de gameEntry.status, que muda depois.
+    await postsService.create(userId, { content, gameEntryId: entryId, activityStatus: status, type: 'activity' });
   } catch (err) {
     console.error('Falha ao criar post de atividade automático:', err);
   }
@@ -102,7 +105,12 @@ export async function update(userId: string, entryId: string, input: UpdateInput
 
   const result = await getWithGame(entryId);
 
-  if (input.status && input.status !== existing.status && result && (input.status === 'playing' || input.status === 'completed')) {
+  if (
+    input.status &&
+    input.status !== existing.status &&
+    result &&
+    (input.status === 'playing' || input.status === 'completed' || input.status === 'dropped')
+  ) {
     void createActivityPost(userId, entryId, result.game.name, input.status);
   }
 

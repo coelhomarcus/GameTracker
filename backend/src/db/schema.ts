@@ -104,6 +104,11 @@ export const posts = pgTable(
     // gameEntryId quando existe (playthrough próprio), ou setada direto
     // quando o post é vinculado a um jogo que o autor nunca trackeou.
     gameId: uuid('game_id').references(() => games.id, { onDelete: 'set null' }),
+    // Snapshot do status no momento em que a atividade aconteceu — imutável.
+    // Sem isso, um post antigo ("começou a jogar") lia o status ATUAL do
+    // playthrough (que pode já ter virado "completo"), porque gameEntry é a
+    // mesma linha mutável compartilhada por todos os posts daquele entryId.
+    activityStatus: gameEntryStatusEnum('activity_status'),
     type: postTypeEnum('type').notNull().default('status'),
     imageUrl: varchar('image_url', { length: 500 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

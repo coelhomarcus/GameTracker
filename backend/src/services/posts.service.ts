@@ -1,11 +1,12 @@
 import { and, asc, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
-import { commentLikes, comments, follows, gameEntries, games, likes, postTypeEnum, posts } from '../db/schema';
+import { commentLikes, comments, follows, gameEntries, gameEntryStatusEnum, games, likes, postTypeEnum, posts } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { decodeCursor, encodeCursor } from '../lib/cursor';
 import * as notificationsService from './notifications.service';
 
 type PostType = (typeof postTypeEnum.enumValues)[number];
+type GameEntryStatus = (typeof gameEntryStatusEnum.enumValues)[number];
 
 const userColumns = { id: true, username: true, name: true, avatarUrl: true } as const;
 
@@ -43,6 +44,12 @@ interface CreatePostInput {
   content: string;
   gameEntryId?: string;
   gameId?: string;
+  /**
+   * Só setado internamente por `createActivityPost` (gameEntries.service.ts)
+   * — nunca fica exposto no schema público de criação de post, senão um
+   * cliente poderia forjar o ícone de qualquer post comum.
+   */
+  activityStatus?: GameEntryStatus;
   type: PostType;
   imageUrl?: string;
 }
@@ -72,6 +79,7 @@ export async function create(userId: string, input: CreatePostInput) {
       content: input.content,
       gameEntryId: input.gameEntryId,
       gameId: resolvedGameId,
+      activityStatus: input.activityStatus,
       type: input.type,
       imageUrl: input.imageUrl,
     })
