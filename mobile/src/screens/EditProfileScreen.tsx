@@ -4,9 +4,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as usersApi from '../api/users';
 import { Avatar, RemoteImage, Screen } from '../components/ui';
+import { notify } from '../lib/alert';
 import { getApiErrorMessage } from '../lib/apiError';
 import { qk } from '../lib/queryKeys';
 import type { RootStackParamList } from '../navigation/types';
@@ -73,7 +74,7 @@ export default function EditProfileScreen() {
     async (kind: 'avatar' | 'banner') => {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Sem acesso às fotos', 'Libere o acesso à galeria nas configurações para trocar a imagem.');
+        notify('Sem acesso às fotos', 'Libere o acesso à galeria nas configurações para trocar a imagem.');
         return;
       }
 
@@ -97,7 +98,7 @@ export default function EditProfileScreen() {
         queryClient.invalidateQueries({ queryKey: qk.userProfile(user?.id) });
       } catch (error) {
         // Antes o upload falhava em silêncio, virando rejeição não tratada.
-        Alert.alert('Não deu pra enviar a imagem', getApiErrorMessage(error));
+        notify('Não deu pra enviar a imagem', getApiErrorMessage(error));
       } finally {
         if (mounted.current) setUploading(null);
       }

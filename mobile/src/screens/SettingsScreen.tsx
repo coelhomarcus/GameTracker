@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as authApi from '../api/auth';
 import { Screen } from '../components/ui';
+import { confirmAction } from '../lib/alert';
 import { clearSessionEverywhere } from '../lib/session';
 import { useAuthStore } from '../store/authStore';
 import { colors, icon, opacity, space, type } from '../theme';
@@ -24,10 +25,13 @@ export default function SettingsScreen() {
   }
 
   function confirmLogout() {
-    Alert.alert('Sair da conta', 'Você vai precisar entrar de novo.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: handleLogout },
-    ]);
+    confirmAction({
+      title: 'Sair da conta',
+      message: 'Você vai precisar entrar de novo.',
+      confirmLabel: 'Sair',
+      destructive: true,
+      onConfirm: handleLogout,
+    });
   }
 
   return (

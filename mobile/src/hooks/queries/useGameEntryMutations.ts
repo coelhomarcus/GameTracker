@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
 import * as gameEntriesApi from '../../api/gameEntries';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { notify } from '../../lib/alert';
 import { qk } from '../../lib/queryKeys';
 import type { GameEntry, GameEntryStatus } from '../../types/models';
 
@@ -34,7 +34,7 @@ export function useGameEntryMutations() {
 
     onError: (error, _variables, context) => {
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
-      Alert.alert('Não deu pra mudar o status', getApiErrorMessage(error));
+      notify('Não deu pra mudar o status', getApiErrorMessage(error));
     },
 
     onSettled: invalidate,
@@ -56,7 +56,7 @@ export function useGameEntryMutations() {
 
     onError: (error, _entryId, context) => {
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
-      Alert.alert('Não deu pra remover', getApiErrorMessage(error));
+      notify('Não deu pra remover', getApiErrorMessage(error));
     },
 
     onSettled: invalidate,

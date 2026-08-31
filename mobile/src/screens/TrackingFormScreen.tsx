@@ -4,10 +4,11 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { StarRating } from '../components/StarRating';
 import { Button, Chip, IconButton, Screen } from '../components/ui';
+import { notify } from '../lib/alert';
 import { getApiErrorMessage } from '../lib/apiError';
 import { parseDecimal, toApiDate } from '../lib/date';
 import { STATUS_COLOR, STATUS_LABEL } from '../lib/gameEntryLabels';
@@ -109,7 +110,7 @@ export default function TrackingFormScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.gameEntries() });
       queryClient.invalidateQueries({ queryKey: ['user-game-entries'] });
-      if (!isEditing) Alert.alert('Adicionado', `${gameName} foi adicionado aos seus jogos.`);
+      if (!isEditing) notify('Adicionado', `${gameName} foi adicionado aos seus jogos.`);
       navigation.goBack();
     },
   });

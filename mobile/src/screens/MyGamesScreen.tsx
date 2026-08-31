@@ -3,12 +3,13 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { GameEntryGridCell } from '../components/GameEntryGridCell';
 import { StatusFilterChips } from '../components/StatusFilterChips';
 import { IconButton, ListState, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import { useGameEntryMutations } from '../hooks/queries/useGameEntryMutations';
+import { confirmAction } from '../lib/alert';
 import { qk } from '../lib/queryKeys';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
@@ -62,17 +63,17 @@ export default function MyGamesScreen() {
       setStatus.mutate({ entry, status: next });
 
       if (next === 'completed') {
-        Alert.alert('Parabéns! 🎉', `Quer contar pros seus seguidores que zerou ${entry.game.name}?`, [
-          { text: 'Agora não', style: 'cancel' },
-          {
-            text: 'Postar',
-            onPress: () =>
-              navigation.navigate('CreatePost', {
-                gameEntryId: entry.id,
-                prefillContent: `Acabei de zerar ${entry.game.name}! 🎮`,
-              }),
-          },
-        ]);
+        confirmAction({
+          title: 'Parabéns! 🎉',
+          message: `Quer contar pros seus seguidores que zerou ${entry.game.name}?`,
+          confirmLabel: 'Postar',
+          cancelLabel: 'Agora não',
+          onConfirm: () =>
+            navigation.navigate('CreatePost', {
+              gameEntryId: entry.id,
+              prefillContent: `Acabei de zerar ${entry.game.name}! 🎮`,
+            }),
+        });
       }
     },
     [navigation, setStatus],
@@ -80,10 +81,13 @@ export default function MyGamesScreen() {
 
   const confirmDelete = useCallback(
     (entry: GameEntry) => {
-      Alert.alert('Remover', `Remover "${entry.game.name}" dos seus jogos?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Remover', style: 'destructive', onPress: () => remove.mutate(entry.id) },
-      ]);
+      confirmAction({
+        title: 'Remover',
+        message: `Remover "${entry.game.name}" dos seus jogos?`,
+        confirmLabel: 'Remover',
+        destructive: true,
+        onConfirm: () => remove.mutate(entry.id),
+      });
     },
     [remove],
   );
