@@ -4,6 +4,7 @@ import * as usersApi from '../../api/users';
 import { qk } from '../../lib/queryKeys';
 import { useAuthStore } from '../../store/authStore';
 import type { GameEntryStatus, PublicProfile, User } from '../../types/models';
+import { useFavoriteGames } from './useFavorites';
 import { useInfiniteList } from './useInfiniteList';
 
 export type ProfileTab = 'backlog' | 'activities' | 'posts' | 'replies';
@@ -57,6 +58,24 @@ export function useProfileData({ userId, isSelf, tab, gameFilter, enabled = true
     enabled: enabled && !!userId && tab === 'backlog',
   });
 
+  // As três prévias estilo Letterboxd que lideram a aba Coleção — mesmo
+  // gate de "só busca quando a aba tá visível" que o resto do hook já usa.
+  const collectionVisible = enabled && !!userId && tab === 'backlog';
+
+  const favoriteGames = useFavoriteGames(userId, collectionVisible);
+
+  const playingNow = useQuery({
+    queryKey: qk.userGameEntries(userId, 'playing'),
+    queryFn: () => usersApi.getUserGameEntries(userId, 'playing'),
+    enabled: collectionVisible,
+  });
+
+  const recentlyCompleted = useQuery({
+    queryKey: qk.userGameEntries(userId, 'completed'),
+    queryFn: () => usersApi.getUserGameEntries(userId, 'completed'),
+    enabled: collectionVisible,
+  });
+
   const activities = useInfiniteList({
     queryKey: qk.userPosts(userId, 'activity'),
     fetchPage: (cursor?: string) => usersApi.getUserPosts(userId, cursor, 'activity'),
@@ -75,5 +94,5 @@ export function useProfileData({ userId, isSelf, tab, gameFilter, enabled = true
     enabled: enabled && !!userId && tab === 'replies',
   });
 
-  return { profile, backlog, activities, posts, replies };
+  return { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts, replies };
 }

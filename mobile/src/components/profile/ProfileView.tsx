@@ -1,30 +1,35 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFollow } from '../../hooks/queries/useFollow';
 import { useOpenConversation } from '../../hooks/queries/useOpenConversation';
 import { useProfileData, type ProfileTab } from '../../hooks/queries/useProfileData';
 import { useToggleLike } from '../../hooks/queries/useToggleLike';
 import type { RootStackParamList } from '../../navigation/types';
-import { colors, GRID, space, useGridCellWidth } from '../../theme';
-import type { GameEntry, GameEntryStatus, Post, UserReply } from '../../types/models';
+import { colors, GRID, opacity, radius, space, type, useGridCellWidth } from '../../theme';
+import type { Game, GameEntry, GameEntryStatus, Post, UserReply } from '../../types/models';
+import { ActivityRow } from '../ActivityRow';
 import { GameEntryGridCell } from '../GameEntryGridCell';
 import { ImageViewerModal } from '../ImageViewerModal';
-import { ActivityRow } from '../ActivityRow';
+import { LoadingState } from '../LoadingState';
 import { PostCard } from '../PostCard';
 import { ReplyThreadCard } from '../ReplyThreadCard';
 import { StatusFilterChips } from '../StatusFilterChips';
-import { LoadingState } from '../LoadingState';
-import { Button, ErrorState, ListFooter, ListState, SegmentedTabs, type Tab } from '../ui';
+import { Button, ErrorState, ListFooter, ListState, RemoteImage, SegmentedTabs, type Tab } from '../ui';
 import { ProfileHeader } from './ProfileHeader';
 
 const TABS: readonly Tab<ProfileTab>[] = [
-  { value: 'backlog', label: 'Backlog' },
+  { value: 'backlog', label: 'Coleção' },
   { value: 'activities', label: 'Atividades' },
   { value: 'posts', label: 'Posts' },
   { value: 'replies', label: 'Respostas' },
 ];
+
+/** Prévias estilo Letterboxd (Favoritos, Jogando agora, Completos recentemente) — sem paginação. */
+const STRIP_CAP = 10;
+const STRIP_COVER_WIDTH = 64;
+const STRIP_COVER_HEIGHT = 85;
 
 interface Props {
   userId: string;
@@ -38,12 +43,8 @@ export function ProfileView({ userId, isSelf }: Props) {
   const [viewer, setViewer] = useState<'avatar' | 'banner' | null>(null);
   const cellWidth = useGridCellWidth();
 
-  const { profile, backlog, activities, posts, replies } = useProfileData({
-    userId,
-    isSelf,
-    tab,
-    gameFilter,
-  });
+  const { profile, backlog, favoriteGames, playingNow, recentlyCompleted, activities, posts, replies } =
+    useProfileData({ userId, isSelf, tab, gameFilter });
 
   const toggleLike = useToggleLike();
   const follow = useFollow();
@@ -54,15 +55,16 @@ export function ProfileView({ userId, isSelf }: Props) {
     [navigation],
   );
 
+  const openGame = useCallback(
+    (igdbId: number) => navigation.navigate('GameFocus', { igdbId }),
+    [navigation],
+  );
+
   const renderGridItem = useCallback(
     ({ item }: { item: GameEntry }) => (
-      <GameEntryGridCell
-        entry={item}
-        width={cellWidth}
-        onPress={() => navigation.navigate('GameFocus', { igdbId: item.game.igdbId })}
-      />
+      <GameEntryGridCell entry={item} width={cellWidth} onPress={() => openGame(item.game.igdbId)} />
     ),
-    [cellWidth, navigation],
+    [cellWidth, openGame],
   );
 
   const renderPost = useCallback(
@@ -100,6 +102,28 @@ export function ProfileView({ userId, isSelf }: Props) {
   if (!profile.data) return <LoadingState fullScreen />;
 
   const data = profile.data;
+
+  function renderGameStrip(title: string, games: Game[] | undefined) {
+    if (!games || games.length === 0) return null;
+    return (
+      <View>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stripRow}>
+          {games.slice(0, STRIP_CAP).map((game) => (
+            <Pressable
+              key={game.id}
+              onPress={() => openGame(game.igdbId)}
+              accessibilityRole="button"
+              accessibilityLabel={game.name}
+              style={({ pressed }) => pressed && { opacity: opacity.pressed }}
+            >
+              <RemoteImage uri={game.coverUrl} style={styles.stripCover} />
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
 
   const header = (
     <View>
@@ -140,7 +164,22 @@ export function ProfileView({ userId, isSelf }: Props) {
         <SegmentedTabs tabs={TABS} value={tab} onChange={setTab} />
       </View>
 
-      {tab === 'backlog' && <StatusFilterChips value={gameFilter} onChange={setGameFilter} />}
+      {tab === 'backlog' && (
+        <>
+          {renderGameStrip('Favoritos', favoriteGames.data)}
+          {renderGameStrip(
+            'Jogando agora',
+            playingNow.data?.map((entry) => entry.game),
+          )}
+          {renderGameStrip(
+            'Completos recentemente',
+            recentlyCompleted.data?.map((entry) => entry.game),
+          )}
+
+          <Text style={styles.sectionTitle}>Coleção completa</Text>
+          <StatusFilterChips value={gameFilter} onChange={setGameFilter} />
+        </>
+      )}
     </View>
   );
 
@@ -245,4 +284,18 @@ const styles = StyleSheet.create({
   list: { paddingBottom: space.xl, backgroundColor: colors.background },
   tabsWrap: { marginTop: space.lg },
   gridRow: { gap: GRID.gap, marginBottom: GRID.gap, paddingHorizontal: GRID.padding },
+  sectionTitle: {
+    ...type.eyebrow,
+    color: colors.textSecondary,
+    marginTop: space.xl,
+    marginBottom: space.md,
+    marginHorizontal: space.lg,
+  },
+  stripRow: { gap: space.sm, paddingHorizontal: space.lg },
+  stripCover: {
+    width: STRIP_COVER_WIDTH,
+    height: STRIP_COVER_HEIGHT,
+    borderRadius: radius.sm,
+    backgroundColor: colors.skeleton,
+  },
 });
