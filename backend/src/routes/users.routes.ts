@@ -3,6 +3,7 @@ import {
   followHandler,
   getPublicProfileHandler,
   getUserCommentsHandler,
+  getUserFavoritesHandler,
   getUserGameEntriesHandler,
   getUserPostsHandler,
   searchHandler,
@@ -36,5 +37,6 @@ usersRouter.get('/:id', getPublicProfileHandler);
 usersRouter.get('/:id/posts', validateQuery(userPostsQuerySchema), getUserPostsHandler);
 usersRouter.get('/:id/comments', validateQuery(userPostsQuerySchema), getUserCommentsHandler);
 usersRouter.get('/:id/game-entries', validateQuery(listGameEntriesQuerySchema), getUserGameEntriesHandler);
+usersRouter.get('/:id/favorites', getUserFavoritesHandler);
 usersRouter.post('/:id/follow', followHandler);
 usersRouter.delete('/:id/follow', unfollowHandler);

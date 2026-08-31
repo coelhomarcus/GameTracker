@@ -63,6 +63,28 @@ export const games = pgTable('games', {
   cachedAt: timestamp('cached_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Favoritar é sobre o JOGO, não um playthrough específico — não exige ter
+ * trackeado nada (mesmo espírito de "filmes favoritos" do Letterboxd).
+ */
+export const favorites = pgTable(
+  'favorites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => games.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userGameUnique: unique('favorites_user_id_game_id_unique').on(table.userId, table.gameId),
+    userIdIdx: index('favorites_user_id_idx').on(table.userId),
+  }),
+);
+
 /** Um registro por playthrough — sem unique(userId, gameId) para permitir replays. */
 export const gameEntries = pgTable(
   'game_entries',
@@ -286,6 +308,12 @@ export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
 
 export const gamesRelations = relations(games, ({ many }) => ({
   gameEntries: many(gameEntries),
+  favorites: many(favorites),
+}));
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  user: one(users, { fields: [favorites.userId], references: [users.id] }),
+  game: one(games, { fields: [favorites.gameId], references: [games.id] }),
 }));
 
 export const gameEntriesRelations = relations(gameEntries, ({ one, many }) => ({

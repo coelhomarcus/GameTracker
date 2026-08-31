@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../lib/errors';
 import * as gameEntriesService from '../services/gameEntries.service';
+import * as gamesService from '../services/games.service';
 import * as postsService from '../services/posts.service';
 import * as usersService from '../services/users.service';
 
@@ -31,6 +32,11 @@ export async function getUserGameEntriesHandler(req: Request, res: Response) {
   const { status } = res.locals.query as { status?: 'backlog' | 'playing' | 'completed' | 'dropped' };
   const entries = await gameEntriesService.listMine(req.params.id as string, { status });
   res.json(entries);
+}
+
+export async function getUserFavoritesHandler(req: Request, res: Response) {
+  const favorites = await gamesService.getFavoriteGames(req.params.id as string);
+  res.json(favorites);
 }
 
 export async function followHandler(req: Request, res: Response) {

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { gameEntries, gameEntryStatusEnum, games } from '../db/schema';
 import { AppError } from '../lib/errors';
@@ -54,7 +54,7 @@ async function getOwnedEntry(userId: string, entryId: string) {
 }
 
 export async function create(userId: string, input: CreateInput) {
-  const game = await findOrCacheGameByIgdbId(input.igdbId);
+  const game = await findOrCacheGameByIgdbId(input.igdbId, userId);
 
   const [created] = await db
     .insert(gameEntries)
@@ -76,7 +76,16 @@ export async function create(userId: string, input: CreateInput) {
   return getWithGame(created!.id);
 }
 
-export async function listMine(userId: string, filters: { status?: GameEntryStatus; igdbId?: number } = {}) {
+const SORT_ORDER = {
+  recent: desc(gameEntries.createdAt),
+  oldest: asc(gameEntries.createdAt),
+  most_played: desc(gameEntries.hoursPlayed),
+} as const;
+
+export async function listMine(
+  userId: string,
+  filters: { status?: GameEntryStatus; igdbId?: number; sort?: keyof typeof SORT_ORDER } = {},
+) {
   const conditions = [eq(gameEntries.userId, userId)];
   if (filters.status) conditions.push(eq(gameEntries.status, filters.status));
   if (filters.igdbId) {
@@ -91,7 +100,7 @@ export async function listMine(userId: string, filters: { status?: GameEntryStat
   return db.query.gameEntries.findMany({
     where: and(...conditions),
     with: { game: true },
-    orderBy: desc(gameEntries.createdAt),
+    orderBy: SORT_ORDER[filters.sort ?? 'recent'],
   });
 }
 

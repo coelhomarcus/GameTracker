@@ -13,7 +13,7 @@ export async function searchHandler(_req: Request, res: Response) {
 }
 
 export async function getByIdHandler(req: Request, res: Response) {
-  const game = await gamesService.getGame(req.params.id as string);
+  const game = await gamesService.getGame(req.params.id as string, req.user!.id);
   res.json(game);
 }
 
@@ -22,8 +22,18 @@ export async function getByIgdbIdHandler(req: Request, res: Response) {
   if (!Number.isInteger(igdbId) || igdbId <= 0) {
     throw new AppError(400, 'validation_error', 'igdbId inválido');
   }
-  const game = await gamesService.findOrCacheGameByIgdbId(igdbId);
+  const game = await gamesService.findOrCacheGameByIgdbId(igdbId, req.user!.id);
   res.json(game);
+}
+
+export async function favoriteHandler(req: Request, res: Response) {
+  await gamesService.addFavorite(req.user!.id, req.params.id as string);
+  res.status(204).send();
+}
+
+export async function unfavoriteHandler(req: Request, res: Response) {
+  await gamesService.removeFavorite(req.user!.id, req.params.id as string);
+  res.status(204).send();
 }
 
 export async function statsHandler(req: Request, res: Response) {

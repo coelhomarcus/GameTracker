@@ -26,4 +26,7 @@ export const updateGameEntrySchema = z.object({
 export const listGameEntriesQuerySchema = z.object({
   status: statusEnum.optional(),
   igdbId: z.coerce.number().int().positive().optional(),
+  // Só usado por GET /game-entries/me; o mesmo schema serve GET
+  // /users/:id/game-entries, que ignora o campo.
+  sort: z.enum(['recent', 'oldest', 'most_played']).optional().default('recent'),
 });
