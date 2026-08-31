@@ -8,7 +8,7 @@ import { Button, Screen } from '../components/ui';
 import { getApiErrorMessage } from '../lib/apiError';
 import { applySession } from '../lib/session';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors, forms, opacity, space, type } from '../theme';
+import { colors, fonts, forms, opacity, space, type } from '../theme';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -91,7 +91,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   content: { flex: 1, justifyContent: 'center', padding: space.xl, gap: space.md },
-  wordmark: { ...type.wordmark, fontSize: 32, lineHeight: 38, color: colors.textPrimary, textAlign: 'center', marginBottom: space.xl },
+  // Família da wordmark sobre um step real da escala, como no header do feed.
+  wordmark: { ...type.display, fontFamily: fonts.wordmark, color: colors.textPrimary, textAlign: 'center', marginBottom: space.xl },
   input: forms.input,
   submit: { marginTop: space.sm },
   link: { ...type.caption, color: colors.accent, textAlign: 'center', marginTop: space.lg },

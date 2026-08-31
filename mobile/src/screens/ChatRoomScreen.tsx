@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   bubbleTextMine: { ...type.body, color: colors.textOnAccent },
   bubbleTextTheirs: { ...type.body, color: colors.textPrimary },
   // Horário é dado: mono deixa as bolhas alinhadas entre si.
-  bubbleTime: { ...type.dataSm, fontSize: 10, marginTop: space.hair, alignSelf: 'flex-end' },
+  bubbleTime: { ...type.dataSm, marginTop: space.hair, alignSelf: 'flex-end' },
   bubbleTimeMine: { color: colors.textOnAccentMuted },
   bubbleTimeTheirs: { color: colors.textSecondary },
   typing: { ...type.micro, color: colors.textSecondary, paddingHorizontal: space.lg, paddingBottom: space.xs },

@@ -113,6 +113,8 @@ export default function FeedScreen() {
 
 const FAB_SIZE = 56;
 const AVATAR_SIZE = 28;
+/** Folga pra tab bar + FAB não cobrirem o último post. */
+const LIST_BOTTOM_CLEARANCE = 96;
 
 const styles = StyleSheet.create({
   header: {
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
   // Wordmark na face de display; o resto do app não a usa em lugar nenhum.
   wordmark: { ...type.heading, fontFamily: fonts.wordmark, color: colors.textPrimary },
   headerSpacer: { width: AVATAR_SIZE },
-  list: { paddingBottom: 96 },
+  list: { paddingBottom: LIST_BOTTOM_CLEARANCE },
   headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   fab: {
     position: 'absolute',
