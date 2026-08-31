@@ -19,6 +19,27 @@ import type { GameEntryStatus } from '../types/models';
 
 const STATUS_OPTIONS: GameEntryStatus[] = ['backlog', 'playing', 'completed', 'dropped'];
 
+// Teto do numeric(6,1) do banco (5 dígitos + 1 casa decimal) — sem data
+// nenhuma preenchida, é o único limite que dá pra calcular.
+const MAX_REALISTIC_HOURS = 99999;
+
+/**
+ * Ninguém joga mais horas do que existem entre o início e o fim (ou hoje, se
+ * ainda estiver jogando) — cada dia civil rende no máximo 24h corridas.
+ * Sem data de início, cai no teto absoluto do banco.
+ */
+function maxPlausibleHours(startedAt: Date | null, finishedAt: Date | null): number {
+  if (!startedAt) return MAX_REALISTIC_HOURS;
+
+  const end = finishedAt ?? new Date();
+  const startDay = new Date(startedAt.getFullYear(), startedAt.getMonth(), startedAt.getDate());
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  const daysElapsed = Math.round((endDay.getTime() - startDay.getTime()) / 86_400_000) + 1;
+
+  if (daysElapsed <= 0) return MAX_REALISTIC_HOURS;
+  return Math.min(daysElapsed * 24, MAX_REALISTIC_HOURS);
+}
+
 export default function TrackingFormScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'TrackingForm'>>();
@@ -35,7 +56,10 @@ export default function TrackingFormScreen() {
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
   const hours = parseDecimal(hoursPlayed);
-  const hoursInvalid = hoursPlayed.trim().length > 0 && hours === null;
+  const hoursMax = maxPlausibleHours(startedAt, finishedAt);
+  const hoursNaN = hoursPlayed.trim().length > 0 && hours === null;
+  const hoursTooHigh = hours !== null && hours > hoursMax;
+  const hoursInvalid = hoursNaN || hoursTooHigh;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -153,7 +177,15 @@ export default function TrackingFormScreen() {
             />
             <Text style={styles.hoursSuffix}>horas</Text>
           </View>
-          {hoursInvalid && <Text style={styles.fieldError}>Use só números, como 12 ou 12,5.</Text>}
+          {hoursNaN && <Text style={styles.fieldError}>Use só números, como 12 ou 12,5.</Text>}
+          {hoursTooHigh &&
+            (startedAt ? (
+              <Text style={styles.fieldError}>
+                Isso passa das {hoursMax}h possíveis entre {finishedAt ? 'início e fim' : 'o início e hoje'} — confere a data.
+              </Text>
+            ) : (
+              <Text style={styles.fieldError}>Essas horas não são reais — confere o número.</Text>
+            ))}
         </View>
 
         <View style={styles.section}>
