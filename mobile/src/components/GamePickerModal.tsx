@@ -1,6 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import * as gamesApi from '../api/games';
 import { qk } from '../lib/queryKeys';
 import { colors, forms, opacity, radius, space, type } from '../theme';
@@ -63,7 +74,10 @@ export function GamePickerModal({ visible, onClose, onSelect }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      {/* Modal do RN monta numa raiz própria, fora da árvore de qualquer
+          Screen — precisa do próprio KeyboardAvoidingView, senão o teclado
+          cobre a busca (o input tem autoFocus, então abre na hora). */}
+      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>Vincular a um jogo</Text>
@@ -113,7 +127,7 @@ export function GamePickerModal({ visible, onClose, onSelect }: Props) {
             }
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

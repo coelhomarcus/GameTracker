@@ -20,7 +20,9 @@ export function Screen({ children, keyboard, padded }: Props) {
   return (
     <KeyboardAvoidingView
       style={style}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // No Android, `undefined` não faz nada sozinho — 'height' é quem
+      // realmente empurra o conteúdo pra cima do teclado nesse sistema.
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       // Toda tela do app fica sob um header nativo; sem isso o teclado cobre o
       // conteúdo pela altura do header no iOS.
       keyboardVerticalOffset={headerHeight}
