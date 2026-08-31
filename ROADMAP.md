@@ -122,5 +122,50 @@ Pontos levantados usando o app de verdade no celular. Todos os 8 itens implement
 
 ### Pendências que sobraram
 
-- [ ] Configurar volume persistente pro diretório `uploads/` no Dokploy (senão avatares somem a cada redeploy)
-- [ ] Testar tudo isso num dispositivo/emulador de verdade — só validei via `tsc`/bundle/curl
+- [x] Configurar volume persistente pro diretório `uploads/` no Dokploy (senão avatares somem a cada redeploy)
+- [x] Testar tudo isso num dispositivo/emulador de verdade — build nativo rodando no iPhone físico via `expo run:ios --device`
+
+## Fase 6 — Tema escuro (X), correções de UX e bugs
+
+Itens levantados usando o app de verdade no celular (`TODO.md`). Ordem de execução: itens pequenos/isolados primeiro, bug do chat em seguida, tema por último (toca o maior número de arquivos). Paleta e estrutura da X pesquisadas e seguidas à risca, com reestruturação de navegação (não só cor) — decisão do usuário.
+
+- [x] **6.1 — "Meus jogos" padrão grid**: `viewPreference.ts` (`getViewMode`, default e fallback de erro) e `MyGamesScreen.tsx` (estado inicial) passam a assumir `'grid'` quando não há preferência salva
+- [x] **6.2 — Avatar na busca de usuários**: `FindUsersScreen.tsx` não lia `item.avatarUrl` — aplicado o mesmo padrão condicional Image/placeholder já usado em `PostCard.tsx`
+- [x] **6.3 — `StarRating` 10→5 estrelas**: componente reescrito pra 5 estrelas grandes (mapeamento 2 pontos por estrela, arredondamento pra dados antigos ímpares), sem mudança de contrato no backend (`rating` continua 1-10 int); textos de exibição (`GameFocusScreen`, `MyGamesScreen`) convertidos pra `/5`
+- [x] **6.4 — Zoom de screenshots**: `ImageViewerModal.tsx` novo (Modal nativo, sem libs novas) — tela cheia, swipe entre screenshots, fecha ao tocar; usado em `GameFocusScreen`
+- [x] **6.5 — Teclado cobrindo inputs**: `KeyboardAvoidingScreen.tsx` novo (wrapper compartilhado); aplicado em Login, Registro, CreatePost, TrackingForm, Profile (edição de bio), FindUsers, Search
+- [x] **6.6 — Bug "mensagem enviada aparece como da outra pessoa"**: investigado a fundo (hipótese de race na hidratação da sessão descartada — `RootNavigator` já bloqueia a stack autenticada até `isHydrating` terminar, e `user` é setado antes disso). Nenhum bug encontrado na leitura estática do código. Adicionado assert de dev (`__DEV__`) comparando `senderId` do ack com `myId`; hipótese mais provável é confusão de sessão em teste manual multi-conta sem logout completo — segue em monitoramento, não como bug confirmado
+- [x] **6.7 — Tema escuro estilo X (dark-only, sem light mode)**: `theme/colors.ts` novo com paleta "Lights Out" da X (fundo `#000`, superfície `#16181c`, borda `#2f3336`, texto `#e7e9ea`/`#71767b`, accent `#1d9bf0` substituindo o indigo `#4f46e5`, curtida `#f91880`, sucesso/online `#00ba7c`); `theme/navigationTheme.ts` baseado em `DarkTheme` do React Navigation, aplicado no `NavigationContainer`; `StatusBar` global vira `style="light"`. Reestruturação além da cor: Notificações vira aba da bottom tab bar (substitui Perfil), acesso ao próprio perfil via avatar no header (`AvatarHeaderButton.tsx` novo, padrão da X), botão de criar post virou FAB flutuante no Feed, abas segmentadas em Notificações (Tudo/Interações/Seguidores), perfil (`ProfileScreen`/`UserProfileScreen`) ganhou banner decorativo + avatar sobreposto + layout alinhado à esquerda, `PostCard` sem borda (timeline full-bleed com hairline), tab bar com ícones outline/filled conforme foco. Todas as 15 telas + componentes migrados, nenhuma cor antiga sobrando (`grep` confirmou)
+
+### Verificação
+
+- `tsc --noEmit` limpo, `expo export --platform ios` (bundle Metro, 1125 módulos) sem erros, `expo-doctor` 21/21
+- **Não validado visualmente num dispositivo** — build no iPhone físico ficou pra depois, a pedido do usuário; conferir a UI de verdade antes de considerar a Fase 6 fechada
+
+## Fase 7 — Posts de atividade unificados e foco de post estilo X
+
+- [x] **7.1 — Atividades como posts normais**: `PostCard.tsx` não tem mais uma variante "discreta" separada pra `type:'activity'` — usa o mesmo layout completo (avatar, header, ações de like/comentário) de qualquer post, só com uma tag pequena "Atividade" acima do cabeçalho pra dar contexto. Como toda atividade já vem com `gameEntryId`, o tag do jogo aparece automaticamente igual num post manual
+- [x] **7.2 — Foco de post estilo X**: `PostDetailScreen.tsx` reescrita — antes só listava comentários sem nem mostrar o post original. Agora busca o post via novo endpoint `GET /api/posts/:id` (`postsService.getById`, `getByIdHandler`) e renderiza com o mesmo `PostCard` completo no topo (like funcional), com os comentários embaixo como `ListHeaderComponent` de uma `FlatList` — cada comentário agora tem avatar, nome em negrito e tempo relativo (`lib/relativeTime.ts` novo: "agora"/"Xmin"/"Xh"/"Xd"/data), no lugar do texto cru de antes
+- [x] **7.3 — Capa do jogo nos posts de atividade**: `PostCard.tsx` — a tag do jogo (`gameTag`) agora mostra a capa (`coverUrl`) quando disponível, com o ícone de fallback só quando não há capa; corrigido também o padding torto da tag "Atividade" (tinha um `marginLeft: 40` que a jogava pra direita sem alinhar com nada)
+- [x] **7.4 — Busca em abas estilo X (Jogos/Usuários)**: `SearchScreen.tsx` absorveu toda a funcionalidade de `FindUsersScreen.tsx` (removida) — uma barra de busca só, com abas "Jogos"/"Usuários" abaixo (mesmo padrão visual de abas do Feed/Notificações); segue/mensagem funcionam na aba de usuários igual antes. Removida a rota `FindUsers` e o ícone que ficava escondido no header do Chat (`MainTabs.tsx`, `RootNavigator.tsx`, `types.ts`); texto vazio de `ConversationsScreen` atualizado pra apontar pra aba de Busca
+
+## Fase 8 — Perfil com abas, banner e página de configurações
+
+- [x] **8.1 — Perfil em abas (Atividades/Posts/Respostas)**: `ProfileScreen.tsx`/`UserProfileScreen.tsx` ganharam abas estilo X abaixo das estatísticas. Backend: `GET /users/:id/posts` ganhou filtro opcional `?type=activity|post` (`postsService.getUserPosts`) pra cada aba paginar corretamente por cursor sem misturar tipos; novo endpoint `GET /users/:id/comments` (`postsService.getUserComments`, cursor pagination igual posts) alimenta a aba "Respostas", mostrando cada comentário com o contexto do post original (`Respondeu a @fulano: "..."`)
+- [x] **8.2 — Upload de banner**: campo `users.banner_url` novo (migration `0003_clean_killraven.sql`, aplicada). Backend replica o padrão do avatar: `bannerUpload`/`saveBanner`/`deleteBannerIfLocal` em `lib/uploads.ts` (resize 1500x500, 3:1 como o da X), `POST /users/me/banner`. Mobile: banner tocável no próprio perfil (`ProfileScreen`), abre `expo-image-picker` com aspect 3:1
+- [x] **8.3 — Página de Configurações**: `SettingsScreen.tsx` nova, rota `Settings` no `RootNavigator`; ícone de engrenagem no header do próprio perfil (`Profile`) navega pra lá. Botão de logout saiu do corpo do `ProfileScreen` e agora mora só em Configurações — centraliza o que antes tava espalhado, e já deixa a tela pronta pra crescer com mais opções no futuro
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` (bundle Metro) sem erros, `expo-doctor` 21/21
+- Migration `0003` aplicada no banco real (banco único, dev = produção)
+
+## Fase 9 — Polimento de header, placeholder e empty/loading states
+
+- [x] **9.1 — Header colado no avatar**: `AvatarHeaderButton.tsx` só tinha `marginLeft`, sem `marginRight` — o título das telas com header padrão (Busca, Meus jogos, Chat) ficava colado na foto. Adicionado `marginRight: 12`; mesmo ajuste no ícone de engrenagem do header do próprio perfil
+- [x] **9.2 — Placeholder da busca**: `SearchScreen.tsx` — "Buscar jogo..."/"Buscar por username..." virou só "Buscar"
+- [x] **9.3 — Empty states e loading states**: dois componentes novos e reutilizáveis — `EmptyState.tsx` (ícone circular + título + subtítulo opcional) e `LoadingState.tsx` (spinner centralizado na cor do accent, com variante `fullScreen`). Substituído texto cru em: `SearchScreen` (jogos/usuários/estado inicial "busque pelo menos 2 letras"), `MyGamesScreen`, `FeedScreen` (loading + 2 variantes de empty), `ConversationsScreen`, `NotificationsScreen`, `ProfileScreen`/`UserProfileScreen` (3 abas cada + loading em tela cheia no perfil de terceiros), `PostDetailScreen` (comentários + post carregando), `GameFocusScreen` (loading em tela cheia + "ainda não trackeou")
+
+### Verificação
+
+- `tsc --noEmit` limpo, `expo export --platform ios` sem erros, `expo-doctor` 21/21

@@ -6,6 +6,11 @@ export async function createHandler(req: Request, res: Response) {
   res.status(201).json(post);
 }
 
+export async function getByIdHandler(req: Request, res: Response) {
+  const post = await postsService.getById(req.params.id as string, req.user!.id);
+  res.json(post);
+}
+
 export async function feedHandler(req: Request, res: Response) {
   const { cursor, limit, scope } = res.locals.query as {
     cursor?: string;

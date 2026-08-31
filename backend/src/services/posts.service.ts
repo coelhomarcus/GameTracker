@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db';
 import { comments, follows, gameEntries, likes, postTypeEnum, posts } from '../db/schema';
 import { AppError } from '../lib/errors';
@@ -30,6 +30,12 @@ async function getPostById(id: string, viewerId: string) {
   const post = await db.query.posts.findFirst({ where: eq(posts.id, id), with: postWith });
   if (!post) return undefined;
   return mapPost(post, viewerId);
+}
+
+export async function getById(id: string, viewerId: string) {
+  const post = await getPostById(id, viewerId);
+  if (!post) throw new AppError(404, 'not_found', 'Post não encontrado');
+  return post;
 }
 
 interface CreatePostInput {
@@ -101,8 +107,41 @@ export async function getFeed(
   return paginatedPosts(userId, scopeFilter, cursor, limit);
 }
 
-export async function getUserPosts(viewerId: string, targetUserId: string, cursor: string | undefined, limit: number) {
-  return paginatedPosts(viewerId, eq(posts.userId, targetUserId), cursor, limit);
+export async function getUserPosts(
+  viewerId: string,
+  targetUserId: string,
+  cursor: string | undefined,
+  limit: number,
+  type?: 'activity' | 'post',
+) {
+  const typeFilter = type === 'activity' ? eq(posts.type, 'activity') : type === 'post' ? ne(posts.type, 'activity') : undefined;
+  const whereFilter = typeFilter ? and(eq(posts.userId, targetUserId), typeFilter) : eq(posts.userId, targetUserId);
+  return paginatedPosts(viewerId, whereFilter, cursor, limit);
+}
+
+export async function getUserComments(targetUserId: string, cursor: string | undefined, limit: number) {
+  const cursorFilter = cursor
+    ? (() => {
+        const decoded = decodeCursor(cursor);
+        return sql`(${comments.createdAt}, ${comments.id}) < (${decoded.createdAt.toISOString()}, ${decoded.id})`;
+      })()
+    : undefined;
+
+  const whereFilter = eq(comments.userId, targetUserId);
+
+  const results = await db.query.comments.findMany({
+    where: cursorFilter ? and(whereFilter, cursorFilter) : whereFilter,
+    orderBy: [desc(comments.createdAt), desc(comments.id)],
+    limit: limit + 1,
+    with: { post: { with: { user: { columns: userColumns } } } },
+  });
+
+  const hasMore = results.length > limit;
+  const items = results.slice(0, limit);
+  const last = items[items.length - 1];
+  const nextCursor = hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
+
+  return { items, nextCursor };
 }
 
 async function getPostOrThrow(postId: string) {

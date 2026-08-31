@@ -15,8 +15,14 @@ export async function getPublicProfileHandler(req: Request, res: Response) {
 }
 
 export async function getUserPostsHandler(req: Request, res: Response) {
+  const { cursor, limit, type } = res.locals.query as { cursor?: string; limit: number; type?: 'activity' | 'post' };
+  const result = await postsService.getUserPosts(req.user!.id, req.params.id as string, cursor, limit, type);
+  res.json(result);
+}
+
+export async function getUserCommentsHandler(req: Request, res: Response) {
   const { cursor, limit } = res.locals.query as { cursor?: string; limit: number };
-  const result = await postsService.getUserPosts(req.user!.id, req.params.id as string, cursor, limit);
+  const result = await postsService.getUserComments(req.params.id as string, cursor, limit);
   res.json(result);
 }
 
@@ -46,4 +52,12 @@ export async function uploadAvatarHandler(req: Request, res: Response) {
   }
   const avatarUrl = await usersService.updateAvatar(req.user!.id, req.file.buffer);
   res.json({ avatarUrl });
+}
+
+export async function uploadBannerHandler(req: Request, res: Response) {
+  if (!req.file) {
+    throw new AppError(400, 'validation_error', 'Nenhum arquivo enviado');
+  }
+  const bannerUrl = await usersService.updateBanner(req.user!.id, req.file.buffer);
+  res.json({ bannerUrl });
 }

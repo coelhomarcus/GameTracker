@@ -1,20 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import AuthNavigator from './AuthNavigator';
 import MainTabs from './MainTabs';
 import ChatRoomScreen from '../screens/ChatRoomScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
-import FindUsersScreen from '../screens/FindUsersScreen';
 import GameFocusScreen from '../screens/GameFocusScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import TrackingFormScreen from '../screens/TrackingFormScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import { useAuthBootstrap } from '../hooks/useAuthBootstrap';
 import { usePushRegistration } from '../hooks/usePushRegistration';
 import { useSocketConnection } from '../hooks/useSocketConnection';
 import { useAuthStore } from '../store/authStore';
+import { colors } from '../theme/colors';
+import { navigationTheme } from '../theme/navigationTheme';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -35,7 +38,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       {isAuthenticated ? (
         <Stack.Navigator>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
@@ -46,9 +49,20 @@ export default function RootNavigator() {
             options={{ title: 'Tracking', presentation: 'modal' }}
           />
           <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: 'Novo post' }} />
-          <Stack.Screen name="FindUsers" component={FindUsersScreen} options={{ title: 'Encontrar pessoas' }} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Perfil' }} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notificações' }} />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={({ navigation }) => ({
+              title: 'Perfil',
+              headerRight: () => (
+                <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8} style={styles.settingsButton}>
+                  <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
+                </Pressable>
+              ),
+            })}
+          />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
           <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
           <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
         </Stack.Navigator>
@@ -60,5 +74,6 @@ export default function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  settingsButton: { marginLeft: 12, marginRight: 16 },
 });

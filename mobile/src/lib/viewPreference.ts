@@ -7,9 +7,9 @@ export type ViewMode = 'list' | 'grid';
 export async function getViewMode(): Promise<ViewMode> {
   try {
     const value = await AsyncStorage.getItem(KEY);
-    return value === 'grid' ? 'grid' : 'list';
+    return value === 'list' ? 'list' : 'grid';
   } catch {
-    return 'list';
+    return 'grid';
   }
 }
 

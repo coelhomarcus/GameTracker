@@ -1,17 +1,23 @@
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import * as gamesApi from '../api/games';
+import { EmptyState } from '../components/EmptyState';
+import { ImageViewerModal } from '../components/ImageViewerModal';
+import { LoadingState } from '../components/LoadingState';
 import { STATUS_LABEL } from '../lib/gameEntryLabels';
 import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
 import type { GameEntry } from '../types/models';
 
 export default function GameFocusScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameFocus'>>();
   const { igdbId } = route.params;
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const gameQuery = useQuery({
     queryKey: ['game-focus', igdbId],
@@ -24,11 +30,7 @@ export default function GameFocusScreen() {
   });
 
   if (gameQuery.isLoading || !gameQuery.data) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <LoadingState fullScreen />;
   }
 
   const game = gameQuery.data;
@@ -67,11 +69,20 @@ export default function GameFocusScreen() {
 
       {game.screenshots.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.screenshots} contentContainerStyle={styles.screenshotsContent}>
-          {game.screenshots.map((url) => (
-            <Image key={url} source={{ uri: url }} style={styles.screenshot} />
+          {game.screenshots.map((url, index) => (
+            <Pressable key={url} onPress={() => setViewerIndex(index)}>
+              <Image source={{ uri: url }} style={styles.screenshot} />
+            </Pressable>
           ))}
         </ScrollView>
       )}
+
+      <ImageViewerModal
+        visible={viewerIndex !== null}
+        images={game.screenshots}
+        initialIndex={viewerIndex ?? 0}
+        onClose={() => setViewerIndex(null)}
+      />
 
       <Text style={styles.sectionTitle}>Seus playthroughs</Text>
       {entriesQuery.data?.length ? (
@@ -85,12 +96,12 @@ export default function GameFocusScreen() {
             </View>
             <Text style={styles.entryMeta}>
               {entry.hoursPlayed ? `${entry.hoursPlayed}h` : 'sem horas registradas'}
-              {entry.rating ? ` · nota ${entry.rating}` : ''}
+              {entry.rating ? ` · nota ${Math.round(entry.rating / 2)}/5` : ''}
             </Text>
           </Pressable>
         ))
       ) : (
-        <Text style={styles.empty}>Você ainda não trackeou esse jogo</Text>
+        <EmptyState icon="game-controller-outline" title="Você ainda não trackeou esse jogo" />
       )}
 
       <Pressable style={styles.button} onPress={() => openForm()}>
@@ -101,25 +112,23 @@ export default function GameFocusScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: 16, gap: 4 },
-  cover: { width: 140, height: 187, borderRadius: 8, backgroundColor: '#eee', alignSelf: 'center' },
+  container: { padding: 16, gap: 4, backgroundColor: colors.background },
+  cover: { width: 140, height: 187, borderRadius: 8, backgroundColor: colors.backgroundElevated, alignSelf: 'center' },
   coverPlaceholder: {},
-  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 12 },
-  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 2 },
-  platforms: { fontSize: 13, color: '#4f46e5', textAlign: 'center', marginTop: 4 },
-  summary: { fontSize: 14, color: '#333', lineHeight: 20, marginTop: 16 },
+  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 12, color: colors.textPrimary },
+  subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 2 },
+  platforms: { fontSize: 13, color: colors.accent, textAlign: 'center', marginTop: 4 },
+  summary: { fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginTop: 16 },
   screenshots: { marginTop: 16 },
   screenshotsContent: { gap: 8 },
-  screenshot: { width: 240, height: 135, borderRadius: 8, backgroundColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 24, marginBottom: 8 },
-  empty: { color: '#666' },
-  entryCard: { borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 12, gap: 4, marginBottom: 8 },
+  screenshot: { width: 240, height: 135, borderRadius: 8, backgroundColor: colors.backgroundElevated },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginTop: 24, marginBottom: 8, color: colors.textPrimary },
+  entryCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, gap: 4, marginBottom: 8 },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  entryPlatform: { fontSize: 15, fontWeight: '600' },
-  badge: { backgroundColor: '#eef2ff', borderRadius: 12, paddingVertical: 3, paddingHorizontal: 8 },
-  badgeText: { color: '#4f46e5', fontSize: 12, fontWeight: '600' },
-  entryMeta: { color: '#666', fontSize: 13 },
-  button: { backgroundColor: '#4f46e5', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
+  entryPlatform: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  badge: { backgroundColor: colors.backgroundElevated, borderRadius: 12, paddingVertical: 3, paddingHorizontal: 8 },
+  badgeText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
+  entryMeta: { color: colors.textSecondary, fontSize: 13 },
+  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

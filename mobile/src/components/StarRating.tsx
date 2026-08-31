@@ -7,14 +7,16 @@ interface Props {
   size?: number;
 }
 
-const STARS = Array.from({ length: 10 }, (_, i) => i + 1);
+const STARS = [1, 2, 3, 4, 5];
 
-export function StarRating({ value, onChange, size = 22 }: Props) {
+export function StarRating({ value, onChange, size = 36 }: Props) {
+  const filledStars = value ? Math.round(value / 2) : 0;
+
   return (
     <View style={styles.row}>
       {STARS.map((star) => (
-        <Pressable key={star} onPress={() => onChange(star)} hitSlop={4}>
-          <Ionicons name={value !== null && star <= value ? 'star' : 'star-outline'} size={size} color="#f59e0b" />
+        <Pressable key={star} onPress={() => onChange(star * 2)} hitSlop={8}>
+          <Ionicons name={star <= filledStars ? 'star' : 'star-outline'} size={size} color="#f59e0b" />
         </Pressable>
       ))}
     </View>
@@ -22,5 +24,5 @@ export function StarRating({ value, onChange, size = 22 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 2 },
+  row: { flexDirection: 'row', gap: 8 },
 });

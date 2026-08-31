@@ -4,8 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as postsApi from '../api/posts';
+import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { getApiErrorMessage } from '../lib/apiError';
 import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
 
 export default function CreatePostScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -22,10 +24,12 @@ export default function CreatePostScreen() {
   });
 
   return (
+    <KeyboardAvoidingScreen>
     <View style={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="O que você está jogando?"
+        placeholderTextColor={colors.textSecondary}
         multiline
         autoFocus
         maxLength={500}
@@ -40,14 +44,24 @@ export default function CreatePostScreen() {
         {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Publicar</Text>}
       </Pressable>
     </View>
+    </KeyboardAvoidingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16, minHeight: 120, textAlignVertical: 'top' },
-  counter: { color: '#999', textAlign: 'right', marginTop: 4 },
-  error: { color: '#dc2626', marginTop: 8 },
-  button: { backgroundColor: '#4f46e5', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
+  container: { flex: 1, padding: 16, backgroundColor: colors.background },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    color: colors.textPrimary,
+  },
+  counter: { color: colors.textSecondary, textAlign: 'right', marginTop: 4 },
+  error: { color: colors.like, marginTop: 8 },
+  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

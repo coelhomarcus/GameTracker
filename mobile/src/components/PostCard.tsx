@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../theme/colors';
 import type { Post } from '../types/models';
 
 interface Props {
@@ -9,57 +10,64 @@ interface Props {
   onToggleLike: () => void;
 }
 
-export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) {
-  if (post.type === 'activity') {
-    return (
-      <Pressable style={styles.activityCard} onPress={onPress}>
-        <Ionicons name="game-controller" size={16} color="#4f46e5" />
-        <Text style={styles.activityText}>
-          <Text style={styles.activityUsername} onPress={onAuthorPress}>
-            {post.user.username}{' '}
-          </Text>
-          {post.content}
-        </Text>
-        <Pressable style={styles.activityLike} onPress={onToggleLike}>
-          <Ionicons name={post.likedByMe ? 'heart' : 'heart-outline'} size={14} color={post.likedByMe ? '#dc2626' : '#999'} />
-          {post.likeCount > 0 && <Text style={styles.activityLikeCount}>{post.likeCount}</Text>}
-        </Pressable>
-      </Pressable>
-    );
-  }
+const AVATAR_SIZE = 44;
+const ROW_GAP = 10;
 
+export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      <Pressable style={styles.header} onPress={onAuthorPress}>
-        {post.user.avatarUrl ? (
-          <Image source={{ uri: post.user.avatarUrl }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{post.user.username[0]?.toUpperCase()}</Text>
-          </View>
-        )}
-        <Text style={styles.username}>{post.user.username}</Text>
-      </Pressable>
-
-      <Text style={styles.content}>{post.content}</Text>
-
-      {post.gameEntry && (
-        <View style={styles.gameTag}>
-          <Ionicons name="game-controller-outline" size={14} color="#4f46e5" />
-          <Text style={styles.gameTagText}>
-            {post.gameEntry.game.name} · {post.gameEntry.platform}
-          </Text>
+      {post.type === 'activity' && (
+        <View style={styles.activityTag}>
+          <Ionicons name="game-controller-outline" size={12} color={colors.textSecondary} />
+          <Text style={styles.activityTagText}>Atividade</Text>
         </View>
       )}
 
-      <View style={styles.actions}>
-        <Pressable style={styles.actionButton} onPress={onToggleLike}>
-          <Ionicons name={post.likedByMe ? 'heart' : 'heart-outline'} size={18} color={post.likedByMe ? '#dc2626' : '#666'} />
-          <Text style={[styles.actionText, post.likedByMe && styles.actionTextActive]}>{post.likeCount}</Text>
+      <View style={styles.row}>
+        <Pressable onPress={onAuthorPress}>
+          {post.user.avatarUrl ? (
+            <Image source={{ uri: post.user.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{post.user.username[0]?.toUpperCase()}</Text>
+            </View>
+          )}
         </Pressable>
-        <View style={styles.actionButton}>
-          <Ionicons name="chatbubble-outline" size={16} color="#666" />
-          <Text style={styles.actionText}>{post.commentCount}</Text>
+
+        <View style={styles.body}>
+          <Pressable onPress={onAuthorPress}>
+            <Text style={styles.username}>{post.user.username}</Text>
+          </Pressable>
+
+          <Text style={styles.content}>{post.content}</Text>
+
+          {post.gameEntry && (
+            <View style={styles.gameTag}>
+              {post.gameEntry.game.coverUrl ? (
+                <Image source={{ uri: post.gameEntry.game.coverUrl }} style={styles.gameTagCover} />
+              ) : (
+                <Ionicons name="game-controller-outline" size={14} color={colors.accent} />
+              )}
+              <Text style={styles.gameTagText}>
+                {post.gameEntry.game.name} · {post.gameEntry.platform}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.actions}>
+            <Pressable style={styles.actionButton} onPress={onToggleLike}>
+              <Ionicons
+                name={post.likedByMe ? 'heart' : 'heart-outline'}
+                size={18}
+                color={post.likedByMe ? colors.like : colors.textSecondary}
+              />
+              <Text style={[styles.actionText, post.likedByMe && styles.actionTextActive]}>{post.likeCount}</Text>
+            </Pressable>
+            <View style={styles.actionButton}>
+              <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+              <Text style={styles.actionText}>{post.commentCount}</Text>
+            </View>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -67,47 +75,42 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: '#eee', borderRadius: 10, padding: 12, gap: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  card: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 12, paddingHorizontal: 12, gap: 6 },
+  activityTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: AVATAR_SIZE + ROW_GAP,
+    marginBottom: 2,
+  },
+  activityTagText: { fontSize: 11, color: colors.textSecondary, fontWeight: '600' },
+  row: { flexDirection: 'row', gap: ROW_GAP },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#4f46e5',
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  avatarImage: { width: 32, height: 32, borderRadius: 16 },
-  username: { fontWeight: '600' },
-  content: { fontSize: 15, lineHeight: 20 },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 18 },
+  avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 },
+  body: { flex: 1, gap: 4 },
+  username: { fontWeight: '600', color: colors.textPrimary },
+  content: { fontSize: 15, lineHeight: 20, color: colors.textPrimary },
   gameTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#eef2ff',
+    gap: 8,
+    backgroundColor: colors.backgroundElevated,
     borderRadius: 8,
     padding: 8,
     alignSelf: 'flex-start',
   },
-  gameTagText: { color: '#4f46e5', fontSize: 13 },
+  gameTagCover: { width: 40, height: 53, borderRadius: 4 },
+  gameTagText: { color: colors.accent, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionText: { color: '#666' },
-  actionTextActive: { color: '#dc2626' },
-
-  // post de atividade automática — mais discreto, sem o "cartão" cheio
-  activityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  activityText: { flex: 1, fontSize: 13, color: '#555', lineHeight: 18 },
-  activityUsername: { fontWeight: '600', color: '#333' },
-  activityLike: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  activityLikeCount: { fontSize: 11, color: '#999' },
+  actionText: { color: colors.textSecondary },
+  actionTextActive: { color: colors.like },
 });

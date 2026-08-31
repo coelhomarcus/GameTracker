@@ -1,14 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as notificationsApi from '../api/notifications';
 import * as postsApi from '../api/posts';
+import { EmptyState } from '../components/EmptyState';
+import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
 import type { RootStackParamList } from '../navigation/types';
+import { useAuthStore } from '../store/authStore';
+import { colors } from '../theme/colors';
 import type { FeedScope, Post } from '../types/models';
 
 const SCOPES: { value: FeedScope; label: string }[] = [
@@ -20,6 +23,7 @@ export default function FeedScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
   const [scope, setScope] = useState<FeedScope>('general');
 
   const feedQuery = useInfiniteQuery({
@@ -27,12 +31,6 @@ export default function FeedScreen() {
     queryFn: ({ pageParam }: { pageParam: string | undefined }) => postsApi.getFeed(scope, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-  });
-
-  const notificationsQuery = useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationsApi.listNotifications,
-    refetchInterval: 30_000,
   });
 
   const posts = feedQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -49,20 +47,17 @@ export default function FeedScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <Pressable onPress={() => navigation.navigate('Profile')} hitSlop={8}>
+          {user?.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
+            </View>
+          )}
+        </Pressable>
         <Text style={styles.title}>GameTracker</Text>
-        <View style={styles.headerActions}>
-          <Pressable onPress={() => navigation.navigate('Notifications')} style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={22} color="#111" />
-            {!!notificationsQuery.data?.unreadCount && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{notificationsQuery.data.unreadCount}</Text>
-              </View>
-            )}
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('CreatePost', undefined)} style={styles.iconButton}>
-            <Ionicons name="add-circle-outline" size={22} color="#111" />
-          </Pressable>
-        </View>
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.scopeTabs}>
@@ -92,21 +87,29 @@ export default function FeedScreen() {
         }}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
-          !feedQuery.isLoading ? (
-            <Text style={styles.empty}>
-              {scope === 'following'
-                ? 'Nenhum post de quem você segue ainda. Que tal achar gente nova?'
-                : 'Nenhum post ainda. Crie o primeiro!'}
-            </Text>
-          ) : null
+          feedQuery.isLoading ? (
+            <LoadingState />
+          ) : scope === 'following' ? (
+            <EmptyState
+              icon="people-outline"
+              title="Nenhum post de quem você segue ainda"
+              subtitle="Que tal achar gente nova pra seguir?"
+            />
+          ) : (
+            <EmptyState icon="newspaper-outline" title="Nenhum post ainda" subtitle="Crie o primeiro post pra começar" />
+          )
         }
       />
+
+      <Pressable style={styles.fab} onPress={() => navigation.navigate('CreatePost', undefined)}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -114,27 +117,38 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 12,
   },
-  title: { fontSize: 20, fontWeight: '700' },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  iconButton: { padding: 6 },
-  badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#dc2626',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+  title: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  headerSpacer: { width: 30 },
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  scopeTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  avatarText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  avatarImage: { width: 30, height: 30, borderRadius: 15 },
+  scopeTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
   scopeTab: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  scopeTabText: { color: '#666', fontWeight: '600', fontSize: 14 },
-  scopeTabTextActive: { color: '#111' },
-  scopeTabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '40%', backgroundColor: '#4f46e5', borderRadius: 1 },
-  list: { padding: 16, gap: 12 },
-  empty: { color: '#666', textAlign: 'center', marginTop: 32 },
+  scopeTabText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
+  scopeTabTextActive: { color: colors.textPrimary },
+  scopeTabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '40%', backgroundColor: colors.accent, borderRadius: 1 },
+  list: { paddingBottom: 96 },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
 });

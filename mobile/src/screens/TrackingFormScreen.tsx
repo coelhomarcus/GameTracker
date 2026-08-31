@@ -5,9 +5,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
+import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { StarRating } from '../components/StarRating';
 import { getApiErrorMessage } from '../lib/apiError';
 import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
 import type { GameEntryStatus } from '../types/models';
 
 const STATUS_OPTIONS: { value: GameEntryStatus; label: string }[] = [
@@ -65,6 +67,7 @@ export default function TrackingFormScreen() {
   });
 
   return (
+    <KeyboardAvoidingScreen>
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>{isEditing ? 'Editar playthrough' : 'Novo playthrough'}</Text>
       <Text style={styles.subtitle}>{gameName}</Text>
@@ -152,25 +155,26 @@ export default function TrackingFormScreen() {
         )}
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 4 },
-  title: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 4 },
-  subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 8 },
-  label: { fontSize: 14, fontWeight: '600', marginTop: 12, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  dateInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12 },
-  dateText: { fontSize: 16, color: '#111' },
-  datePlaceholder: { fontSize: 16, color: '#999' },
+  container: { padding: 16, gap: 4, backgroundColor: colors.background },
+  title: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 4, color: colors.textPrimary },
+  subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: '600', marginTop: 12, marginBottom: 6, color: colors.textPrimary },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, color: colors.textPrimary },
+  dateInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12 },
+  dateText: { fontSize: 16, color: colors.textPrimary },
+  datePlaceholder: { fontSize: 16, color: colors.textSecondary },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
-  chipActive: { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-  chipText: { color: '#333' },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
+  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipText: { color: colors.textPrimary },
   chipTextActive: { color: '#fff', fontWeight: '600' },
-  button: { backgroundColor: '#4f46e5', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 20 },
+  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 20 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  error: { color: '#dc2626', marginTop: 8 },
+  error: { color: colors.like, marginTop: 8 },
 });

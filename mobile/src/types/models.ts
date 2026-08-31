@@ -5,6 +5,7 @@ export interface User {
   username: string;
   email: string;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   bio: string | null;
 }
 
@@ -80,10 +81,20 @@ export interface Comment {
   user: PostAuthor;
 }
 
+export interface UserReply {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  post: { id: string; content: string; user: PostAuthor };
+}
+
 export interface PublicProfile {
   id: string;
   username: string;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   bio: string | null;
   createdAt: string;
   followerCount: number;

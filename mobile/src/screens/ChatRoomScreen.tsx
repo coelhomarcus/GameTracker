@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as conversationsApi from '../api/conversations';
 import { getSocket } from '../lib/socket';
 import { useAuthStore } from '../store/authStore';
+import { colors } from '../theme/colors';
 import type { RootStackParamList } from '../navigation/types';
 import type { Message } from '../types/models';
 
@@ -154,7 +155,14 @@ export default function ChatRoomScreen() {
     if (!content) return;
     setSending(true);
     getSocket().emit('typing:stop', { conversationId });
-    getSocket().emit('message:send', { conversationId, content }, () => setSending(false));
+    getSocket().emit('message:send', { conversationId, content }, (ack?: { message?: Message; error?: string }) => {
+      setSending(false);
+      if (__DEV__ && ack?.message && ack.message.senderId !== myId) {
+        console.warn(
+          `[chat] mensagem enviada voltou com senderId diferente do myId atual (ack: ${ack.message.senderId}, myId: ${myId})`,
+        );
+      }
+    });
     setInput('');
   }
 
@@ -197,34 +205,41 @@ export default function ChatRoomScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: colors.background },
   headerTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#4f46e5',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerAvatarImage: { width: 32, height: 32, borderRadius: 16 },
   headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  headerUsername: { fontWeight: '600', fontSize: 15 },
-  headerStatus: { color: '#16a34a', fontSize: 11 },
+  headerUsername: { fontWeight: '600', fontSize: 15, color: colors.textPrimary },
+  headerStatus: { color: colors.success, fontSize: 11 },
   list: { padding: 16, gap: 8 },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubble: { maxWidth: '75%', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
-  bubbleMine: { backgroundColor: '#4f46e5' },
-  bubbleTheirs: { backgroundColor: '#eee' },
+  bubbleMine: { backgroundColor: colors.accent },
+  bubbleTheirs: { backgroundColor: colors.backgroundElevated },
   bubbleTextMine: { color: '#fff' },
-  bubbleTextTheirs: { color: '#111' },
+  bubbleTextTheirs: { color: colors.textPrimary },
   bubbleTime: { fontSize: 10, marginTop: 2, alignSelf: 'flex-end' },
   bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
-  bubbleTimeTheirs: { color: '#999' },
-  typing: { color: '#666', fontSize: 12, paddingHorizontal: 16, paddingBottom: 4 },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#eee' },
-  input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10 },
-  sendButton: { backgroundColor: '#4f46e5', borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  bubbleTimeTheirs: { color: colors.textSecondary },
+  typing: { color: colors.textSecondary, fontSize: 12, paddingHorizontal: 16, paddingBottom: 4 },
+  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 10,
+    color: colors.textPrimary,
+  },
+  sendButton: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
   sendButtonText: { color: '#fff', fontWeight: '600' },
 });

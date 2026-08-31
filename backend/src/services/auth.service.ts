@@ -18,8 +18,22 @@ interface Session {
   refreshToken: string;
 }
 
-function toPublicUser(user: { id: string; username: string; email: string; avatarUrl: string | null; bio: string | null }) {
-  return { id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, bio: user.bio };
+function toPublicUser(user: {
+  id: string;
+  username: string;
+  email: string;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+  bio: string | null;
+}) {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    bio: user.bio,
+  };
 }
 
 async function issueSession(userId: string): Promise<Session> {

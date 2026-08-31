@@ -4,9 +4,11 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as authApi from '../api/auth';
+import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { getApiErrorMessage } from '../lib/apiError';
 import { applySession } from '../lib/session';
 import type { AuthStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -19,12 +21,14 @@ export default function LoginScreen() {
   });
 
   return (
+    <KeyboardAvoidingScreen>
     <View style={styles.container}>
       <Text style={styles.title}>GameTracker</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -33,6 +37,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Senha"
+        placeholderTextColor={colors.textSecondary}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -52,15 +57,16 @@ export default function LoginScreen() {
         <Text style={styles.link}>Não tem conta? Cadastre-se</Text>
       </Pressable>
     </View>
+    </KeyboardAvoidingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 24 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
-  button: { backgroundColor: '#4f46e5', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12, backgroundColor: colors.background },
+  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 24, color: colors.textPrimary },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, fontSize: 16, color: colors.textPrimary },
+  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { color: '#4f46e5', textAlign: 'center', marginTop: 16 },
-  error: { color: '#dc2626' },
+  link: { color: colors.accent, textAlign: 'center', marginTop: 16 },
+  error: { color: colors.like },
 });

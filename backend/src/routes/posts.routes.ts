@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   addCommentHandler,
   createHandler,
+  getByIdHandler,
   likeHandler,
   listCommentsHandler,
   unlikeHandler,
@@ -15,6 +16,7 @@ export const postsRouter = Router();
 postsRouter.use(requireAuth);
 
 postsRouter.post('/', validateBody(createPostSchema), createHandler);
+postsRouter.get('/:id', getByIdHandler);
 postsRouter.post('/:id/like', likeHandler);
 postsRouter.delete('/:id/like', unlikeHandler);
 postsRouter.post('/:id/comments', validateBody(createCommentSchema), addCommentHandler);

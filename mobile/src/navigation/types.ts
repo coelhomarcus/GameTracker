@@ -10,7 +10,7 @@ export type MainTabParamList = {
   Search: undefined;
   MyGames: undefined;
   Chat: undefined;
-  Profile: undefined;
+  Notifications: undefined;
 };
 
 export interface TrackingFormInitial {
@@ -35,8 +35,8 @@ export type RootStackParamList = {
   };
   CreatePost: { gameEntryId?: string; prefillContent?: string } | undefined;
   UserProfile: { userId: string };
-  Notifications: undefined;
+  Profile: undefined;
+  Settings: undefined;
   PostDetail: { postId: string };
   ChatRoom: { conversationId: string; otherUsername: string; otherUserId: string; otherAvatarUrl: string | null };
-  FindUsers: undefined;
 };

@@ -3,7 +3,7 @@ import { db } from '../db';
 import { follows, gameEntries, users } from '../db/schema';
 import { AppError } from '../lib/errors';
 import { getPublicBaseUrl } from '../lib/publicUrl';
-import { deleteAvatarIfLocal, saveAvatar } from '../lib/uploads';
+import { deleteAvatarIfLocal, deleteBannerIfLocal, saveAvatar, saveBanner } from '../lib/uploads';
 import * as notificationsService from './notifications.service';
 
 export async function search(viewerId: string, term: string) {
@@ -24,7 +24,7 @@ export async function search(viewerId: string, term: string) {
 export async function getPublicProfile(viewerId: string, targetId: string) {
   const user = await db.query.users.findFirst({
     where: eq(users.id, targetId),
-    columns: { id: true, username: true, avatarUrl: true, bio: true, createdAt: true },
+    columns: { id: true, username: true, avatarUrl: true, bannerUrl: true, bio: true, createdAt: true },
   });
   if (!user) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
@@ -86,4 +86,16 @@ export async function updateAvatar(userId: string, buffer: Buffer) {
   void deleteAvatarIfLocal(current?.avatarUrl ?? null);
 
   return avatarUrl;
+}
+
+export async function updateBanner(userId: string, buffer: Buffer) {
+  const current = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { bannerUrl: true } });
+
+  const relativePath = await saveBanner(buffer);
+  const bannerUrl = `${getPublicBaseUrl()}${relativePath}`;
+
+  await db.update(users).set({ bannerUrl }).where(eq(users.id, userId));
+  void deleteBannerIfLocal(current?.bannerUrl ?? null);
+
+  return bannerUrl;
 }

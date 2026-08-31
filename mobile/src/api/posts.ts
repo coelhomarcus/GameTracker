@@ -17,6 +17,10 @@ export function createPost(input: CreatePostInput) {
   return api.post<Post>('/posts', input).then((r) => r.data);
 }
 
+export function getPost(postId: string) {
+  return api.get<Post>(`/posts/${postId}`).then((r) => r.data);
+}
+
 export function getFeed(scope: FeedScope, cursor?: string) {
   return api.get<FeedPage>('/feed', { params: { scope, ...(cursor ? { cursor } : {}) } }).then((r) => r.data);
 }

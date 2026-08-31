@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
+import { EmptyState } from '../components/EmptyState';
 import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
 import type { ConversationSummary } from '../types/models';
 
 export default function ConversationsScreen() {
@@ -63,7 +65,11 @@ export default function ConversationsScreen() {
         refreshControl={<RefreshControl refreshing={query.isFetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={
           !query.isFetching ? (
-            <Text style={styles.empty}>Nenhuma conversa ainda — toque no ícone acima pra encontrar alguém</Text>
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="Nenhuma conversa ainda"
+              subtitle="Procure alguém na aba de Busca pra começar a conversar"
+            />
           ) : null
         }
       />
@@ -72,22 +78,21 @@ export default function ConversationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.background },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#4f46e5',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarImage: { width: 44, height: 44, borderRadius: 22 },
   avatarText: { color: '#fff', fontWeight: '700' },
   info: { flex: 1 },
-  username: { fontWeight: '600', fontSize: 15 },
-  preview: { color: '#666', fontSize: 13, marginTop: 2 },
-  previewUnread: { color: '#111', fontWeight: '600' },
-  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#4f46e5' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 32, paddingHorizontal: 24 },
+  username: { fontWeight: '600', fontSize: 15, color: colors.textPrimary },
+  preview: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
+  previewUnread: { color: colors.textPrimary, fontWeight: '600' },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
 });
