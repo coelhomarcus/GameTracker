@@ -7,6 +7,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as postsApi from '../api/posts';
 import { LikeButton } from '../components/LikeButton';
 import { LoadingState } from '../components/LoadingState';
+import { ActivityRow } from '../components/ActivityRow';
 import { PostCard } from '../components/PostCard';
 import { Avatar, Composer, ErrorState, IconButton, ListState, Screen } from '../components/ui';
 import { useToggleLike } from '../hooks/queries/useToggleLike';
@@ -131,6 +132,8 @@ export default function PostDetailScreen() {
     [onLike, onReply],
   );
 
+  const PostRow = postQuery.data?.type === 'activity' ? ActivityRow : PostCard;
+
   return (
     <Screen keyboard>
       <FlatList
@@ -144,7 +147,7 @@ export default function PostDetailScreen() {
             {postQuery.isError ? (
               <ErrorState error={postQuery.error} onRetry={() => postQuery.refetch()} />
             ) : postQuery.data ? (
-              <PostCard
+              <PostRow
                 post={postQuery.data}
                 onPress={() => {}}
                 onAuthorPress={() => navigation.navigate('UserProfile', { userId: postQuery.data!.userId })}

@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as postsApi from '../api/posts';
+import { ActivityRow } from '../components/ActivityRow';
 import { PostCard } from '../components/PostCard';
 import { Avatar, ListFooter, ListState, Screen, SegmentedTabs, type Tab } from '../components/ui';
 import { useInfiniteList } from '../hooks/queries/useInfiniteList';
@@ -39,16 +40,19 @@ export default function FeedScreen() {
     setHeaderHeight(event.nativeEvent.layout.height);
   }
 
-  // renderItem estável: sem isso o memo do PostCard não vale nada.
+  // renderItem estável: sem isso o memo do PostCard/ActivityRow não vale nada.
   const renderItem = useCallback(
-    ({ item }: { item: Post }) => (
-      <PostCard
-        post={item}
-        onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
-        onAuthorPress={() => navigation.navigate('UserProfile', { userId: item.userId })}
-        onToggleLike={() => toggleLike.mutate(item)}
-      />
-    ),
+    ({ item }: { item: Post }) => {
+      const Row = item.type === 'activity' ? ActivityRow : PostCard;
+      return (
+        <Row
+          post={item}
+          onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
+          onAuthorPress={() => navigation.navigate('UserProfile', { userId: item.userId })}
+          onToggleLike={() => toggleLike.mutate(item)}
+        />
+      );
+    },
     [navigation, toggleLike],
   );
 

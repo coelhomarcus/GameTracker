@@ -11,6 +11,7 @@ import { colors, GRID, space, useGridCellWidth } from '../../theme';
 import type { GameEntry, GameEntryStatus, Post, UserReply } from '../../types/models';
 import { GameEntryGridCell } from '../GameEntryGridCell';
 import { ImageViewerModal } from '../ImageViewerModal';
+import { ActivityRow } from '../ActivityRow';
 import { PostCard } from '../PostCard';
 import { ReplyThreadCard } from '../ReplyThreadCard';
 import { StatusFilterChips } from '../StatusFilterChips';
@@ -65,14 +66,17 @@ export function ProfileView({ userId, isSelf }: Props) {
   );
 
   const renderPost = useCallback(
-    ({ item }: { item: Post }) => (
-      <PostCard
-        post={item}
-        onPress={() => openPost(item.id)}
-        onAuthorPress={() => navigation.navigate('UserProfile', { userId: item.userId })}
-        onToggleLike={() => toggleLike.mutate(item)}
-      />
-    ),
+    ({ item }: { item: Post }) => {
+      const Row = item.type === 'activity' ? ActivityRow : PostCard;
+      return (
+        <Row
+          post={item}
+          onPress={() => openPost(item.id)}
+          onAuthorPress={() => navigation.navigate('UserProfile', { userId: item.userId })}
+          onToggleLike={() => toggleLike.mutate(item)}
+        />
+      );
+    },
     [navigation, openPost, toggleLike],
   );
 

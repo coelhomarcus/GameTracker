@@ -14,7 +14,6 @@ interface Props {
   onToggleLike: () => void;
 }
 
-const AVATAR_SIZE = 44;
 const ROW_GAP = space.md;
 
 function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
@@ -27,13 +26,6 @@ function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props
     // não é anunciado como botão pra leitor de tela — os controles reais
     // dentro dele são.
     <Pressable style={({ pressed }) => [styles.card, pressed && styles.cardPressed]} onPress={onPress}>
-      {post.type === 'activity' && (
-        <View style={styles.activityTag}>
-          <Ionicons name="game-controller-outline" size={icon.xs} color={colors.textSecondary} />
-          <Text style={styles.activityTagText}>Atividade</Text>
-        </View>
-      )}
-
       <View style={styles.row}>
         <Avatar user={post.user} size="xl" onPress={onAuthorPress} />
 
@@ -90,14 +82,6 @@ const styles = StyleSheet.create({
     gap: space.xs,
   },
   cardPressed: { backgroundColor: colors.surface },
-  activityTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-    marginLeft: AVATAR_SIZE + ROW_GAP,
-    marginBottom: space.hair,
-  },
-  activityTagText: { ...type.micro, color: colors.textSecondary },
   row: { flexDirection: 'row', gap: ROW_GAP },
   body: { flex: 1, gap: space.xs },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
