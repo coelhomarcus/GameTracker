@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { gameEntries, gameEntryStatusEnum, games } from '../db/schema';
 import { AppError } from '../lib/errors';
@@ -79,7 +79,9 @@ export async function create(userId: string, input: CreateInput) {
 const SORT_ORDER = {
   recent: desc(gameEntries.createdAt),
   oldest: asc(gameEntries.createdAt),
-  most_played: desc(gameEntries.hoursPlayed),
+  // NULLS LAST explícito: por padrão o Postgres põe NULL primeiro em DESC —
+  // sem isso, um jogo sem hora nenhuma registrada aparecia como "o mais jogado".
+  most_played: sql`${gameEntries.hoursPlayed} DESC NULLS LAST`,
 } as const;
 
 export async function listMine(
