@@ -71,18 +71,19 @@ async function main() {
   }
 
   console.log('Buscando jogos na IGDB...');
-  const [zelda, elden, hollow, celeste, hades, stardew, persona, bg3, gow, stray] = await Promise.all([
-    seedGame('The Legend of Zelda: Breath of the Wild'),
-    seedGame('Elden Ring'),
-    seedGame('Hollow Knight'),
-    seedGame('Celeste'),
-    seedGame('Hades'),
-    seedGame('Stardew Valley'),
-    seedGame('Persona 5 Royal'),
-    seedGame("Baldur's Gate 3"),
-    seedGame('God of War Ragnarök'),
-    seedGame('Stray'),
-  ]);
+  // Sequencial, não Promise.all: a IGDB rate-limita a ~4 req/s, e cada
+  // seedGame já faz 2 chamadas (busca + detalhes) — 10 em paralelo estoura
+  // o limite e derruba uma das chamadas com 502.
+  const zelda = await seedGame('The Legend of Zelda: Breath of the Wild');
+  const elden = await seedGame('Elden Ring');
+  const hollow = await seedGame('Hollow Knight');
+  const celeste = await seedGame('Celeste');
+  const hades = await seedGame('Hades');
+  const stardew = await seedGame('Stardew Valley');
+  const persona = await seedGame('Persona 5 Royal');
+  const bg3 = await seedGame("Baldur's Gate 3");
+  const gow = await seedGame('God of War Ragnarök');
+  const stray = await seedGame('Stray');
 
   // ---------- game entries ----------
   const [demoZelda, demoElden, , demoHades, demoBg3] = await db
