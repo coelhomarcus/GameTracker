@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../theme/colors';
+import { colors, hit, icon as iconScale, opacity, space, type } from '../theme';
 
 interface Props {
   liked: boolean;
@@ -10,7 +10,7 @@ interface Props {
   onPress: () => void;
 }
 
-export function LikeButton({ liked, count, size = 18, onPress }: Props) {
+export function LikeButton({ liked, count, size = iconScale.md, onPress }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
@@ -27,9 +27,20 @@ export function LikeButton({ liked, count, size = 18, onPress }: Props) {
   }
 
   return (
-    <Pressable style={styles.button} onPress={handlePress} hitSlop={6}>
+    <Pressable
+      style={({ pressed }) => [styles.button, pressed && { opacity: opacity.pressed }]}
+      onPress={handlePress}
+      hitSlop={hit.md}
+      accessibilityRole="button"
+      accessibilityLabel={liked ? 'Descurtir' : 'Curtir'}
+      accessibilityState={{ selected: liked }}
+    >
       <Animated.View style={{ transform: [{ scale }] }}>
-        <Ionicons name={liked ? 'heart' : 'heart-outline'} size={size} color={liked ? colors.like : colors.textSecondary} />
+        <Ionicons
+          name={liked ? 'heart' : 'heart-outline'}
+          size={size}
+          color={liked ? colors.like : colors.textSecondary}
+        />
       </Animated.View>
       {count > 0 && <Text style={[styles.text, liked && styles.textActive]}>{count}</Text>}
     </Pressable>
@@ -37,7 +48,8 @@ export function LikeButton({ liked, count, size = 18, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  button: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  text: { color: colors.textSecondary, fontSize: 13 },
+  button: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  // Contagem em mono: é dado, e alinha entre linhas da lista.
+  text: { ...type.dataSm, color: colors.textSecondary },
   textActive: { color: colors.like },
 });

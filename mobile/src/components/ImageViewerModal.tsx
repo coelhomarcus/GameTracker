@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, space } from '../theme';
+import { IconButton } from './ui';
 
 interface Props {
   visible: boolean;
@@ -45,16 +46,21 @@ export function ImageViewerModal({ visible, images, initialIndex, onClose }: Pro
           ))}
         </ScrollView>
 
-        <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={onClose} hitSlop={12}>
-          <Ionicons name="close" size={28} color="#fff" />
-        </Pressable>
+        <IconButton
+          name="close"
+          size="hero"
+          color={colors.textOnAccent}
+          onPress={onClose}
+          accessibilityLabel="Fechar imagem"
+          style={[styles.closeButton, { top: insets.top + space.md }]}
+        />
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)' },
+  backdrop: { flex: 1, backgroundColor: colors.overlay },
   page: { alignItems: 'center', justifyContent: 'center' },
-  closeButton: { position: 'absolute', right: 16 },
+  closeButton: { position: 'absolute', right: space.md },
 });

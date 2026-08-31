@@ -1,8 +1,10 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
 import { formatRelativeTime } from '../lib/relativeTime';
-import { colors } from '../theme/colors';
+import { colors, space, type } from '../theme';
 import type { UserReply } from '../types/models';
+import { Avatar } from './ui';
 
 interface Author {
   name: string | null;
@@ -17,23 +19,21 @@ interface Props {
   onPress: () => void;
 }
 
-function Avatar({ user }: { user: Author }) {
-  if (user.avatarUrl) return <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />;
-  return (
-    <View style={styles.avatarFallback}>
-      <Text style={styles.avatarText}>{displayName(user)[0]?.toUpperCase()}</Text>
-    </View>
-  );
-}
+const AVATAR_SIZE = 40;
 
-export function ReplyThreadCard({ reply, author, onPress }: Props) {
+function ReplyThreadCardComponent({ reply, author, onPress }: Props) {
   const parentAuthor = reply.post.user;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Resposta de ${displayName(author)}`}
+    >
       <View style={styles.row}>
         <View style={styles.avatarColumn}>
-          <Avatar user={parentAuthor} />
+          <Avatar user={parentAuthor} size="lg" />
           <View style={styles.threadLine} />
         </View>
         <View style={[styles.body, styles.parentBody]}>
@@ -49,13 +49,13 @@ export function ReplyThreadCard({ reply, author, onPress }: Props) {
 
       <View style={styles.row}>
         <View style={styles.avatarColumn}>
-          <Avatar user={author} />
+          <Avatar user={author} size="lg" />
         </View>
         <View style={styles.body}>
           <View style={styles.headerRow}>
             <Text style={styles.name}>{displayName(author)}</Text>
             <Text style={styles.handle}>@{author.username}</Text>
-            <Text style={styles.handle}>· {formatRelativeTime(reply.createdAt)}</Text>
+            <Text style={styles.time}>· {formatRelativeTime(reply.createdAt)}</Text>
           </View>
           <Text style={styles.replyingTo}>
             Respondendo a <Text style={styles.replyingToHandle}>@{parentAuthor.username}</Text>
@@ -67,31 +67,34 @@ export function ReplyThreadCard({ reply, author, onPress }: Props) {
   );
 }
 
-const AVATAR_SIZE = 36;
+export const ReplyThreadCard = memo(ReplyThreadCardComponent);
 
 const styles = StyleSheet.create({
-  card: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
-  row: { flexDirection: 'row', gap: 12 },
-  avatarColumn: { width: AVATAR_SIZE, alignItems: 'center' },
-  avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 },
-  avatarFallback: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
+  card: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  // Liga o avatar do post original ao avatar da resposta, como a thread da X.
-  threadLine: { width: 2, flex: 1, backgroundColor: colors.border, marginTop: 6, marginBottom: -6 },
-  body: { flex: 1, gap: 2 },
-  parentBody: { paddingBottom: 14 },
-  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' },
-  name: { fontWeight: '700', color: colors.textPrimary, fontSize: 14 },
-  handle: { color: colors.textSecondary, fontSize: 13 },
-  parentContent: { color: colors.textSecondary, fontSize: 14, lineHeight: 19 },
-  replyingTo: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+  cardPressed: { backgroundColor: colors.surface },
+  row: { flexDirection: 'row', gap: space.md },
+  avatarColumn: { width: AVATAR_SIZE, alignItems: 'center' },
+  // Liga o avatar do post original ao avatar da resposta.
+  threadLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: colors.border,
+    marginTop: space.sm,
+    marginBottom: -space.sm,
+  },
+  body: { flex: 1, gap: space.hair },
+  parentBody: { paddingBottom: space.lg },
+  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs, flexWrap: 'wrap' },
+  name: { ...type.bodyStrong, color: colors.textPrimary },
+  handle: { ...type.caption, color: colors.textSecondary },
+  time: { ...type.dataSm, color: colors.textSecondary },
+  parentContent: { ...type.caption, color: colors.textSecondary },
+  replyingTo: { ...type.caption, color: colors.textSecondary },
   replyingToHandle: { color: colors.accent },
-  replyContent: { color: colors.textPrimary, fontSize: 15, lineHeight: 20, marginTop: 3 },
+  replyContent: { ...type.body, color: colors.textPrimary, marginTop: space.hair },
 });

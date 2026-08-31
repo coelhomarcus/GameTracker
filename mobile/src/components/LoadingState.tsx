@@ -1,20 +1,19 @@
-import { ActivityIndicator, StyleSheet, View, type ViewStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { colors, space } from '../theme';
 
 interface Props {
   fullScreen?: boolean;
-  style?: ViewStyle;
 }
 
-export function LoadingState({ fullScreen, style }: Props) {
+export function LoadingState({ fullScreen }: Props) {
   return (
-    <View style={[styles.container, fullScreen && styles.fullScreen, style]}>
+    <View style={[styles.container, fullScreen && styles.fullScreen]}>
       <ActivityIndicator size="large" color={colors.accent} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', justifyContent: 'center', paddingVertical: 32 },
+  container: { alignItems: 'center', justifyContent: 'center', paddingVertical: space.xxl },
   fullScreen: { flex: 1, backgroundColor: colors.background },
 });

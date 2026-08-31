@@ -2,16 +2,15 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import * as gamesApi from '../api/games';
 import { EmptyState } from '../components/EmptyState';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
-import { STATUS_LABEL } from '../lib/gameEntryLabels';
+import { Button, ErrorState, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import type { RootStackParamList } from '../navigation/types';
-import { colors } from '../theme/colors';
-import { radius } from '../theme/radius';
+import { colors, opacity, radius, space, type } from '../theme';
 import type { GameEntry } from '../types/models';
 
 export default function GameFocusScreen() {
@@ -30,8 +29,16 @@ export default function GameFocusScreen() {
     queryFn: () => gameEntriesApi.listMyGameEntries({ igdbId }),
   });
 
-  if (gameQuery.isLoading || !gameQuery.data) {
-    return <LoadingState fullScreen />;
+  if (gameQuery.isLoading) return <LoadingState fullScreen />;
+
+  // Antes isto era `isLoading || !data`: num erro de rede, isLoading vira false
+  // e data fica undefined, então a tela girava pra sempre sem oferecer retry.
+  if (gameQuery.isError || !gameQuery.data) {
+    return (
+      <Screen>
+        <ErrorState error={gameQuery.error} onRetry={() => gameQuery.refetch()} />
+      </Screen>
+    );
   }
 
   const game = gameQuery.data;
@@ -57,22 +64,29 @@ export default function GameFocusScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {game.coverUrl ? (
-        <Image source={{ uri: game.coverUrl }} style={styles.cover} />
-      ) : (
-        <View style={[styles.cover, styles.coverPlaceholder]} />
-      )}
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <RemoteImage uri={game.coverUrl} style={styles.cover} accessibilityLabel={`Capa de ${game.name}`} />
       <Text style={styles.title}>{game.name}</Text>
       {game.genres.length > 0 && <Text style={styles.subtitle}>{game.genres.join(', ')}</Text>}
       {game.platforms.length > 0 && <Text style={styles.platforms}>{game.platforms.slice(0, 5).join(' · ')}</Text>}
       {game.summary && <Text style={styles.summary}>{game.summary}</Text>}
 
       {game.screenshots.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.screenshots} contentContainerStyle={styles.screenshotsContent}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.screenshots}
+          contentContainerStyle={styles.screenshotsContent}
+        >
           {game.screenshots.map((url, index) => (
-            <Pressable key={url} onPress={() => setViewerIndex(index)}>
-              <Image source={{ uri: url }} style={styles.screenshot} />
+            <Pressable
+              key={url}
+              onPress={() => setViewerIndex(index)}
+              accessibilityRole="button"
+              accessibilityLabel={`Screenshot ${index + 1}`}
+              style={({ pressed }) => pressed && { opacity: opacity.pressed }}
+            >
+              <RemoteImage uri={url} style={styles.screenshot} />
             </Pressable>
           ))}
         </ScrollView>
@@ -86,18 +100,25 @@ export default function GameFocusScreen() {
       />
 
       <Text style={styles.sectionTitle}>Seus playthroughs</Text>
-      {entriesQuery.data?.length ? (
+      {entriesQuery.isError ? (
+        <ErrorState error={entriesQuery.error} onRetry={() => entriesQuery.refetch()} />
+      ) : entriesQuery.data?.length ? (
         entriesQuery.data.map((entry) => (
-          <Pressable key={entry.id} style={styles.entryCard} onPress={() => openForm(entry)}>
+          <Pressable
+            key={entry.id}
+            style={({ pressed }) => [styles.entryCard, pressed && { opacity: opacity.pressed }]}
+            onPress={() => openForm(entry)}
+            accessibilityRole="button"
+            accessibilityLabel={`Editar playthrough de ${entry.platform}`}
+          >
             <View style={styles.entryHeader}>
               <Text style={styles.entryPlatform}>{entry.platform}</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{STATUS_LABEL[entry.status]}</Text>
-              </View>
+              <StatusBadge status={entry.status} />
             </View>
             <Text style={styles.entryMeta}>
               {entry.hoursPlayed ? `${entry.hoursPlayed}h` : 'sem horas registradas'}
-              {entry.rating ? ` · nota ${Math.round(entry.rating / 2)}/5` : ''}
+              {/* Nota é 0–10 no banco: mostrar em 5 arredondava 7 pra 8. */}
+              {entry.rating ? ` · nota ${entry.rating}/10` : ''}
             </Text>
           </Pressable>
         ))
@@ -105,39 +126,44 @@ export default function GameFocusScreen() {
         <EmptyState icon="game-controller-outline" title="Você ainda não trackeou esse jogo" />
       )}
 
-      <Pressable style={styles.button} onPress={() => openForm()}>
-        <Text style={styles.buttonText}>+ Novo playthrough</Text>
-      </Pressable>
+      <Button label="Novo playthrough" icon="add" onPress={() => openForm()} size="lg" fullWidth style={styles.cta} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 4, backgroundColor: colors.background },
-  cover: { width: 140, height: 187, borderRadius: radius.lg, backgroundColor: colors.surface, alignSelf: 'center' },
-  coverPlaceholder: {},
-  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 12, color: colors.textPrimary },
-  subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 2 },
-  platforms: { fontSize: 13, color: colors.accent, textAlign: 'center', marginTop: 4 },
-  summary: { fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginTop: 16 },
-  screenshots: { marginTop: 16 },
-  screenshotsContent: { gap: 8 },
-  screenshot: { width: 240, height: 135, borderRadius: radius.lg, backgroundColor: colors.surface },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginTop: 28,
-    marginBottom: 10,
-    color: colors.textSecondary,
+  screen: { backgroundColor: colors.background },
+  container: { padding: space.lg, gap: space.xs },
+  cover: {
+    width: 140,
+    height: 187,
+    borderRadius: radius.lg,
+    backgroundColor: colors.skeleton,
+    alignSelf: 'center',
   },
-  entryCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 14, gap: 6, marginBottom: 8 },
+  title: { ...type.title, color: colors.textPrimary, textAlign: 'center', marginTop: space.md },
+  subtitle: { ...type.caption, color: colors.textSecondary, textAlign: 'center', marginTop: space.hair },
+  platforms: { ...type.caption, color: colors.accent, textAlign: 'center', marginTop: space.xs },
+  summary: { ...type.body, color: colors.textPrimary, marginTop: space.lg },
+  screenshots: { marginTop: space.lg },
+  screenshotsContent: { gap: space.sm },
+  screenshot: { width: 240, height: 135, borderRadius: radius.lg, backgroundColor: colors.skeleton },
+  sectionTitle: {
+    ...type.eyebrow,
+    color: colors.textSecondary,
+    marginTop: space.xl,
+    marginBottom: space.md,
+  },
+  entryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: space.lg,
+    gap: space.sm,
+    marginBottom: space.sm,
+  },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  entryPlatform: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  badge: { backgroundColor: colors.background, borderRadius: radius.pill, paddingVertical: 4, paddingHorizontal: 10 },
-  badgeText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
-  entryMeta: { color: colors.textSecondary, fontSize: 13 },
-  button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 16 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  entryPlatform: { ...type.bodyStrong, color: colors.textPrimary },
+  // Horas e nota em mono: é o dado da ficha.
+  entryMeta: { ...type.data, color: colors.textSecondary },
+  cta: { marginTop: space.lg },
 });

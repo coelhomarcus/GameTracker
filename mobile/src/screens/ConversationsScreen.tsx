@@ -2,12 +2,12 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
-import { EmptyState } from '../components/EmptyState';
+import { Avatar, ListState, Screen } from '../components/ui';
 import { displayName } from '../lib/displayName';
 import type { RootStackParamList } from '../navigation/types';
-import { colors } from '../theme/colors';
+import { colors, radius, space, type } from '../theme';
 import type { ConversationSummary } from '../types/models';
 
 export default function ConversationsScreen() {
@@ -25,77 +25,77 @@ export default function ConversationsScreen() {
     }, [queryClient]),
   );
 
-  function renderItem({ item }: { item: ConversationSummary }) {
-    const username = item.otherUser?.username ?? 'Usuário';
-    const name = item.otherUser ? displayName(item.otherUser) : username;
-    return (
-      <Pressable
-        style={styles.row}
-        onPress={() =>
-          navigation.navigate('ChatRoom', {
-            conversationId: item.id,
-            otherUsername: username,
-            otherName: item.otherUser?.name ?? null,
-            otherUserId: item.otherUser?.id ?? '',
-            otherAvatarUrl: item.otherUser?.avatarUrl ?? null,
-          })
-        }
-      >
-        {item.otherUser?.avatarUrl ? (
-          <Image source={{ uri: item.otherUser.avatarUrl }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{name[0]?.toUpperCase()}</Text>
+  const renderItem = useCallback(
+    ({ item }: { item: ConversationSummary }) => {
+      const username = item.otherUser?.username ?? 'Usuário';
+      const name = item.otherUser ? displayName(item.otherUser) : username;
+
+      return (
+        <Pressable
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`Conversa com ${name}${item.unread ? ', não lida' : ''}`}
+          onPress={() =>
+            navigation.navigate('ChatRoom', {
+              conversationId: item.id,
+              otherUsername: username,
+              otherName: item.otherUser?.name ?? null,
+              otherUserId: item.otherUser?.id ?? '',
+              otherAvatarUrl: item.otherUser?.avatarUrl ?? null,
+            })
+          }
+        >
+          <Avatar user={item.otherUser ?? null} size="xl" />
+          <View style={styles.info}>
+            <Text style={styles.username}>{name}</Text>
+            <Text style={[styles.preview, item.unread && styles.previewUnread]} numberOfLines={1}>
+              {item.lastMessage?.content ?? 'Nenhuma mensagem ainda'}
+            </Text>
           </View>
-        )}
-        <View style={styles.info}>
-          <Text style={styles.username}>{name}</Text>
-          <Text style={[styles.preview, item.unread && styles.previewUnread]} numberOfLines={1}>
-            {item.lastMessage?.content ?? 'Nenhuma mensagem ainda'}
-          </Text>
-        </View>
-        {item.unread && <View style={styles.unreadDot} />}
-      </Pressable>
-    );
-  }
+          {item.unread && <View style={styles.unreadDot} />}
+        </Pressable>
+      );
+    },
+    [navigation],
+  );
 
   return (
-    <View style={styles.container}>
+    <Screen>
       <FlatList
         data={query.data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={query.isFetching} onRefresh={() => query.refetch()} />}
+        // isRefetching, não isFetching: com isFetching o spinner aparecia na
+        // montagem e o estado de carregando nunca chegava a renderizar.
+        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={
-          !query.isFetching ? (
-            <EmptyState
-              icon="chatbubbles-outline"
-              title="Nenhuma conversa ainda"
-              subtitle="Procure alguém na aba de Busca pra começar a conversar"
-            />
-          ) : null
+          <ListState
+            query={query}
+            empty={{
+              icon: 'chatbubbles-outline',
+              title: 'Nenhuma conversa ainda',
+              subtitle: 'Procure alguém na aba de Busca pra começar a conversar',
+            }}
+          />
         }
       />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.accent,
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: space.md,
+    padding: space.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  avatarImage: { width: 44, height: 44, borderRadius: 22 },
-  avatarText: { color: '#fff', fontWeight: '700' },
+  rowPressed: { backgroundColor: colors.surface },
   info: { flex: 1 },
-  username: { fontWeight: '600', fontSize: 15, color: colors.textPrimary },
-  preview: { color: colors.textSecondary, fontSize: 13, marginTop: 2 },
-  previewUnread: { color: colors.textPrimary, fontWeight: '600' },
-  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
+  username: { ...type.bodyStrong, color: colors.textPrimary },
+  preview: { ...type.caption, color: colors.textSecondary, marginTop: space.hair },
+  previewUnread: { ...type.label, color: colors.textPrimary },
+  unreadDot: { width: 10, height: 10, borderRadius: radius.pill, backgroundColor: colors.accent },
 });

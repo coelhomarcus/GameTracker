@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
+import { colors, icon, radius, space, type } from '../theme';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -8,11 +8,11 @@ interface Props {
   subtitle?: string;
 }
 
-export function EmptyState({ icon, title, subtitle }: Props) {
+export function EmptyState({ icon: iconName, title, subtitle }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={28} color={colors.textSecondary} />
+        <Ionicons name={iconName} size={icon.hero} color={colors.textSecondary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -21,16 +21,22 @@ export function EmptyState({ icon, title, subtitle }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 32, gap: 8 },
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: space.huge,
+    paddingHorizontal: space.xxl,
+    gap: space.sm,
+  },
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.pill,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
-  title: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', textAlign: 'center' },
-  subtitle: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
+  title: { ...type.bodyStrong, color: colors.textPrimary, textAlign: 'center' },
+  subtitle: { ...type.caption, color: colors.textSecondary, textAlign: 'center' },
 });

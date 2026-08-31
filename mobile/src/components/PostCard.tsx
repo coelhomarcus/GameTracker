@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
-import { colors } from '../theme/colors';
-import { LikeButton } from './LikeButton';
+import { colors, hit, icon, opacity, radius, space, type } from '../theme';
 import type { Post } from '../types/models';
+import { LikeButton } from './LikeButton';
+import { Avatar, RemoteImage } from './ui';
 
 interface Props {
   post: Post;
@@ -13,31 +15,28 @@ interface Props {
 }
 
 const AVATAR_SIZE = 44;
-const ROW_GAP = 10;
+const ROW_GAP = space.md;
 
-export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) {
+function PostCardComponent({ post, onPress, onAuthorPress, onToggleLike }: Props) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Post de ${displayName(post.user)}`}
+    >
       {post.type === 'activity' && (
         <View style={styles.activityTag}>
-          <Ionicons name="game-controller-outline" size={12} color={colors.textSecondary} />
+          <Ionicons name="game-controller-outline" size={icon.xs} color={colors.textSecondary} />
           <Text style={styles.activityTagText}>Atividade</Text>
         </View>
       )}
 
       <View style={styles.row}>
-        <Pressable onPress={onAuthorPress}>
-          {post.user.avatarUrl ? (
-            <Image source={{ uri: post.user.avatarUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{displayName(post.user)[0]?.toUpperCase()}</Text>
-            </View>
-          )}
-        </Pressable>
+        <Avatar user={post.user} size="xl" onPress={onAuthorPress} />
 
         <View style={styles.body}>
-          <Pressable onPress={onAuthorPress} style={styles.headerRow}>
+          <Pressable onPress={onAuthorPress} style={styles.headerRow} hitSlop={hit.sm}>
             <Text style={styles.username}>{displayName(post.user)}</Text>
             <Text style={styles.handle}>@{post.user.username}</Text>
           </Pressable>
@@ -47,9 +46,9 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
           {post.gameEntry && (
             <View style={styles.gameTag}>
               {post.gameEntry.game.coverUrl ? (
-                <Image source={{ uri: post.gameEntry.game.coverUrl }} style={styles.gameTagCover} />
+                <RemoteImage uri={post.gameEntry.game.coverUrl} style={styles.gameTagCover} />
               ) : (
-                <Ionicons name="game-controller-outline" size={14} color={colors.accent} />
+                <Ionicons name="game-controller-outline" size={icon.sm} color={colors.accent} />
               )}
               <Text style={styles.gameTagText}>
                 {post.gameEntry.game.name} · {post.gameEntry.platform}
@@ -59,10 +58,17 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
 
           <View style={styles.actions}>
             <LikeButton liked={post.likedByMe} count={post.likeCount} onPress={onToggleLike} />
-            <View style={styles.actionButton}>
-              <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+            {/* Contagem de comentários abre o post, como o card inteiro. */}
+            <Pressable
+              onPress={onPress}
+              hitSlop={hit.md}
+              accessibilityRole="button"
+              accessibilityLabel={`${post.commentCount} comentários`}
+              style={({ pressed }) => [styles.actionButton, pressed && { opacity: opacity.pressed }]}
+            >
+              <Ionicons name="chatbubble-outline" size={icon.md} color={colors.textSecondary} />
               <Text style={styles.actionText}>{post.commentCount}</Text>
-            </View>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -70,44 +76,44 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
   );
 }
 
+/** Linha de lista: memo só rende com renderItem estável na tela que a usa. */
+export const PostCard = memo(PostCardComponent);
+
 const styles = StyleSheet.create({
-  card: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 12, paddingHorizontal: 12, gap: 6 },
+  card: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
+    gap: space.xs,
+  },
+  cardPressed: { backgroundColor: colors.surface },
   activityTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: space.xs,
     marginLeft: AVATAR_SIZE + ROW_GAP,
-    marginBottom: 2,
+    marginBottom: space.hair,
   },
-  activityTagText: { fontSize: 11, color: colors.textSecondary, fontWeight: '600' },
+  activityTagText: { ...type.micro, color: colors.textSecondary },
   row: { flexDirection: 'row', gap: ROW_GAP },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 18 },
-  avatarImage: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 },
-  body: { flex: 1, gap: 4 },
-  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  username: { fontWeight: '600', color: colors.textPrimary },
-  handle: { color: colors.textSecondary, fontSize: 13 },
-  content: { fontSize: 15, lineHeight: 20, color: colors.textPrimary },
+  body: { flex: 1, gap: space.xs },
+  headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
+  username: { ...type.bodyStrong, color: colors.textPrimary },
+  handle: { ...type.caption, color: colors.textSecondary },
+  content: { ...type.body, color: colors.textPrimary },
   gameTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
     backgroundColor: colors.surface,
-    borderRadius: 8,
-    padding: 8,
+    borderRadius: radius.sm,
+    padding: space.sm,
     alignSelf: 'flex-start',
   },
-  gameTagCover: { width: 40, height: 53, borderRadius: 4 },
-  gameTagText: { color: colors.accent, fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionText: { color: colors.textSecondary },
+  gameTagCover: { width: 40, height: 53, borderRadius: radius.xs },
+  gameTagText: { ...type.caption, color: colors.accent },
+  actions: { flexDirection: 'row', gap: space.lg, marginTop: space.xs },
+  actionButton: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  actionText: { ...type.dataSm, color: colors.textSecondary },
 });

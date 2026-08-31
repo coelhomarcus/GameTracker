@@ -1,74 +1,99 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as authApi from '../api/auth';
-import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
+import { Button, Screen } from '../components/ui';
 import { getApiErrorMessage } from '../lib/apiError';
 import { applySession } from '../lib/session';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors } from '../theme/colors';
-import { forms } from '../theme/forms';
-import { radius } from '../theme/radius';
+import { colors, forms, opacity, space, type } from '../theme';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const passwordRef = useRef<TextInput>(null);
 
   const mutation = useMutation({
-    mutationFn: () => authApi.login({ identifier, password }),
+    mutationFn: () => authApi.login({ identifier: identifier.trim(), password }),
     onSuccess: applySession,
   });
 
+  const canSubmit = Boolean(identifier.trim() && password);
+
+  function submit() {
+    if (canSubmit) mutation.mutate();
+  }
+
   return (
-    <KeyboardAvoidingScreen>
-    <View style={styles.container}>
-      <Text style={styles.title}>GameTracker</Text>
+    <Screen keyboard>
+      <View style={styles.content}>
+        <Text style={styles.wordmark}>GameTracker</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email ou username"
-        placeholderTextColor={colors.textSecondary}
-        autoCapitalize="none"
-        value={identifier}
-        onChangeText={setIdentifier}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        placeholderTextColor={colors.textSecondary}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Email ou username"
+          placeholderTextColor={colors.textTertiary}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          textContentType="username"
+          autoComplete="username"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+          submitBehavior="submit"
+          value={identifier}
+          onChangeText={setIdentifier}
+          accessibilityLabel="Email ou username"
+        />
+        <TextInput
+          ref={passwordRef}
+          style={styles.input}
+          placeholder="Senha"
+          placeholderTextColor={colors.textTertiary}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="password"
+          autoComplete="current-password"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+          value={password}
+          onChangeText={setPassword}
+          accessibilityLabel="Senha"
+        />
 
-      {mutation.isError && <Text style={styles.error}>{getApiErrorMessage(mutation.error)}</Text>}
+        {mutation.isError && <Text style={styles.error}>{getApiErrorMessage(mutation.error)}</Text>}
 
-      <Pressable
-        style={[styles.button, (mutation.isPending || !identifier || !password) && styles.buttonDisabled]}
-        disabled={mutation.isPending || !identifier || !password}
-        onPress={() => mutation.mutate()}
-      >
-        {mutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Entrar</Text>}
-      </Pressable>
+        <Button
+          label="Entrar"
+          onPress={submit}
+          size="lg"
+          fullWidth
+          loading={mutation.isPending}
+          disabled={!canSubmit}
+          style={styles.submit}
+        />
 
-      <Pressable onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Não tem conta? Cadastre-se</Text>
-      </Pressable>
-    </View>
-    </KeyboardAvoidingScreen>
+        <Pressable
+          onPress={() => navigation.navigate('Register')}
+          accessibilityRole="link"
+          style={({ pressed }) => pressed && { opacity: opacity.pressed }}
+        >
+          <Text style={styles.link}>Não tem conta? Cadastre-se</Text>
+        </Pressable>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, gap: 12, backgroundColor: colors.background },
-  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 24, color: colors.textPrimary },
-  input: { ...forms.input, paddingVertical: 14 },
-  button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 8 },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { color: colors.accent, textAlign: 'center', marginTop: 16 },
-  error: { color: colors.like },
+  content: { flex: 1, justifyContent: 'center', padding: space.xl, gap: space.md },
+  wordmark: { ...type.wordmark, color: colors.textPrimary, textAlign: 'center', marginBottom: space.xl },
+  input: forms.input,
+  submit: { marginTop: space.sm },
+  link: { ...type.caption, color: colors.accent, textAlign: 'center', marginTop: space.lg },
+  error: { ...type.caption, color: colors.danger },
 });
