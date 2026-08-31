@@ -1,7 +1,9 @@
 export { Avatar } from './Avatar';
 export { Button } from './Button';
+export { Calendar } from './Calendar';
 export { Chip } from './Chip';
 export { Composer } from './Composer';
+export { DatePickerField } from './DatePickerField';
 export { ErrorState } from './ErrorState';
 export { ExpandableText } from './ExpandableText';
 export { IconButton } from './IconButton';

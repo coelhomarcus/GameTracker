@@ -1,79 +1,23 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { StarRating } from '../components/StarRating';
-import { Button, Chip, IconButton, Screen } from '../components/ui';
+import { Button, Chip, DatePickerField, Screen } from '../components/ui';
 import { notify } from '../lib/alert';
 import { getApiErrorMessage } from '../lib/apiError';
-import { parseDecimal, toApiDate } from '../lib/date';
+import { fromApiDate, parseDecimal, toApiDate } from '../lib/date';
 import { STATUS_COLOR, STATUS_ICON, STATUS_LABEL } from '../lib/gameEntryLabels';
 import { getPlatformIcon } from '../lib/platformIcon';
 import { qk } from '../lib/queryKeys';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, forms, icon, opacity, radius, space, type } from '../theme';
+import { colors, forms, icon, radius, space, type } from '../theme';
 import type { GameEntryStatus } from '../types/models';
 
 const STATUS_OPTIONS: GameEntryStatus[] = ['backlog', 'playing', 'completed', 'dropped'];
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString('pt-BR');
-}
-
-interface DateFieldProps {
-  label: string;
-  value: Date | null;
-  onChange: (value: Date | null) => void;
-}
-
-function DateField({ label, value, onChange }: DateFieldProps) {
-  const [showPicker, setShowPicker] = useState(false);
-
-  return (
-    <View>
-      <Text style={forms.label}>{label}</Text>
-      {/* Sem accessibilityRole: quando há uma data, a linha contém o botão real
-          de limpar — um <button> não pode conter outro (vira <button> aninhado
-          no React Native Web, HTML inválido que quebra a hidratação). */}
-      <Pressable
-        style={({ pressed }) => [styles.dateRow, pressed && { opacity: opacity.pressed }]}
-        onPress={() => setShowPicker(true)}
-      >
-        <Ionicons name="calendar-outline" size={icon.md} color={colors.textSecondary} />
-        <Text style={value ? styles.dateText : styles.datePlaceholder}>
-          {value ? formatDate(value) : 'Selecionar data'}
-        </Text>
-        {value && (
-          <IconButton
-            name="close-circle"
-            size="md"
-            onPress={() => onChange(null)}
-            accessibilityLabel={`Limpar ${label.toLowerCase()}`}
-          />
-        )}
-      </Pressable>
-
-      {showPicker && (
-        <DateTimePicker
-          value={value ?? new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onValueChange={(_event, date) => {
-            // Fecha nas duas plataformas: no iOS o calendário inline ficava
-            // aberto pra sempre depois do primeiro toque.
-            setShowPicker(false);
-            onChange(date);
-          }}
-          onDismiss={() => setShowPicker(false)}
-        />
-      )}
-    </View>
-  );
-}
 
 export default function TrackingFormScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -84,8 +28,8 @@ export default function TrackingFormScreen() {
 
   const [platform, setPlatform] = useState(initial?.platform ?? platforms[0] ?? '');
   const [status, setStatus] = useState<GameEntryStatus>(initial?.status ?? 'backlog');
-  const [startedAt, setStartedAt] = useState<Date | null>(initial?.startedAt ? new Date(initial.startedAt) : null);
-  const [finishedAt, setFinishedAt] = useState<Date | null>(initial?.finishedAt ? new Date(initial.finishedAt) : null);
+  const [startedAt, setStartedAt] = useState<Date | null>(initial?.startedAt ? fromApiDate(initial.startedAt) : null);
+  const [finishedAt, setFinishedAt] = useState<Date | null>(initial?.finishedAt ? fromApiDate(initial.finishedAt) : null);
   const [hoursPlayed, setHoursPlayed] = useState(initial?.hoursPlayed ?? '');
   const [rating, setRating] = useState<number | null>(initial?.rating ?? null);
   const [notes, setNotes] = useState(initial?.notes ?? '');
@@ -188,10 +132,10 @@ export default function TrackingFormScreen() {
 
         <View style={styles.datesRow}>
           <View style={styles.dateColumn}>
-            <DateField label="Início" value={startedAt} onChange={setStartedAt} />
+            <DatePickerField label="Início" value={startedAt} onChange={setStartedAt} />
           </View>
           <View style={styles.dateColumn}>
-            <DateField label="Fim" value={finishedAt} onChange={setFinishedAt} />
+            <DatePickerField label="Fim" value={finishedAt} onChange={setFinishedAt} />
           </View>
         </View>
 
@@ -257,18 +201,6 @@ const styles = StyleSheet.create({
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   datesRow: { flexDirection: 'row', gap: space.md },
   dateColumn: { flex: 1 },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    paddingVertical: space.md,
-    paddingHorizontal: space.lg,
-  },
-  // Data é dado: mono mantém as duas colunas alinhadas.
-  dateText: { ...type.data, flex: 1, color: colors.textPrimary },
-  datePlaceholder: { ...type.caption, flex: 1, color: colors.textTertiary },
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   hoursInput: { ...type.data, flex: 1, color: colors.textPrimary },
   inputInvalid: { borderWidth: 1, borderColor: colors.danger },
