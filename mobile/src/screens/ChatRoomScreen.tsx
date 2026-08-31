@@ -18,6 +18,7 @@ import * as conversationsApi from '../api/conversations';
 import { getSocket } from '../lib/socket';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme/colors';
+import { radius } from '../theme/radius';
 import type { RootStackParamList } from '../navigation/types';
 import type { Message } from '../types/models';
 
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 8 },
   bubbleRow: { flexDirection: 'row' },
   bubbleRowMine: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '75%', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
+  bubble: { maxWidth: '75%', borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12 },
   bubbleMine: { backgroundColor: colors.accent },
   bubbleTheirs: { backgroundColor: colors.backgroundElevated },
   bubbleTextMine: { color: '#fff' },
@@ -241,6 +242,6 @@ const styles = StyleSheet.create({
     padding: 10,
     color: colors.textPrimary,
   },
-  sendButton: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  sendButton: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center' },
   sendButtonText: { color: '#fff', fontWeight: '600' },
 });

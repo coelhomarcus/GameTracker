@@ -206,3 +206,33 @@ Referência: screenshot da página de post da X, pedindo comentários com curtid
 
 - `tsc --noEmit` limpo nos dois projetos
 - **Confirmado sem teste ao vivo** (mesma limitação de ambiente) — o bug do upload web foi diagnosticado a partir do log de erro que o usuário colou, não reproduzido aqui
+
+## Fase 13 — Backlog público no perfil
+
+- [x] **13.1 — Endpoint público de game entries**: `GET /users/:id/game-entries?status=` novo — reaproveita `gameEntriesService.listMine` (já era genérico por `userId`, nunca checava dono) exposto sem essa restrição via `users.routes.ts`. Mesmo filtro de status do endpoint privado (`listGameEntriesQuerySchema` reaproveitado)
+- [x] **13.2 — Aba "Backlog" como principal**: `ProfileScreen.tsx`/`UserProfileScreen.tsx` ganharam a aba "Backlog" — grid de capas (4 colunas) com os mesmos filtros de status do `MyGamesScreen` (Todos/Backlog/Jogando/Completo/Abandonado), e virou a aba **padrão** ao abrir qualquer perfil (antes era "Atividades"). É somente leitura — sem avançar status ou remover, isso continua exclusivo da aba "Meus jogos" do próprio usuário
+- [x] **13.3 — Extração de componentes compartilhados**: como a renderização de grid de jogos passou a existir em 3 lugares (`MyGamesScreen` + as duas telas de perfil), virou `components/GameEntryGridCell.tsx` novo; `STATUS_COLOR` e `STATUS_FILTERS` (antes redefinidos em cada tela) centralizados em `lib/gameEntryLabels.ts` junto do `STATUS_LABEL` que já existia lá
+
+### Verificação
+
+- `tsc --noEmit` limpo nos dois projetos, `expo export --platform ios` sem erros, `expo-doctor` 21/21
+- Sem migration nessa fase (endpoint novo reaproveita a tabela `game_entries` já existente)
+- **Sem teste end-to-end ao vivo** — mesma limitação de ambiente das fases anteriores
+
+## Fase 14 — Polimento de design baseado na pesquisa sobre o X
+
+Usuário trouxe uma pesquisa detalhada sobre o design system da X (cores, tipografia, grid de 4pt, raios de borda, blur no header, animação do botão de curtir). Boa parte é específica de web/Tailwind (CSS `backdrop-filter`, `position:sticky`, layout de 3 colunas, media queries de desktop) e não se aplica a um app React Native mobile — o que foi extraído e aplicado:
+
+- [x] **14.1 — Validação da paleta**: os tokens de cor que já tínhamos (`theme/colors.ts`, feito na Fase 6) já batiam quase exatamente com os valores documentados pra o modo "Lights Out" da X (`#000`, `#16181C`, `#E7E9EA`, `#71767B`, `#2F3336`, `#f91880`, `#00ba7c`) — nenhuma mudança de cor necessária, só confirmação
+- [x] **14.2 — Tokens de raio de borda + botões em pílula**: `theme/radius.ts` novo (`sm:4`, `md:16`, `pill:9999`, igual à especificação). Botões primários (Entrar, Cadastrar, Publicar, Trackear jogo, Salvar, Seguir/Mensagem, enviar no chat/comentário) viraram pílula em vez de `borderRadius:8`; cards/mídia maiores (capa e screenshots do jogo, card de playthrough, card de lista do Meus Jogos, balão de chat) subiram pra `radius.md`; barra de busca também virou pílula (igual a da X)
+- [x] **14.3 — Animação de curtir estilo X**: `LikeButton.tsx` novo (compartilhado entre `PostCard` e os comentários) — usa `Animated.spring` nativo do React Native pra um efeito de "estouro" (encolhe e volta com overshoot) ao curtir, disparado na hora do toque, sem esperar confirmação do servidor. Contador só aparece quando > 0, igual ao comportamento real da X
+- [x] **14.4 — Header com blur no Feed**: `expo-blur` instalado; o header do Feed (avatar + título + abas Para você/Seguindo) virou um `BlurView` flutuante e fixo no topo, com o feed rolando por baixo (efeito de vidro fosco), em vez de um bloco sólido separado da lista
+
+### Fora de escopo (específico de web, não se aplica a app mobile nativo)
+
+Layout de 3 colunas com breakpoints de desktop, `position:sticky`/`backdrop-filter` em CSS puro, escala tipográfica em `rem`, grid de 4pt aplicado retroativamente a cada valor de espaçamento já existente no app (risco alto de diff gigante por ganho marginal, já que os valores atuais já são consistentes dentro de cada tela)
+
+### Verificação
+
+- `tsc --noEmit` limpo, `expo export --platform ios` **e** `--platform web` sem erros (o usuário testa pela web também), `expo-doctor` 21/21
+- **`expo-blur` é um módulo nativo novo** — como o usuário testa localmente via `expo start --web`/Expo Go, isso funciona direto; só quando for buildar de novo nativo pro iPhone físico (`expo run:ios --device`) que vai precisar rodar de novo (o comando já cuida disso sozinho, detecta a dependência nova)

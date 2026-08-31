@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { displayName } from '../lib/displayName';
 import { colors } from '../theme/colors';
+import { LikeButton } from './LikeButton';
 import type { Post } from '../types/models';
 
 interface Props {
@@ -57,14 +58,7 @@ export function PostCard({ post, onPress, onAuthorPress, onToggleLike }: Props) 
           )}
 
           <View style={styles.actions}>
-            <Pressable style={styles.actionButton} onPress={onToggleLike}>
-              <Ionicons
-                name={post.likedByMe ? 'heart' : 'heart-outline'}
-                size={18}
-                color={post.likedByMe ? colors.like : colors.textSecondary}
-              />
-              <Text style={[styles.actionText, post.likedByMe && styles.actionTextActive]}>{post.likeCount}</Text>
-            </Pressable>
+            <LikeButton liked={post.likedByMe} count={post.likeCount} onPress={onToggleLike} />
             <View style={styles.actionButton}>
               <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
               <Text style={styles.actionText}>{post.commentCount}</Text>
@@ -116,5 +110,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actionText: { color: colors.textSecondary },
-  actionTextActive: { color: colors.like },
 });

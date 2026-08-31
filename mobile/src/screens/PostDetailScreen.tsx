@@ -16,12 +16,14 @@ import {
 } from 'react-native';
 import * as postsApi from '../api/posts';
 import { EmptyState } from '../components/EmptyState';
+import { LikeButton } from '../components/LikeButton';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
 import { displayName } from '../lib/displayName';
 import { formatRelativeTime } from '../lib/relativeTime';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { radius } from '../theme/radius';
 import type { Comment } from '../types/models';
 
 interface ReplyTarget {
@@ -58,18 +60,7 @@ function CommentItem({ comment, depth, onLike, onReply }: CommentItemProps) {
         <Text style={styles.commentText}>{comment.content}</Text>
 
         <View style={styles.commentActions}>
-          <Pressable style={styles.commentActionButton} onPress={() => onLike(comment)}>
-            <Ionicons
-              name={comment.likedByMe ? 'heart' : 'heart-outline'}
-              size={15}
-              color={comment.likedByMe ? colors.like : colors.textSecondary}
-            />
-            {comment.likeCount > 0 && (
-              <Text style={[styles.commentActionText, comment.likedByMe && styles.commentActionTextActive]}>
-                {comment.likeCount}
-              </Text>
-            )}
-          </Pressable>
+          <LikeButton liked={comment.likedByMe} count={comment.likeCount} size={15} onPress={() => onLike(comment)} />
           <Pressable style={styles.commentActionButton} onPress={() => onReply(comment)}>
             <Ionicons name="chatbubble-outline" size={14} color={colors.textSecondary} />
             <Text style={styles.commentActionText}>Responder</Text>
@@ -242,7 +233,6 @@ const styles = StyleSheet.create({
   commentActions: { flexDirection: 'row', gap: 16, marginTop: 6 },
   commentActionButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   commentActionText: { color: colors.textSecondary, fontSize: 12 },
-  commentActionTextActive: { color: colors.like },
   showReplies: { color: colors.accent, fontSize: 13, fontWeight: '600', marginTop: 8 },
   replyBanner: {
     flexDirection: 'row',
@@ -256,6 +246,6 @@ const styles = StyleSheet.create({
   replyBannerUsername: { color: colors.accent, fontWeight: '600' },
   composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.textPrimary },
-  sendButton: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 16, justifyContent: 'center' },
+  sendButton: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 16, justifyContent: 'center' },
   sendButtonText: { color: '#fff', fontWeight: '600' },
 });

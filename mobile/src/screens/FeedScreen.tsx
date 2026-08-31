@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { BlurView } from 'expo-blur';
 import { useState } from 'react';
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as postsApi from '../api/posts';
 import { EmptyState } from '../components/EmptyState';
@@ -26,6 +27,11 @@ export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const [scope, setScope] = useState<FeedScope>('general');
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 116);
+
+  function onHeaderLayout(event: LayoutChangeEvent) {
+    setHeaderHeight(event.nativeEvent.layout.height);
+  }
 
   const feedQuery = useInfiniteQuery({
     queryKey: ['feed', scope],
@@ -47,33 +53,10 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Pressable onPress={() => navigation.navigate('Profile')} hitSlop={8}>
-          {user?.avatarUrl ? (
-            <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user ? displayName(user)[0]?.toUpperCase() : '?'}</Text>
-            </View>
-          )}
-        </Pressable>
-        <Text style={styles.title}>GameTracker</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <View style={styles.scopeTabs}>
-        {SCOPES.map((s) => (
-          <Pressable key={s.value} style={styles.scopeTab} onPress={() => setScope(s.value)}>
-            <Text style={[styles.scopeTabText, scope === s.value && styles.scopeTabTextActive]}>{s.label}</Text>
-            {scope === s.value && <View style={styles.scopeTabIndicator} />}
-          </Pressable>
-        ))}
-      </View>
-
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingTop: headerHeight }]}
         renderItem={({ item }) => (
           <PostCard
             post={item}
@@ -105,6 +88,31 @@ export default function FeedScreen() {
       <Pressable style={styles.fab} onPress={() => navigation.navigate('CreatePost', undefined)}>
         <Ionicons name="add" size={28} color="#fff" />
       </Pressable>
+
+      <BlurView intensity={70} tint="dark" style={styles.headerWrap} onLayout={onHeaderLayout}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <Pressable onPress={() => navigation.navigate('Profile')} hitSlop={8}>
+            {user?.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{user ? displayName(user)[0]?.toUpperCase() : '?'}</Text>
+              </View>
+            )}
+          </Pressable>
+          <Text style={styles.title}>GameTracker</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <View style={styles.scopeTabs}>
+          {SCOPES.map((s) => (
+            <Pressable key={s.value} style={styles.scopeTab} onPress={() => setScope(s.value)}>
+              <Text style={[styles.scopeTabText, scope === s.value && styles.scopeTabTextActive]}>{s.label}</Text>
+              {scope === s.value && <View style={styles.scopeTabIndicator} />}
+            </Pressable>
+          ))}
+        </View>
+      </BlurView>
     </View>
   );
 }
@@ -136,6 +144,7 @@ const styles = StyleSheet.create({
   scopeTabTextActive: { color: colors.textPrimary },
   scopeTabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '40%', backgroundColor: colors.accent, borderRadius: 1 },
   list: { paddingBottom: 96 },
+  headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   fab: {
     position: 'absolute',
     right: 20,

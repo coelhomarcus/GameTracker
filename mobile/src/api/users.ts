@@ -1,5 +1,5 @@
 import { appendFileToFormData } from '../lib/uploadFile';
-import type { Post, PublicProfile, UserReply, UserSearchResult } from '../types/models';
+import type { GameEntry, GameEntryStatus, Post, PublicProfile, UserReply, UserSearchResult } from '../types/models';
 import { api } from './client';
 
 export function getPublicProfile(userId: string) {
@@ -67,5 +67,11 @@ export interface UserRepliesPage {
 export function getUserReplies(userId: string, cursor?: string) {
   return api
     .get<UserRepliesPage>(`/users/${userId}/comments`, { params: cursor ? { cursor } : undefined })
+    .then((r) => r.data);
+}
+
+export function getUserGameEntries(userId: string, status?: GameEntryStatus) {
+  return api
+    .get<GameEntry[]>(`/users/${userId}/game-entries`, { params: status ? { status } : undefined })
     .then((r) => r.data);
 }

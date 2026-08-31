@@ -8,6 +8,7 @@ import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { getApiErrorMessage } from '../lib/apiError';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { radius } from '../theme/radius';
 
 export default function CreatePostScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -62,6 +63,6 @@ const styles = StyleSheet.create({
   },
   counter: { color: colors.textSecondary, textAlign: 'right', marginTop: 4 },
   error: { color: colors.like, marginTop: 8 },
-  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
+  button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 16 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

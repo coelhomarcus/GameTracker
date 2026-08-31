@@ -10,6 +10,7 @@ import { StarRating } from '../components/StarRating';
 import { getApiErrorMessage } from '../lib/apiError';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { radius } from '../theme/radius';
 import type { GameEntryStatus } from '../types/models';
 
 const STATUS_OPTIONS: { value: GameEntryStatus; label: string }[] = [
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   chipText: { color: colors.textPrimary },
   chipTextActive: { color: '#fff', fontWeight: '600' },
-  button: { backgroundColor: colors.accent, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 20 },
+  button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 14, alignItems: 'center', marginTop: 20 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   error: { color: colors.like, marginTop: 8 },
 });

@@ -2,28 +2,36 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
 import * as postsApi from '../api/posts';
 import * as usersApi from '../api/users';
 import { EmptyState } from '../components/EmptyState';
+import { GameEntryGridCell } from '../components/GameEntryGridCell';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
 import { PostCard } from '../components/PostCard';
 import { displayName } from '../lib/displayName';
+import { STATUS_FILTERS } from '../lib/gameEntryLabels';
 import { formatRelativeTime } from '../lib/relativeTime';
 import { useAuthStore } from '../store/authStore';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
-import type { Post, UserReply } from '../types/models';
+import { radius } from '../theme/radius';
+import type { GameEntryStatus, Post, UserReply } from '../types/models';
 
-type ProfileTab = 'activities' | 'posts' | 'replies';
+type ProfileTab = 'backlog' | 'activities' | 'posts' | 'replies';
 
 const TABS: { value: ProfileTab; label: string }[] = [
+  { value: 'backlog', label: 'Backlog' },
   { value: 'activities', label: 'Atividades' },
   { value: 'posts', label: 'Posts' },
   { value: 'replies', label: 'Respostas' },
 ];
+
+const GRID_COLUMNS = 4;
+const GRID_GAP = 8;
+const CONTAINER_PADDING = 16;
 
 export default function UserProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -31,12 +39,21 @@ export default function UserProfileScreen() {
   const { userId } = route.params;
   const myId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<ProfileTab>('activities');
+  const [tab, setTab] = useState<ProfileTab>('backlog');
   const [viewer, setViewer] = useState<'avatar' | 'banner' | null>(null);
+  const [gameFilter, setGameFilter] = useState<GameEntryStatus | 'all'>('all');
+  const { width } = useWindowDimensions();
+  const cellWidth = (width - CONTAINER_PADDING * 2 - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
 
   const profileQuery = useQuery({
     queryKey: ['user-profile', userId],
     queryFn: () => usersApi.getPublicProfile(userId),
+  });
+
+  const backlogQuery = useQuery({
+    queryKey: ['user-game-entries', userId, gameFilter],
+    queryFn: () => usersApi.getUserGameEntries(userId, gameFilter === 'all' ? undefined : gameFilter),
+    enabled: tab === 'backlog',
   });
 
   const activitiesQuery = useInfiniteQuery({
@@ -219,12 +236,49 @@ export default function UserProfileScreen() {
           </Pressable>
         ))}
       </View>
+
+      {tab === 'backlog' && (
+        <View style={styles.filters}>
+          {STATUS_FILTERS.map((f) => (
+            <Pressable
+              key={f.value}
+              style={[styles.filterChip, gameFilter === f.value && styles.filterChipActive]}
+              onPress={() => setGameFilter(f.value)}
+            >
+              <Text style={[styles.filterText, gameFilter === f.value && styles.filterTextActive]}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 
   return (
     <View style={{ flex: 1 }}>
-      {tab === 'replies' ? (
+      {tab === 'backlog' ? (
+        <FlatList
+          key={`backlog-${GRID_COLUMNS}`}
+          data={backlogQuery.data ?? []}
+          keyExtractor={(item) => item.id}
+          numColumns={GRID_COLUMNS}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
+            <GameEntryGridCell entry={item} width={cellWidth} onPress={() => navigation.navigate('GameFocus', { igdbId: item.game.igdbId })} />
+          )}
+          ListHeaderComponent={header}
+          ListEmptyComponent={
+            backlogQuery.isLoading ? (
+              <LoadingState />
+            ) : (
+              <EmptyState
+                icon="game-controller-outline"
+                title={gameFilter === 'all' ? 'Nenhum jogo por aqui ainda' : 'Nenhum jogo nesse status'}
+              />
+            )
+          }
+        />
+      ) : tab === 'replies' ? (
         <FlatList
           data={activeReplies ?? []}
           keyExtractor={(item) => item.id}
@@ -300,7 +354,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
   statLabel: { color: colors.textSecondary, fontSize: 13 },
   actions: { flexDirection: 'row', gap: 12 },
-  button: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 },
+  button: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingVertical: 10, paddingHorizontal: 24 },
   buttonFollowing: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
   buttonText: { color: '#fff', fontWeight: '600' },
   buttonTextFollowing: { color: colors.textPrimary },
@@ -309,6 +363,12 @@ const styles = StyleSheet.create({
   tabText: { color: colors.textSecondary, fontWeight: '600', fontSize: 13 },
   tabTextActive: { color: colors.textPrimary },
   tabIndicator: { position: 'absolute', bottom: 0, height: 2, width: '50%', backgroundColor: colors.accent, borderRadius: 1 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
+  filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 12 },
+  filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  filterText: { color: colors.textPrimary, fontSize: 13 },
+  filterTextActive: { color: '#fff', fontWeight: '600' },
+  gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP, paddingHorizontal: 16 },
   replyContainer: { padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 8 },
   threadRow: { flexDirection: 'row', gap: 10 },
   threadAvatarCol: { alignItems: 'center' },

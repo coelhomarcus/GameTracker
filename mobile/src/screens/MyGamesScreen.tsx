@@ -16,32 +16,19 @@ import {
 } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
 import { EmptyState } from '../components/EmptyState';
-import { STATUS_LABEL } from '../lib/gameEntryLabels';
+import { GameEntryGridCell } from '../components/GameEntryGridCell';
+import { STATUS_FILTERS, STATUS_LABEL } from '../lib/gameEntryLabels';
 import { getViewMode, setViewMode, type ViewMode } from '../lib/viewPreference';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { radius } from '../theme/radius';
 import type { GameEntry, GameEntryStatus } from '../types/models';
-
-const FILTERS: { value: GameEntryStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'playing', label: 'Jogando' },
-  { value: 'completed', label: 'Completo' },
-  { value: 'dropped', label: 'Abandonado' },
-];
 
 const NEXT_STATUS: Record<GameEntryStatus, GameEntryStatus> = {
   backlog: 'playing',
   playing: 'completed',
   completed: 'dropped',
   dropped: 'backlog',
-};
-
-const STATUS_COLOR: Record<GameEntryStatus, string> = {
-  backlog: colors.textSecondary,
-  playing: colors.accent,
-  completed: colors.success,
-  dropped: colors.like,
 };
 
 const GRID_COLUMNS = 4;
@@ -152,32 +139,14 @@ export default function MyGamesScreen() {
   }
 
   function renderGridItem({ item }: { item: GameEntry }) {
-    const coverHeight = cellWidth * (4 / 3);
-    return (
-      <Pressable style={[styles.gridCard, { width: cellWidth }]} onPress={() => openFocus(item)}>
-        <View>
-          {item.game.coverUrl ? (
-            <Image
-              source={{ uri: item.game.coverUrl }}
-              style={[styles.gridCover, { width: cellWidth, height: coverHeight }]}
-            />
-          ) : (
-            <View style={[styles.gridCover, styles.coverPlaceholder, { width: cellWidth, height: coverHeight }]} />
-          )}
-          <View style={[styles.gridStatusDot, { backgroundColor: STATUS_COLOR[item.status] }]} />
-        </View>
-        <Text style={styles.gridTitle} numberOfLines={1}>
-          {item.game.name}
-        </Text>
-      </Pressable>
-    );
+    return <GameEntryGridCell entry={item} width={cellWidth} onPress={() => openFocus(item)} />;
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
         <View style={styles.filters}>
-          {FILTERS.map((f) => (
+          {STATUS_FILTERS.map((f) => (
             <Pressable
               key={f.value}
               style={[styles.filterChip, filter === f.value && styles.filterChipActive]}
@@ -228,7 +197,7 @@ const styles = StyleSheet.create({
   coverPlaceholder: { backgroundColor: colors.backgroundElevated },
 
   // list mode
-  card: { flexDirection: 'row', borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, gap: 10 },
+  card: { flexDirection: 'row', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, gap: 10 },
   listCover: { width: 56, height: 74, borderRadius: 6 },
   cardBody: { flex: 1, gap: 6 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
@@ -253,17 +222,4 @@ const styles = StyleSheet.create({
 
   // grid mode
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
-  gridCard: { gap: 4 },
-  gridCover: { borderRadius: 6 },
-  gridStatusDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.background,
-  },
-  gridTitle: { fontSize: 10, color: colors.textPrimary },
 });
