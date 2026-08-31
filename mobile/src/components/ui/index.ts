@@ -3,6 +3,7 @@ export { Button } from './Button';
 export { Chip } from './Chip';
 export { Composer } from './Composer';
 export { ErrorState } from './ErrorState';
+export { ExpandableText } from './ExpandableText';
 export { IconButton } from './IconButton';
 export { ListFooter } from './ListFooter';
 export { ListState } from './ListState';

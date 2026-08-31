@@ -9,7 +9,7 @@ import * as gamesApi from '../api/games';
 import { EmptyState } from '../components/EmptyState';
 import { ImageViewerModal } from '../components/ImageViewerModal';
 import { LoadingState } from '../components/LoadingState';
-import { Button, ErrorState, RemoteImage, Screen, StatusBadge } from '../components/ui';
+import { Button, ErrorState, ExpandableText, RemoteImage, Screen, StatusBadge } from '../components/ui';
 import { getPlatformIcon } from '../lib/platformIcon';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, icon, opacity, radius, space, type } from '../theme';
@@ -71,7 +71,7 @@ export default function GameFocusScreen() {
       <Text style={styles.title}>{game.name}</Text>
       {game.genres.length > 0 && <Text style={styles.subtitle}>{game.genres.join(', ')}</Text>}
       {game.platforms.length > 0 && <Text style={styles.platforms}>{game.platforms.slice(0, 5).join(' · ')}</Text>}
-      {game.summary && <Text style={styles.summary}>{game.summary}</Text>}
+      {game.summary && <ExpandableText text={game.summary} style={styles.summary} />}
 
       {game.screenshots.length > 0 && (
         <ScrollView
