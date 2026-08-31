@@ -3,13 +3,15 @@
  * (`npm run db:migrate`), contra um banco vazio ou não — os inserts não
  * checam se já existe nada, então rodar duas vezes duplica tudo.
  *
- * Sem chamada à IGDB de propósito (a rede desse ambiente bloqueia a API por
- * certificado): os jogos são inseridos direto na tabela `games`, com
- * `coverUrl: null` — o RemoteImage do app já cai pro placeholder sozinho.
+ * Os jogos são buscados de verdade na IGDB (mesmo caminho que o app usa),
+ * então este script precisa de rede até id.twitch.tv/api.igdb.com — não
+ * roda em ambientes que bloqueiam esses domínios (ex.: o sandbox do agente
+ * que escreveu isso). Rode local ou no servidor de verdade.
  */
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { db } from './index';
+import * as gamesService from '../services/games.service';
 import {
   comments,
   conversationParticipants,
@@ -17,7 +19,6 @@ import {
   favorites,
   follows,
   gameEntries,
-  games,
   likes,
   messages,
   notifications,
@@ -54,103 +55,34 @@ async function main() {
     ])
     .returning();
 
-  // ---------- jogos (sem IGDB — inseridos direto) ----------
-  const [zelda, elden, hollow, celeste, hades, stardew, persona, bg3, gow, stray] = await db
-    .insert(games)
-    .values([
-      {
-        igdbId: 900001,
-        name: 'The Legend of Zelda: Breath of the Wild',
-        summary:
-          'Esqueça tudo que você sabe sobre os jogos de Zelda. Saia para explorar o vasto reino selvagem de Hyrule do jeito que quiser. Este é o próximo capítulo da série, e traz reinvenções para exploração, sobrevivência e como os quebra-cabeças e combates funcionam num mundo aberto imenso.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['Nintendo Switch', 'Wii U'],
-        genres: ['Adventure', 'Action'],
-      },
-      {
-        igdbId: 900002,
-        name: 'Elden Ring',
-        summary: 'Um RPG de ação em mundo aberto criado pela FromSoftware, com direção de Hidetaka Miyazaki e mundo escrito por George R. R. Martin.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'PlayStation 5', 'Xbox Series X|S'],
-        genres: ['RPG', 'Action'],
-      },
-      {
-        igdbId: 900003,
-        name: 'Hollow Knight',
-        summary: 'Um épico de ação e aventura através de um reino de insetos e heróis em ruínas.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'Nintendo Switch'],
-        genres: ['Metroidvania', 'Indie'],
-      },
-      {
-        igdbId: 900004,
-        name: 'Celeste',
-        summary: 'Ajude Madeline a domar seus demônios internos em sua jornada ao topo da Montanha Celeste, num platformer clássico brutalmente difícil.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'Nintendo Switch'],
-        genres: ['Platformer', 'Indie'],
-      },
-      {
-        igdbId: 900005,
-        name: 'Hades',
-        summary: 'Um roguelike de ação em que você desafia o próprio deus dos mortos enquanto foge do Submundo grego.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'Nintendo Switch', 'PlayStation 5'],
-        genres: ['Roguelike', 'Action'],
-      },
-      {
-        igdbId: 900006,
-        name: 'Stardew Valley',
-        summary: 'Você herdou a velha fazenda do seu avô. Com ferramentas usadas na mão e alguns trocados, sua jornada começa.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'Nintendo Switch', 'Mobile'],
-        genres: ['Simulation', 'RPG'],
-      },
-      {
-        igdbId: 900007,
-        name: 'Persona 5 Royal',
-        summary: 'Siga a vida de um estudante colegial que leva uma vida dupla como um Ladrão Fantasma.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PlayStation 5', 'Nintendo Switch'],
-        genres: ['RPG', 'JRPG'],
-      },
-      {
-        igdbId: 900008,
-        name: "Baldur's Gate 3",
-        summary: 'Reúna seu grupo e retorne aos Reinos Esquecidos numa história de companheirismo e traição, sacrifício e sobrevivência, e a atração do poder absoluto.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'PlayStation 5'],
-        genres: ['RPG', 'Strategy'],
-      },
-      {
-        igdbId: 900009,
-        name: 'God of War Ragnarök',
-        summary: 'Kratos e Atreus devem viajar por cada um dos Nove Reinos em busca de respostas enquanto forças asgardianas se preparam para uma guerra profetizada.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PlayStation 5'],
-        genres: ['Action', 'Adventure'],
-      },
-      {
-        igdbId: 900010,
-        name: 'Stray',
-        summary: 'Um gato perdido, separado de sua família, deve encontrar o caminho de volta através de uma cidade cyberpunk esquecida e seus habitantes.',
-        coverUrl: null,
-        screenshots: [],
-        platforms: ['PC', 'PlayStation 5'],
-        genres: ['Adventure', 'Indie'],
-      },
-    ])
-    .returning();
+  // ---------- jogos (buscados de verdade na IGDB) ----------
+  // Mesmo caminho que o app usa quando alguém busca um jogo: procura pelo
+  // nome, pega o resultado mais próximo do título exato, resolve os detalhes
+  // completos (capa, sinopse, screenshots) e cacheia em `games` — sem
+  // inventar igdbId nem cover fake.
+  async function seedGame(title: string) {
+    const results = await gamesService.searchGames(title);
+    if (results.length === 0) throw new Error(`IGDB não encontrou nada pra "${title}"`);
+    const exact = results.find((r) => r.name.toLowerCase() === title.toLowerCase());
+    const picked = exact ?? results[0]!;
+    const game = await gamesService.findOrCacheGameByIgdbId(picked.igdbId, demo!.id);
+    console.log(`  · ${title} → "${game.name}" (igdbId ${game.igdbId})`);
+    return game;
+  }
+
+  console.log('Buscando jogos na IGDB...');
+  const [zelda, elden, hollow, celeste, hades, stardew, persona, bg3, gow, stray] = await Promise.all([
+    seedGame('The Legend of Zelda: Breath of the Wild'),
+    seedGame('Elden Ring'),
+    seedGame('Hollow Knight'),
+    seedGame('Celeste'),
+    seedGame('Hades'),
+    seedGame('Stardew Valley'),
+    seedGame('Persona 5 Royal'),
+    seedGame("Baldur's Gate 3"),
+    seedGame('God of War Ragnarök'),
+    seedGame('Stray'),
+  ]);
 
   // ---------- game entries ----------
   const [demoZelda, demoElden, , demoHades, demoBg3] = await db
