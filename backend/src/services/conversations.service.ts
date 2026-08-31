@@ -24,7 +24,13 @@ export async function listMine(userId: string) {
       const conversation = p.conversation;
       const otherUser = conversation.participants.find((cp) => cp.userId !== userId)?.user ?? null;
       const lastMessage = conversation.messages[0] ?? null;
-      const unread = lastMessage ? !p.lastReadAt || lastMessage.createdAt > p.lastReadAt : false;
+      // Sem o check de senderId, mandar uma mensagem própria já deixava a
+      // conversa "não lida": lastMessage.createdAt fica mais novo que o meu
+      // lastReadAt (setado antes de eu enviar), então a comparação de data
+      // sozinha achava que eu tinha recebido algo — mesmo sendo eu quem mandou.
+      const unread = lastMessage
+        ? lastMessage.senderId !== userId && (!p.lastReadAt || lastMessage.createdAt > p.lastReadAt)
+        : false;
 
       return { id: conversation.id, otherUser, lastMessage, unread };
     })
