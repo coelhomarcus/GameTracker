@@ -91,7 +91,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   content: { flex: 1, justifyContent: 'center', padding: space.xl, gap: space.md },
-  wordmark: { ...type.wordmark, color: colors.textPrimary, textAlign: 'center', marginBottom: space.xl },
+  wordmark: { ...type.wordmark, fontSize: 32, lineHeight: 38, color: colors.textPrimary, textAlign: 'center', marginBottom: space.xl },
   input: forms.input,
   submit: { marginTop: space.sm },
   link: { ...type.caption, color: colors.accent, textAlign: 'center', marginTop: space.lg },

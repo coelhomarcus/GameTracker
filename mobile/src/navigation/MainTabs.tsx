@@ -1,20 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useQuery } from '@tanstack/react-query';
-import { View } from 'react-native';
-import * as notificationsApi from '../api/notifications';
+import { StyleSheet, View } from 'react-native';
 import { AvatarHeaderButton } from '../components/AvatarHeaderButton';
-import { colors } from '../theme/colors';
-import FeedScreen from '../screens/FeedScreen';
-import SearchScreen from '../screens/SearchScreen';
-import MyGamesScreen from '../screens/MyGamesScreen';
+import { useNotifications } from '../hooks/queries/useNotifications';
 import ConversationsScreen from '../screens/ConversationsScreen';
+import FeedScreen from '../screens/FeedScreen';
+import MyGamesScreen from '../screens/MyGamesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import SearchScreen from '../screens/SearchScreen';
+import { colors, radius } from '../theme';
 import type { MainTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const ICONS: Record<keyof MainTabParamList, { outline: keyof typeof Ionicons.glyphMap; filled: keyof typeof Ionicons.glyphMap }> = {
+const ICONS: Record<
+  keyof MainTabParamList,
+  { outline: keyof typeof Ionicons.glyphMap; filled: keyof typeof Ionicons.glyphMap }
+> = {
   Feed: { outline: 'home-outline', filled: 'home' },
   Search: { outline: 'search-outline', filled: 'search' },
   MyGames: { outline: 'game-controller-outline', filled: 'game-controller' },
@@ -23,16 +25,12 @@ const ICONS: Record<keyof MainTabParamList, { outline: keyof typeof Ionicons.gly
 };
 
 function NotificationsTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
-  const query = useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationsApi.listNotifications,
-    refetchInterval: 30_000,
-  });
+  const { unreadCount } = useNotifications();
 
   return (
     <View>
       <Ionicons name={focused ? ICONS.Notifications.filled : ICONS.Notifications.outline} size={size} color={color} />
-      {!!query.data?.unreadCount && <View style={{ position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.like }} />}
+      {unreadCount > 0 && <View style={styles.badge} />}
     </View>
   );
 }
@@ -43,15 +41,15 @@ export default function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size, focused }) => {
-          if (route.name === 'Notifications') return <NotificationsTabIcon color={color} size={size} focused={focused} />;
+          if (route.name === 'Notifications') {
+            return <NotificationsTabIcon color={color} size={size} focused={focused} />;
+          }
           const icons = ICONS[route.name as keyof MainTabParamList];
           return <Ionicons name={focused ? icons.filled : icons.outline} size={size} color={color} />;
         },
         tabBarActiveTintColor: colors.textPrimary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.textPrimary,
       })}
     >
       <Tab.Screen name="Feed" component={FeedScreen} />
@@ -78,3 +76,15 @@ export default function MainTabs() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.like,
+  },
+});

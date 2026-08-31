@@ -1,29 +1,25 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as gameEntriesApi from '../api/gameEntries';
-import { KeyboardAvoidingScreen } from '../components/KeyboardAvoidingScreen';
 import { StarRating } from '../components/StarRating';
+import { Button, Chip, IconButton, Screen } from '../components/ui';
 import { getApiErrorMessage } from '../lib/apiError';
-import { STATUS_LABEL } from '../lib/gameEntryLabels';
+import { parseDecimal, toApiDate } from '../lib/date';
+import { STATUS_COLOR, STATUS_LABEL } from '../lib/gameEntryLabels';
+import { qk } from '../lib/queryKeys';
 import type { RootStackParamList } from '../navigation/types';
-import { colors } from '../theme/colors';
-import { forms } from '../theme/forms';
-import { radius } from '../theme/radius';
+import { colors, forms, icon, opacity, radius, space, type } from '../theme';
 import type { GameEntryStatus } from '../types/models';
 
 const STATUS_OPTIONS: GameEntryStatus[] = ['backlog', 'playing', 'completed', 'dropped'];
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('pt-BR');
-}
-
-function toApiDate(date: Date) {
-  return date.toISOString().slice(0, 10);
 }
 
 interface DateFieldProps {
@@ -38,13 +34,23 @@ function DateField({ label, value, onChange }: DateFieldProps) {
   return (
     <View>
       <Text style={forms.label}>{label}</Text>
-      <Pressable style={styles.dateRow} onPress={() => setShowPicker(true)}>
-        <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-        <Text style={value ? styles.dateText : styles.datePlaceholder}>{value ? formatDate(value) : 'Selecionar data'}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.dateRow, pressed && { opacity: opacity.pressed }]}
+        onPress={() => setShowPicker(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value ? formatDate(value) : 'nenhuma data'}`}
+      >
+        <Ionicons name="calendar-outline" size={icon.md} color={colors.textSecondary} />
+        <Text style={value ? styles.dateText : styles.datePlaceholder}>
+          {value ? formatDate(value) : 'Selecionar data'}
+        </Text>
         {value && (
-          <Pressable onPress={() => onChange(null)} hitSlop={8}>
-            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-          </Pressable>
+          <IconButton
+            name="close-circle"
+            size="md"
+            onPress={() => onChange(null)}
+            accessibilityLabel={`Limpar ${label.toLowerCase()}`}
+          />
         )}
       </Pressable>
 
@@ -54,7 +60,9 @@ function DateField({ label, value, onChange }: DateFieldProps) {
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onValueChange={(_event, date) => {
-            setShowPicker(Platform.OS === 'ios');
+            // Fecha nas duas plataformas: no iOS o calendário inline ficava
+            // aberto pra sempre depois do primeiro toque.
+            setShowPicker(false);
             onChange(date);
           }}
           onDismiss={() => setShowPicker(false)}
@@ -79,6 +87,9 @@ export default function TrackingFormScreen() {
   const [rating, setRating] = useState<number | null>(initial?.rating ?? null);
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
+  const hours = parseDecimal(hoursPlayed);
+  const hoursInvalid = hoursPlayed.trim().length > 0 && hours === null;
+
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
@@ -86,24 +97,25 @@ export default function TrackingFormScreen() {
         status,
         ...(startedAt ? { startedAt: toApiDate(startedAt) } : {}),
         ...(finishedAt ? { finishedAt: toApiDate(finishedAt) } : {}),
-        ...(hoursPlayed ? { hoursPlayed: Number(hoursPlayed) } : {}),
+        ...(hours !== null ? { hoursPlayed: hours } : {}),
         ...(rating ? { rating } : {}),
         ...(notes ? { notes } : {}),
       };
-      return isEditing ? gameEntriesApi.updateGameEntry(entryId!, payload) : gameEntriesApi.createGameEntry({ igdbId, ...payload });
+      return isEditing
+        ? gameEntriesApi.updateGameEntry(entryId!, payload)
+        : gameEntriesApi.createGameEntry({ igdbId, ...payload });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['game-entries'] });
-      if (!isEditing) {
-        Alert.alert('Adicionado', `${gameName} foi adicionado aos seus jogos.`);
-      }
+      queryClient.invalidateQueries({ queryKey: qk.gameEntries() });
+      queryClient.invalidateQueries({ queryKey: ['user-game-entries'] });
+      if (!isEditing) Alert.alert('Adicionado', `${gameName} foi adicionado aos seus jogos.`);
       navigation.goBack();
     },
   });
 
   return (
-    <KeyboardAvoidingScreen>
-      <ScrollView contentContainerStyle={styles.container}>
+    <Screen keyboard>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.heading}>
           <Text style={styles.eyebrow}>{isEditing ? 'Editar playthrough' : 'Novo playthrough'}</Text>
           <Text style={styles.title}>{gameName}</Text>
@@ -113,19 +125,24 @@ export default function TrackingFormScreen() {
           <Text style={forms.label}>Plataforma</Text>
           {platforms.length > 0 ? (
             <View style={styles.chipsRow}>
-              {platforms.map((p) => (
-                <Pressable key={p} style={[styles.chip, platform === p && styles.chipActive]} onPress={() => setPlatform(p)}>
-                  <Text style={[styles.chipText, platform === p && styles.chipTextActive]}>{p}</Text>
-                </Pressable>
+              {platforms.map((option) => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={platform === option}
+                  onPress={() => setPlatform(option)}
+                />
               ))}
             </View>
           ) : (
             <TextInput
               style={forms.input}
               placeholder="Ex: PC, PS5..."
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.textTertiary}
               value={platform}
               onChangeText={setPlatform}
+              autoCorrect={false}
+              accessibilityLabel="Plataforma"
             />
           )}
         </View>
@@ -134,13 +151,14 @@ export default function TrackingFormScreen() {
           <Text style={forms.label}>Status</Text>
           <View style={styles.chipsRow}>
             {STATUS_OPTIONS.map((option) => (
-              <Pressable
+              <Chip
                 key={option}
-                style={[styles.chip, status === option && styles.chipActive]}
+                label={STATUS_LABEL[option]}
+                selected={status === option}
                 onPress={() => setStatus(option)}
-              >
-                <Text style={[styles.chipText, status === option && styles.chipTextActive]}>{STATUS_LABEL[option]}</Text>
-              </Pressable>
+                tone="status"
+                statusColor={STATUS_COLOR[option]}
+              />
             ))}
           </View>
         </View>
@@ -158,21 +176,24 @@ export default function TrackingFormScreen() {
           <Text style={forms.label}>Horas jogadas</Text>
           <View style={styles.hoursRow}>
             <TextInput
-              style={[forms.input, styles.hoursInput]}
-              keyboardType="numeric"
+              style={[forms.input, styles.hoursInput, hoursInvalid && styles.inputInvalid]}
+              keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.textTertiary}
               value={hoursPlayed}
               onChangeText={setHoursPlayed}
+              accessibilityLabel="Horas jogadas"
             />
             <Text style={styles.hoursSuffix}>horas</Text>
           </View>
+          {hoursInvalid && <Text style={styles.fieldError}>Use só números, como 12 ou 12,5.</Text>}
         </View>
 
         <View style={styles.section}>
           <Text style={forms.label}>Nota</Text>
           <View style={styles.ratingBox}>
             <StarRating value={rating} onChange={setRating} />
+            {rating !== null && <Text style={styles.ratingValue}>{rating}/10</Text>}
           </View>
         </View>
 
@@ -182,65 +203,61 @@ export default function TrackingFormScreen() {
             style={[forms.input, forms.multiline]}
             multiline
             placeholder="O que achou desse playthrough?"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.textTertiary}
             value={notes}
             onChangeText={setNotes}
+            accessibilityLabel="Anotações"
           />
         </View>
 
         {mutation.isError && <Text style={styles.error}>{getApiErrorMessage(mutation.error)}</Text>}
 
-        <Pressable
-          style={[styles.button, (!platform || mutation.isPending) && styles.buttonDisabled]}
-          disabled={!platform || mutation.isPending}
+        <Button
+          label={isEditing ? 'Salvar alterações' : 'Trackear jogo'}
           onPress={() => mutation.mutate()}
-        >
-          {mutation.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>{isEditing ? 'Salvar alterações' : 'Trackear jogo'}</Text>
-          )}
-        </Pressable>
+          size="lg"
+          fullWidth
+          loading={mutation.isPending}
+          disabled={!platform || hoursInvalid}
+        />
       </ScrollView>
-    </KeyboardAvoidingScreen>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40, gap: 20, backgroundColor: colors.background },
-  heading: { gap: 2 },
-  eyebrow: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
+  container: { padding: space.lg, paddingBottom: space.huge, gap: space.xl },
+  heading: { gap: space.hair },
+  eyebrow: { ...type.eyebrow, color: colors.textSecondary },
+  title: { ...type.title, color: colors.textPrimary },
   section: { gap: 0 },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { backgroundColor: colors.surface, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 },
-  chipActive: { backgroundColor: colors.accent },
-  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  datesRow: { flexDirection: 'row', gap: 12 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  datesRow: { flexDirection: 'row', gap: space.md },
   dateColumn: { flex: 1 },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
   },
-  dateText: { flex: 1, fontSize: 14, color: colors.textPrimary },
-  datePlaceholder: { flex: 1, fontSize: 14, color: colors.textSecondary },
-  hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  hoursInput: { flex: 1 },
-  hoursSuffix: { color: colors.textSecondary, fontSize: 14 },
+  // Data é dado: mono mantém as duas colunas alinhadas.
+  dateText: { ...type.data, flex: 1, color: colors.textPrimary },
+  datePlaceholder: { ...type.caption, flex: 1, color: colors.textTertiary },
+  hoursRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  hoursInput: { ...type.data, flex: 1, color: colors.textPrimary },
+  inputInvalid: { borderWidth: 1, borderColor: colors.danger },
+  hoursSuffix: { ...type.caption, color: colors.textSecondary },
   ratingBox: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: 14,
+    paddingVertical: space.lg,
     alignItems: 'center',
+    gap: space.sm,
   },
-  button: { backgroundColor: colors.accent, borderRadius: radius.pill, padding: 16, alignItems: 'center', marginTop: 4 },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  error: { color: colors.like },
+  ratingValue: { ...type.dataLg, color: colors.rating },
+  fieldError: { ...type.micro, color: colors.danger, marginTop: space.sm },
+  error: { ...type.caption, color: colors.danger },
 });

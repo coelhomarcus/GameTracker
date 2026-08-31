@@ -17,6 +17,8 @@ export const colors = {
   textSecondary: '#9296A3',
   textTertiary: '#6A6E7E',
   textOnAccent: '#FFFFFF',
+  /** Texto secundário sobre o accent (horário na bolha da própria mensagem). */
+  textOnAccentMuted: 'rgba(255,255,255,0.72)',
   textOnStatus: '#0A0A0C',
 
   // um único accent interativo — deliberadamente fora da rampa de status

@@ -1,32 +1,25 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import * as conversationsApi from '../api/conversations';
+import { Avatar, Composer, ListFooter, Screen } from '../components/ui';
+import { qk } from '../lib/queryKeys';
 import { getSocket } from '../lib/socket';
-import { useAuthStore } from '../store/authStore';
-import { colors } from '../theme/colors';
-import { forms } from '../theme/forms';
-import { radius } from '../theme/radius';
 import type { RootStackParamList } from '../navigation/types';
+import { useAuthStore } from '../store/authStore';
+import { colors, radius, space, type } from '../theme';
 import type { Message } from '../types/models';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
+
+/** Sem ack do servidor o botão de enviar ficava travado pra sempre. */
+const SEND_TIMEOUT = 10_000;
+const TYPING_THROTTLE = 2_000;
+const TYPING_IDLE = 2_000;
 
 export default function ChatRoomScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -35,7 +28,6 @@ export default function ChatRoomScreen() {
   const otherDisplayName = otherName?.trim() || otherUsername;
   const myId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
-  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -44,19 +36,27 @@ export default function ChatRoomScreen() {
   const [sending, setSending] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [isOtherOnline, setIsOtherOnline] = useState(false);
+
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sendTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingEmit = useRef(0);
+  const idleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (sendTimeout.current) clearTimeout(sendTimeout.current);
+      if (idleTimeout.current) clearTimeout(idleTimeout.current);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
         <View style={styles.headerTitle}>
-          {otherAvatarUrl ? (
-            <Image source={{ uri: otherAvatarUrl }} style={styles.headerAvatarImage} />
-          ) : (
-            <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>{otherDisplayName[0]?.toUpperCase()}</Text>
-            </View>
-          )}
+          <Avatar user={{ username: otherUsername, name: otherName, avatarUrl: otherAvatarUrl }} size="md" />
           <View>
             <Text style={styles.headerUsername}>{otherDisplayName}</Text>
             {isOtherOnline && <Text style={styles.headerStatus}>online</Text>}
@@ -64,16 +64,21 @@ export default function ChatRoomScreen() {
         </View>
       ),
     });
-  }, [navigation, otherDisplayName, otherAvatarUrl, isOtherOnline]);
+  }, [navigation, otherDisplayName, otherAvatarUrl, otherUsername, otherName, isOtherOnline]);
 
   useEffect(() => {
     let cancelled = false;
-    conversationsApi.getMessages(conversationId).then((page) => {
-      if (!cancelled) {
+    conversationsApi
+      .getMessages(conversationId)
+      .then((page) => {
+        if (cancelled) return;
         setMessages(page.items);
         setNextCursor(page.nextCursor);
-      }
-    });
+      })
+      .catch(() => {
+        // Sem histórico a conversa ainda funciona pelo socket; o erro não deve
+        // derrubar a tela.
+      });
     return () => {
       cancelled = true;
     };
@@ -86,9 +91,7 @@ export default function ChatRoomScreen() {
     function onMessage(message: Message) {
       if (message.conversationId !== conversationId) return;
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [message, ...prev]));
-      if (message.senderId !== myId) {
-        conversationsApi.markConversationRead(conversationId);
-      }
+      if (message.senderId !== myId) conversationsApi.markConversationRead(conversationId);
     }
 
     function onTypingStart(payload: { conversationId: string; userId: string }) {
@@ -132,87 +135,114 @@ export default function ChatRoomScreen() {
     useCallback(() => {
       conversationsApi.markConversationRead(conversationId);
       return () => {
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: qk.conversations() });
       };
     }, [conversationId, queryClient]),
   );
 
-  async function loadMore() {
+  const loadMore = useCallback(async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
     try {
       const page = await conversationsApi.getMessages(conversationId, nextCursor);
+      if (!mounted.current) return;
       setMessages((prev) => [...prev, ...page.items]);
       setNextCursor(page.nextCursor);
+    } catch {
+      // Paginação é oportunista: mantém o que já está na tela.
     } finally {
-      setLoadingMore(false);
+      if (mounted.current) setLoadingMore(false);
     }
-  }
+  }, [conversationId, loadingMore, nextCursor]);
 
   function handleChangeText(text: string) {
     setInput(text);
-    getSocket().emit('typing:start', { conversationId });
+
+    // Antes isto disparava um evento por tecla, e o typing:stop só saía no envio.
+    const now = Date.now();
+    if (now - lastTypingEmit.current > TYPING_THROTTLE) {
+      lastTypingEmit.current = now;
+      getSocket().emit('typing:start', { conversationId });
+    }
+
+    if (idleTimeout.current) clearTimeout(idleTimeout.current);
+    idleTimeout.current = setTimeout(() => {
+      lastTypingEmit.current = 0;
+      getSocket().emit('typing:stop', { conversationId });
+    }, TYPING_IDLE);
   }
 
   function handleSend() {
     const content = input.trim();
-    if (!content) return;
+    if (!content || sending) return;
+
     setSending(true);
+    if (idleTimeout.current) clearTimeout(idleTimeout.current);
+    lastTypingEmit.current = 0;
     getSocket().emit('typing:stop', { conversationId });
+
+    function finishSending() {
+      if (sendTimeout.current) {
+        clearTimeout(sendTimeout.current);
+        sendTimeout.current = null;
+      }
+      if (mounted.current) setSending(false);
+    }
+
+    sendTimeout.current = setTimeout(finishSending, SEND_TIMEOUT);
+
     getSocket().emit('message:send', { conversationId, content }, (ack?: { message?: Message; error?: string }) => {
-      setSending(false);
+      finishSending();
       if (__DEV__ && ack?.message && ack.message.senderId !== myId) {
         console.warn(
           `[chat] mensagem enviada voltou com senderId diferente do myId atual (ack: ${ack.message.senderId}, myId: ${myId})`,
         );
       }
     });
+
     setInput('');
   }
 
-  function renderItem({ item, index }: { item: Message; index: number }) {
-    const isMine = item.senderId === myId;
-    // A lista é `inverted`: o índice menor aparece embaixo, o maior em cima.
-    const below = messages[index - 1];
-    const above = messages[index + 1];
-    const isGroupEnd = !below || below.senderId !== item.senderId;
-    const isGroupStart = !above || above.senderId !== item.senderId;
+  const renderItem = useCallback(
+    ({ item, index }: { item: Message; index: number }) => {
+      const isMine = item.senderId === myId;
+      // A lista é `inverted`: o índice menor aparece embaixo, o maior em cima.
+      const below = messages[index - 1];
+      const above = messages[index + 1];
+      const isGroupEnd = !below || below.senderId !== item.senderId;
+      const isGroupStart = !above || above.senderId !== item.senderId;
 
-    return (
-      <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine, isGroupStart && styles.groupSpacing]}>
-        {!isMine &&
-          (isGroupEnd ? (
-            otherAvatarUrl ? (
-              <Image source={{ uri: otherAvatarUrl }} style={styles.bubbleAvatar} />
+      return (
+        <View style={[styles.bubbleRow, isMine && styles.bubbleRowMine, isGroupStart && styles.groupSpacing]}>
+          {!isMine &&
+            (isGroupEnd ? (
+              <Avatar user={{ username: otherUsername, name: otherName, avatarUrl: otherAvatarUrl }} size="sm" />
             ) : (
-              <View style={[styles.bubbleAvatar, styles.bubbleAvatarFallback]}>
-                <Text style={styles.bubbleAvatarText}>{otherDisplayName[0]?.toUpperCase()}</Text>
-              </View>
-            )
-          ) : (
-            <View style={styles.bubbleAvatar} />
-          ))}
+              <View style={styles.bubbleAvatarSpacer} />
+            ))}
 
-        <View
-          style={[
-            styles.bubble,
-            isMine ? styles.bubbleMine : styles.bubbleTheirs,
-            isGroupEnd && (isMine ? styles.bubbleTailMine : styles.bubbleTailTheirs),
-          ]}
-        >
-          <Text style={isMine ? styles.bubbleTextMine : styles.bubbleTextTheirs}>{item.content}</Text>
-          {isGroupEnd && (
-            <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs]}>
-              {formatTime(item.createdAt)}
-            </Text>
-          )}
+          <View
+            style={[
+              styles.bubble,
+              isMine ? styles.bubbleMine : styles.bubbleTheirs,
+              isGroupEnd && (isMine ? styles.bubbleTailMine : styles.bubbleTailTheirs),
+            ]}
+          >
+            <Text style={isMine ? styles.bubbleTextMine : styles.bubbleTextTheirs}>{item.content}</Text>
+            {isGroupEnd && (
+              <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs]}>
+                {formatTime(item.createdAt)}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-    );
-  }
+      );
+    },
+    [messages, myId, otherAvatarUrl, otherUsername, otherName],
+  );
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <Screen keyboard>
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
@@ -221,74 +251,47 @@ export default function ChatRoomScreen() {
         contentContainerStyle={styles.list}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
+        keyboardShouldPersistTaps="handled"
+        // Lista invertida: o "rodapé" é o topo, onde carrega o histórico antigo.
+        ListFooterComponent={<ListFooter loading={loadingMore} />}
       />
 
       {isOtherTyping && <Text style={styles.typing}>digitando...</Text>}
 
-      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput
-          style={styles.input}
-          placeholder="Mensagem..."
-          placeholderTextColor={colors.textSecondary}
-          value={input}
-          onChangeText={handleChangeText}
-        />
-        <Pressable
-          style={[styles.sendButton, (!input.trim() || sending) && styles.sendButtonDisabled]}
-          disabled={!input.trim() || sending}
-          onPress={handleSend}
-        >
-          <Ionicons name="arrow-up" size={18} color="#fff" />
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      <Composer
+        value={input}
+        onChangeText={handleChangeText}
+        onSubmit={handleSend}
+        placeholder="Mensagem..."
+        sending={sending}
+      />
+    </Screen>
   );
 }
 
+const AVATAR_SLOT = 28;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarImage: { width: 32, height: 32, borderRadius: 16 },
-  headerAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  headerUsername: { fontWeight: '600', fontSize: 15, color: colors.textPrimary },
-  headerStatus: { color: colors.success, fontSize: 11 },
-  list: { padding: 16, gap: 3 },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  headerUsername: { ...type.bodyStrong, color: colors.textPrimary },
+  headerStatus: { ...type.micro, color: colors.success },
+  list: { padding: space.lg, gap: space.hair },
   // A lista é invertida, então `marginBottom` aparece visualmente ACIMA do item —
   // é o respiro entre um grupo de mensagens e o grupo anterior.
-  groupSpacing: { marginBottom: 12 },
-  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  groupSpacing: { marginBottom: space.md },
+  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   bubbleRowMine: { justifyContent: 'flex-end' },
-  bubbleAvatar: { width: 28, height: 28, borderRadius: 14 },
-  bubbleAvatarFallback: { backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  bubbleAvatarText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  bubble: { maxWidth: '75%', borderRadius: 20, paddingVertical: 9, paddingHorizontal: 14 },
+  bubbleAvatarSpacer: { width: AVATAR_SLOT },
+  bubble: { maxWidth: '75%', borderRadius: radius.xl, paddingVertical: space.sm, paddingHorizontal: space.lg },
   bubbleMine: { backgroundColor: colors.accent },
   bubbleTheirs: { backgroundColor: colors.surface },
-  bubbleTailMine: { borderBottomRightRadius: 6 },
-  bubbleTailTheirs: { borderBottomLeftRadius: 6 },
-  bubbleTextMine: { color: '#fff', fontSize: 15, lineHeight: 20 },
-  bubbleTextTheirs: { color: colors.textPrimary, fontSize: 15, lineHeight: 20 },
-  bubbleTime: { fontSize: 10, marginTop: 3, alignSelf: 'flex-end' },
-  bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
+  bubbleTailMine: { borderBottomRightRadius: radius.sm },
+  bubbleTailTheirs: { borderBottomLeftRadius: radius.sm },
+  bubbleTextMine: { ...type.body, color: colors.textOnAccent },
+  bubbleTextTheirs: { ...type.body, color: colors.textPrimary },
+  // Horário é dado: mono deixa as bolhas alinhadas entre si.
+  bubbleTime: { ...type.dataSm, fontSize: 10, marginTop: space.hair, alignSelf: 'flex-end' },
+  bubbleTimeMine: { color: colors.textOnAccentMuted },
   bubbleTimeTheirs: { color: colors.textSecondary },
-  typing: { color: colors.textSecondary, fontSize: 12, paddingHorizontal: 16, paddingBottom: 4 },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border },
-  input: { ...forms.inputPill, flex: 1 },
-  sendButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: { opacity: 0.4 },
+  typing: { ...type.micro, color: colors.textSecondary, paddingHorizontal: space.lg, paddingBottom: space.xs },
 });
