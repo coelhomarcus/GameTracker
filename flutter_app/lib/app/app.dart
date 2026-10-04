@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/design_system/app_theme.dart';
 import '../features/auth/presentation/session_state.dart';
+import '../features/library/application/library_controller.dart';
 import 'providers.dart';
 import 'router.dart';
 import 'theme_mode.dart';
@@ -27,9 +28,19 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     refresh: _refresh,
   );
 
+  late final AppLifecycleListener _lifecycle;
+
+  /// Ao voltar para o app, dados já carregados e velhos são revalidados.
+  void _revalidate() {
+    if (ref.exists(libraryProvider)) {
+      ref.read(libraryProvider.notifier).revalidateIfStale();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _revalidate);
     ref.listenManual<SessionState>(
       sessionControllerProvider,
       (_, _) => _refresh.ping(),
@@ -38,6 +49,7 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _router.dispose();
     _refresh.dispose();
     super.dispose();

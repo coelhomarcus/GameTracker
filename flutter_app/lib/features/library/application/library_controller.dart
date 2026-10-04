@@ -8,11 +8,28 @@ import '../data/game_entry.dart';
 /// formulário: cada mutação aplica a resposta do servidor aqui, então todas as telas
 /// concordam sem refetch. Descartado ao sair ou trocar de conta.
 class LibraryController extends AsyncNotifier<List<GameEntry>> {
+  /// Idade máxima dos dados sociais antes de revalidar ao voltar para o app (plano, seção 5.3).
+  static const maxAge = Duration(seconds: 30);
+
+  DateTime? _loadedAt;
+
   @override
   Future<List<GameEntry>> build() async {
     final userId = ref.watch(currentUserIdProvider);
     if (userId == null) return const [];
-    return ref.watch(libraryRepositoryProvider).listMine();
+    final list = await ref.watch(libraryRepositoryProvider).listMine();
+    _loadedAt = ref.read(clockProvider)();
+    return list;
+  }
+
+  /// Ao voltar para o app: refaz a consulta só se os dados já passaram de [maxAge].
+  /// Se falhar, a lista anterior continua disponível (o estado guarda valor e erro).
+  void revalidateIfStale() {
+    final loadedAt = _loadedAt;
+    if (loadedAt == null || state.isLoading) return;
+    if (ref.read(clockProvider)().difference(loadedAt) > maxAge) {
+      ref.invalidateSelf();
+    }
   }
 
   Future<void> refresh() async {

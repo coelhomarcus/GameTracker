@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:gametracker/core/dates/date_only.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/features/games/data/game_models.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
@@ -30,13 +31,19 @@ GameEntry fakeEntry({
   GameStatus status = GameStatus.backlog,
   double? hours,
   int? rating,
+  DateOnly? startedAt,
+  DateOnly? finishedAt,
+  String? notes,
   DateTime? createdAt,
 }) => GameEntry(
   id: id,
   platform: platform,
   status: status,
+  startedAt: startedAt,
+  finishedAt: finishedAt,
   hoursPlayed: hours,
   rating: rating,
+  notes: notes,
   createdAt: createdAt ?? DateTime.utc(2026, 1, 1),
   game: game ?? fakeGame(),
 );

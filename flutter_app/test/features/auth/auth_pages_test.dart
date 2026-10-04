@@ -1,25 +1,15 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gametracker/app/app.dart';
 import 'package:gametracker/core/network/app_exception.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../support/fake_auth.dart';
+import '../../support/harness.dart';
 
 Future<void> pumpApp(WidgetTester tester, FakeAuthRepository repo) async {
-  tester.view.physicalSize = const Size(400, 900);
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: fakeAuthOverrides(repo),
-      child: const GameTrackerApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
+  await AppHarness(auth: repo, signedIn: false).pump(tester);
 }
 
 Future<void> tapText(WidgetTester tester, String text) async {

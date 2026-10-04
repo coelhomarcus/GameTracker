@@ -69,3 +69,6 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
 /// Sem retry automático: uma falha chega à tela, que oferece "Tentar de novo".
 /// Repetir sozinho esconderia o erro e, em mutações, poderia duplicar efeitos (plano, seção 5.3).
 Duration? noAutomaticRetry(int retryCount, Object error) => null;
+
+/// Relógio injetável (testes de expiração de cache).
+final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);

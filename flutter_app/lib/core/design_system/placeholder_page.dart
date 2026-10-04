@@ -39,3 +39,28 @@ class PlaceholderPage extends StatelessWidget {
     );
   }
 }
+
+/// Só o corpo (para uso dentro de abas), sem Scaffold próprio.
+class PlaceholderBody extends StatelessWidget {
+  const PlaceholderBody({super.key, required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(Space.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: Space.lg),
+            Text(message, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}

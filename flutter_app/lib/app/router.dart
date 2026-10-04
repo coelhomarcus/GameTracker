@@ -10,6 +10,7 @@ import '../features/explore/presentation/explore_page.dart';
 import '../features/feed/presentation/community_page.dart';
 import '../features/games/presentation/game_page.dart';
 import '../features/library/presentation/library_page.dart';
+import '../features/library/presentation/tracking_form_page.dart';
 import '../features/profiles/presentation/profile_page.dart';
 import 'shell.dart';
 
@@ -65,6 +66,9 @@ String? sessionRedirect(SessionState session, Uri uri) {
       return null;
   }
 }
+
+int _igdbId(GoRouterState state) =>
+    int.tryParse(state.pathParameters['igdbId'] ?? '') ?? -1;
 
 /// Rotas do plano (seção 4.3). [session] e [refresh] ligam o guard ao estado de sessão.
 GoRouter buildRouter({
@@ -142,9 +146,20 @@ GoRouter buildRouter({
     ),
     GoRoute(
       path: '/games/:igdbId',
-      builder: (_, state) => GamePage(
-        igdbId: int.tryParse(state.pathParameters['igdbId'] ?? '') ?? -1,
-      ),
+      builder: (_, state) => GamePage(igdbId: _igdbId(state)),
+      routes: [
+        GoRoute(
+          path: 'playthroughs/new',
+          builder: (_, state) => TrackingFormPage(igdbId: _igdbId(state)),
+        ),
+        GoRoute(
+          path: 'playthroughs/:entryId/edit',
+          builder: (_, state) => TrackingFormPage(
+            igdbId: _igdbId(state),
+            entryId: state.pathParameters['entryId'],
+          ),
+        ),
+      ],
     ),
   ],
 );

@@ -26,6 +26,7 @@ List<GameEntry> entriesFrom(String fixture) => (fixtureBody(fixture) as List)
 Future<ProviderContainer> makeContainer(
   FakeLibraryRepository library, {
   FakeAuthRepository? auth,
+  DateTime Function()? clock,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -38,6 +39,7 @@ Future<ProviderContainer> makeContainer(
       libraryRepositoryProvider.overrideWithValue(library),
       gamesRepositoryProvider.overrideWithValue(FakeGamesRepository()),
       sharedPreferencesProvider.overrideWithValue(prefs),
+      if (clock != null) clockProvider.overrideWithValue(clock),
     ],
   );
   addTearDown(c.dispose);
@@ -428,6 +430,49 @@ void main() {
       await c.read(sessionControllerProvider.notifier).logout();
       expect(await c.read(libraryProvider.future), isEmpty);
     });
+  });
+
+  group('revalidação ao voltar para o app', () {
+    test('só refaz a consulta depois de 30 segundos', () async {
+      var now = DateTime.utc(2026, 6, 1, 12);
+      final repo = FakeLibraryRepository([fakeEntry(id: 'a')]);
+      final c = await makeContainer(repo, clock: () => now);
+      c.listen(libraryProvider, (_, _) {});
+      await c.read(libraryProvider.future);
+      expect(repo.listCalls, 1);
+
+      now = now.add(const Duration(seconds: 10));
+      c.read(libraryProvider.notifier).revalidateIfStale();
+      await c.read(libraryProvider.future);
+      expect(repo.listCalls, 1, reason: 'dados ainda frescos');
+
+      now = now.add(const Duration(seconds: 25));
+      c.read(libraryProvider.notifier).revalidateIfStale();
+      await c.read(libraryProvider.future);
+      expect(repo.listCalls, 2, reason: 'passou de 30 s');
+    });
+
+    test(
+      'se a revalidação falha, a lista anterior continua disponível',
+      () async {
+        var now = DateTime.utc(2026, 6, 1, 12);
+        final repo = FakeLibraryRepository([fakeEntry(id: 'a')]);
+        final c = await makeContainer(repo, clock: () => now);
+        c.listen(libraryProvider, (_, _) {});
+        await c.read(libraryProvider.future);
+
+        repo.listError = const NetworkException();
+        now = now.add(const Duration(minutes: 5));
+        c.read(libraryProvider.notifier).revalidateIfStale();
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        final state = c.read(libraryProvider);
+        expect(state.hasError, isTrue);
+        expect(state.hasValue, isTrue, reason: 'valor anterior preservado');
+        expect(state.value!.single.id, 'a');
+      },
+    );
   });
 
   group('preferências persistidas', () {
