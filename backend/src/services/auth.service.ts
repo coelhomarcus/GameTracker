@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { db } from '../db';
 import { refreshTokens, users } from '../db/schema';
 import { parseDurationMs } from '../lib/duration';
@@ -84,16 +84,27 @@ export async function refresh(rawRefreshToken: string) {
     throw new AppError(401, 'invalid_refresh_token', 'Refresh token inválido');
   }
 
-  const record = await db.query.refreshTokens.findFirst({ where: eq(refreshTokens.id, parsed.id) });
-  const providedHash = hashRefreshTokenSecret(parsed.secret);
+  // Validação e revogação num único UPDATE condicional: com SELECT + UPDATE separados,
+  // várias requisições simultâneas com o mesmo token passavam na checagem e cada uma
+  // emitia uma sessão nova. Só a que efetivamente revoga o registro recebe a sessão.
+  const [revoked] = await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(refreshTokens.id, parsed.id),
+        eq(refreshTokens.tokenHash, hashRefreshTokenSecret(parsed.secret)),
+        isNull(refreshTokens.revokedAt),
+        gt(refreshTokens.expiresAt, new Date()),
+      ),
+    )
+    .returning({ userId: refreshTokens.userId });
 
-  if (!record || record.revokedAt || record.expiresAt < new Date() || record.tokenHash !== providedHash) {
+  if (!revoked) {
     throw new AppError(401, 'invalid_refresh_token', 'Refresh token inválido ou expirado');
   }
 
-  await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, record.id));
-
-  return issueSession(record.userId);
+  return issueSession(revoked.userId);
 }
 
 export async function me(userId: string) {
