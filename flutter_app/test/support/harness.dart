@@ -14,6 +14,9 @@ import 'package:gametracker/features/chat/data/chat_repository.dart';
 import 'package:gametracker/features/feed/data/feed_repository.dart';
 import 'package:gametracker/features/notifications/application/notifications_controller.dart';
 import 'package:gametracker/features/notifications/data/notifications_repository.dart';
+import 'package:gametracker/features/push/application/push_controller.dart';
+import 'package:gametracker/features/push/data/push_platform.dart';
+import 'package:gametracker/features/push/data/push_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
@@ -25,6 +28,7 @@ import 'fake_chat.dart';
 import 'fake_transport.dart';
 import 'fake_feed.dart';
 import 'fake_notifications.dart';
+import 'fake_push.dart';
 import 'fake_profiles.dart';
 import 'fake_repos.dart';
 
@@ -38,6 +42,8 @@ class AppHarness {
     FakeProfilesRepository? profiles,
     FakeImagePicker? picker,
     FakeNotificationsRepository? notifications,
+    FakePushPlatform? pushPlatform,
+    FakePushRepository? push,
     FakeChatRepository? chat,
     FakeChatTransport? transport,
     bool signedIn = true,
@@ -48,6 +54,8 @@ class AppHarness {
        profiles = profiles ?? FakeProfilesRepository(),
        picker = picker ?? FakeImagePicker(),
        notifications = notifications ?? FakeNotificationsRepository(),
+       pushPlatform = pushPlatform ?? FakePushPlatform(supported: false),
+       push = push ?? FakePushRepository(),
        chat = chat ?? FakeChatRepository(),
        transport = transport ?? FakeChatTransport() {
     chatServer = FakeChatServer(this.transport, this.chat);
@@ -63,6 +71,8 @@ class AppHarness {
   final FakeProfilesRepository profiles;
   final FakeImagePicker picker;
   final FakeNotificationsRepository notifications;
+  final FakePushPlatform pushPlatform;
+  final FakePushRepository push;
   final FakeChatRepository chat;
   final FakeChatTransport transport;
   late final FakeChatServer chatServer;
@@ -98,6 +108,8 @@ class AppHarness {
           notificationsRepositoryProvider.overrideWithValue(
             notifications as NotificationsRepository,
           ),
+          pushPlatformProvider.overrideWithValue(pushPlatform as PushPlatform),
+          pushRepositoryProvider.overrideWithValue(push as PushRepository),
           chatTransportProvider.overrideWithValue(transport),
           chatRepositoryProvider.overrideWithValue(chat as ChatRepository),
           chatConnectionProvider.overrideWith((ref) {

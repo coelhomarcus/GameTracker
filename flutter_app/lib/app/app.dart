@@ -11,6 +11,7 @@ import '../features/chat/application/conversations_controller.dart';
 import '../features/feed/application/feed_controller.dart';
 import '../features/notifications/application/notifications_controller.dart';
 import '../features/library/application/library_controller.dart';
+import '../features/push/application/push_controller.dart';
 import 'providers.dart';
 import 'router.dart';
 import 'theme_mode.dart';
@@ -50,6 +51,7 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     if (ref.exists(notificationsControllerProvider)) {
       ref.read(notificationsControllerProvider.notifier).setForeground(true);
     }
+    ref.read(pushControllerProvider.notifier).onResume();
   }
 
   /// O polling das conversas só roda com o app aberto.
@@ -70,6 +72,12 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
       sessionControllerProvider,
       (_, _) => _refresh.ping(),
     );
+    // Push tocado: abre o destino por cima da navegação atual.
+    ref.listenManual<String?>(pendingPushRouteProvider, (_, route) {
+      if (route == null) return;
+      ref.read(pendingPushRouteProvider.notifier).set(null);
+      unawaited(_router.push(route));
+    });
   }
 
   @override
@@ -82,6 +90,8 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Mantém o registro de push e a escuta de mensagens vivos durante a sessão.
+    ref.watch(pushControllerProvider);
     return MaterialApp.router(
       title: 'GameTracker',
       routerConfig: _router,

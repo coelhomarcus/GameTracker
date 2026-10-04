@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../push/application/push_controller.dart';
 import '../data/auth_models.dart';
 import '../data/auth_repository.dart';
 import 'session_state.dart';
@@ -67,6 +68,8 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> logout() async {
+    // Antes de encerrar a sessão: revogar o aparelho exige o token de acesso.
+    await ref.read(pushUnregisterProvider)();
     await _repo.logout();
     state = const SessionUnauthenticated();
   }
