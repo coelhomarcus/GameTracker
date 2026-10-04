@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/network/api_client.dart';
 import '../core/network/session_manager.dart';
@@ -9,6 +10,8 @@ import '../features/auth/data/auth_api.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/session_controller.dart';
 import '../features/auth/presentation/session_state.dart';
+import '../features/games/data/games_repository.dart';
+import '../features/library/data/library_repository.dart';
 
 /// Web: sem persistência do refresh token (ADR-3). Nativo: armazenamento seguro.
 final tokenStoreProvider = Provider<TokenStore>(
@@ -47,3 +50,22 @@ final currentUserIdProvider = Provider<String?>((ref) {
   final state = ref.watch(sessionControllerProvider);
   return state is SessionAuthenticated ? state.user.id : null;
 });
+
+/// Preferências locais (tema, grade/lista, ordenação). Sobrescrito em `main` e nos testes.
+final sharedPreferencesProvider = Provider<SharedPreferences>(
+  (ref) => throw UnimplementedError(
+    'sharedPreferencesProvider precisa ser sobrescrito',
+  ),
+);
+
+final gamesRepositoryProvider = Provider<GamesRepository>(
+  (ref) => RemoteGamesRepository(ref.watch(apiDioProvider)),
+);
+
+final libraryRepositoryProvider = Provider<LibraryRepository>(
+  (ref) => RemoteLibraryRepository(ref.watch(apiDioProvider)),
+);
+
+/// Sem retry automático: uma falha chega à tela, que oferece "Tentar de novo".
+/// Repetir sozinho esconderia o erro e, em mutações, poderia duplicar efeitos (plano, seção 5.3).
+Duration? noAutomaticRetry(int retryCount, Object error) => null;

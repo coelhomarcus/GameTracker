@@ -8,7 +8,10 @@ import 'package:gametracker/features/auth/presentation/session_state.dart';
 import '../../support/fake_auth.dart';
 
 ProviderContainer makeContainer(FakeAuthRepository repo) {
-  final c = ProviderContainer(overrides: fakeAuthOverrides(repo));
+  final c = ProviderContainer(
+    retry: noAutomaticRetry,
+    overrides: fakeAuthOverrides(repo),
+  );
   addTearDown(c.dispose);
   return c;
 }
