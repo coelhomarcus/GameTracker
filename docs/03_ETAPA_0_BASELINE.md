@@ -275,3 +275,13 @@ Não feito / não verificado:
 - Notificação individual como lida e paginação da central: o backend não oferece.
 - Execução em emulador/aparelho (o sandbox bloqueia).
 
+
+## 13. Etapa 9: validação, desempenho e distribuição
+
+O registro completo (matriz de paridade, critérios de liberação, distribuição, desempenho e pendências) está em `docs/05_MATRIZ_ACEITE.md`. Resumo:
+
+- **Assinatura e build de release:** `android/key.properties` ou secrets do workflow `flutter-release.yml`; `tool/build_release.sh` exige `API_URL` HTTPS, chave real e recusa APK assinado com a chave de debug. Verificado com uma chave descartável.
+- **CORS** restringível por `CORS_ORIGINS` (backend e Socket.IO), com o comportamento aberto anterior quando a variável não existe; 8 testes.
+- **Suíte de aceite** (149 testes): 13 telas × 4 janelas × claro/escuro sem overflow; diretrizes de toque, rótulo e contraste; volume de 500 registros e 1000 mensagens na interface e contra o backend real.
+- **Achados corrigidos:** estados vazio/erro estourando em janela larga e baixa; alvo de toque de 40 dp no avatar do autor.
+- **Não feito:** qualquer execução em aparelho/emulador (desempenho real, TalkBack, push, instalação), CI no GitHub, chave de assinatura real, beta fechado.
