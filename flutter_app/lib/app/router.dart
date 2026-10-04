@@ -14,6 +14,7 @@ import '../features/feed/presentation/post_detail_page.dart';
 import '../features/games/presentation/game_page.dart';
 import '../features/library/presentation/library_page.dart';
 import '../features/library/presentation/tracking_form_page.dart';
+import '../features/notifications/presentation/notifications_page.dart';
 import '../features/profiles/presentation/edit_profile_page.dart';
 import '../features/profiles/presentation/profile_page.dart';
 import '../features/profiles/presentation/settings_page.dart';
@@ -180,6 +181,10 @@ GoRouter buildRouter({
       builder: (_, state) => ChatRoomPage(
         conversationId: state.pathParameters['conversationId'] ?? '',
       ),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (_, _) => const NotificationsPage(),
     ),
     GoRoute(path: '/me/edit', builder: (_, _) => const EditProfilePage()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),

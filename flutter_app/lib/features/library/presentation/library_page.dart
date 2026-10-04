@@ -9,6 +9,7 @@ import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/data/hours.dart';
 import '../../games/presentation/game_search_view.dart';
+import '../../notifications/presentation/notifications_bell.dart';
 import '../application/library_controller.dart';
 import '../application/library_prefs.dart';
 import '../application/library_view.dart';
@@ -42,6 +43,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       appBar: AppBar(
         title: const Text('Biblioteca'),
         actions: [
+          const NotificationsBell(),
           PopupMenuButton<LibrarySort>(
             tooltip: 'Ordenar por ${prefs.sort.label}',
             icon: const Icon(Icons.sort),

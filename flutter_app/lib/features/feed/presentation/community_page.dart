@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/design_system/async_content.dart';
 import '../application/feed_controller.dart';
 import '../data/post_models.dart';
+import '../../notifications/presentation/notifications_bell.dart';
 import 'post_list.dart';
 
 /// Comunidade: feed Geral (cronológico, sem algoritmo) e Seguindo.
@@ -18,6 +19,7 @@ class CommunityPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Comunidade'),
+          actions: const [NotificationsBell()],
           bottom: TabBar(
             tabs: [
               for (final scope in FeedScope.values) Tab(text: scope.label),

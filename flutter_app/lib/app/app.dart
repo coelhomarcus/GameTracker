@@ -9,6 +9,7 @@ import '../features/auth/presentation/session_state.dart';
 import '../features/chat/application/chat_providers.dart';
 import '../features/chat/application/conversations_controller.dart';
 import '../features/feed/application/feed_controller.dart';
+import '../features/notifications/application/notifications_controller.dart';
 import '../features/library/application/library_controller.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -46,12 +47,18 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     if (ref.exists(conversationsControllerProvider)) {
       ref.read(conversationsControllerProvider.notifier).setForeground(true);
     }
+    if (ref.exists(notificationsControllerProvider)) {
+      ref.read(notificationsControllerProvider.notifier).setForeground(true);
+    }
   }
 
   /// O polling das conversas só roda com o app aberto.
   void _paused() {
     if (ref.exists(conversationsControllerProvider)) {
       ref.read(conversationsControllerProvider.notifier).setForeground(false);
+    }
+    if (ref.exists(notificationsControllerProvider)) {
+      ref.read(notificationsControllerProvider.notifier).setForeground(false);
     }
   }
 
