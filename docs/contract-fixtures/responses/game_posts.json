@@ -3,18 +3,18 @@
   "body": {
     "items": [
       {
-        "id": "edd3e059-a107-4e2c-9555-8d4fd251e439",
-        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "id": "bdf5c8b3-cfa3-496e-9fb7-1c6a8439e7ac",
+        "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
         "content": "Quero jogar",
         "gameEntryId": null,
         "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
         "activityStatus": null,
         "type": "status",
         "imageUrl": null,
-        "createdAt": "2026-10-04T01:15:36.002Z",
+        "createdAt": "2026-10-04T15:45:15.136Z",
         "user": {
-          "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
-          "username": "fixa_4q2w0",
+          "id": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "username": "fixa_zsgkq",
           "name": "Ana Fixture",
           "avatarUrl": null
         },
@@ -40,33 +40,33 @@
         "likedByMe": false
       },
       {
-        "id": "64947c9a-9d4a-40cf-a226-52378b2b576b",
-        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "id": "040f2971-bca0-4fc5-9da2-5e2063515ec5",
+        "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
         "content": "Terminei!",
-        "gameEntryId": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
+        "gameEntryId": "b93970fd-aaf3-4d7a-83d4-e261d153c7ff",
         "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
         "activityStatus": null,
         "type": "status",
         "imageUrl": null,
-        "createdAt": "2026-10-04T01:15:35.994Z",
+        "createdAt": "2026-10-04T15:45:15.128Z",
         "user": {
-          "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
-          "username": "fixa_4q2w0",
+          "id": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "username": "fixa_zsgkq",
           "name": "Ana Fixture",
           "avatarUrl": null
         },
         "gameEntry": {
-          "id": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
-          "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+          "id": "b93970fd-aaf3-4d7a-83d4-e261d153c7ff",
+          "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
           "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
           "platform": "PC",
           "status": "completed",
           "startedAt": "2026-01-05T00:00:00.000Z",
-          "finishedAt": "2026-01-20T00:00:00.000Z",
-          "hoursPlayed": "20",
-          "rating": 8,
+          "finishedAt": null,
+          "hoursPlayed": null,
+          "rating": null,
           "notes": "",
-          "createdAt": "2026-10-04T01:15:35.896Z",
+          "createdAt": "2026-10-04T15:45:15.036Z",
           "game": {
             "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
             "igdbId": 900001,
@@ -105,6 +105,275 @@
         "likedByMe": true
       },
       {
+        "id": "61fa846c-978a-49ca-9536-efb2113ccb7f",
+        "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
+        "content": "adicionou Jogo Fixture Um ao backlog",
+        "gameEntryId": "5c6ac285-62d4-40d2-a08c-028e9d766e9b",
+        "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "activityStatus": "backlog",
+        "type": "activity",
+        "imageUrl": null,
+        "createdAt": "2026-10-04T15:45:15.058Z",
+        "user": {
+          "id": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "username": "fixa_zsgkq",
+          "name": "Ana Fixture",
+          "avatarUrl": null
+        },
+        "gameEntry": {
+          "id": "5c6ac285-62d4-40d2-a08c-028e9d766e9b",
+          "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "platform": "PC",
+          "status": "backlog",
+          "startedAt": null,
+          "finishedAt": null,
+          "hoursPlayed": null,
+          "rating": null,
+          "notes": null,
+          "createdAt": "2026-10-04T15:45:15.056Z",
+          "game": {
+            "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+            "igdbId": 900001,
+            "name": "Jogo Fixture Um",
+            "coverUrl": null,
+            "summary": "Sinopse de teste.",
+            "screenshots": [],
+            "platforms": [
+              "PC",
+              "PlayStation 5"
+            ],
+            "genres": [
+              "RPG"
+            ],
+            "cachedAt": "2026-10-04T01:15:34.636Z"
+          }
+        },
+        "game": {
+          "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "igdbId": 900001,
+          "name": "Jogo Fixture Um",
+          "coverUrl": null,
+          "summary": "Sinopse de teste.",
+          "screenshots": [],
+          "platforms": [
+            "PC",
+            "PlayStation 5"
+          ],
+          "genres": [
+            "RPG"
+          ],
+          "cachedAt": "2026-10-04T01:15:34.636Z"
+        },
+        "likeCount": 0,
+        "commentCount": 0,
+        "likedByMe": false
+      },
+      {
+        "id": "c61292fc-3514-4d05-9fc6-706268a5203f",
+        "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
+        "content": "zerou Jogo Fixture Um! 🎉",
+        "gameEntryId": "b93970fd-aaf3-4d7a-83d4-e261d153c7ff",
+        "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "activityStatus": "completed",
+        "type": "activity",
+        "imageUrl": null,
+        "createdAt": "2026-10-04T15:45:15.041Z",
+        "user": {
+          "id": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "username": "fixa_zsgkq",
+          "name": "Ana Fixture",
+          "avatarUrl": null
+        },
+        "gameEntry": {
+          "id": "b93970fd-aaf3-4d7a-83d4-e261d153c7ff",
+          "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
+          "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "platform": "PC",
+          "status": "completed",
+          "startedAt": "2026-01-05T00:00:00.000Z",
+          "finishedAt": null,
+          "hoursPlayed": null,
+          "rating": null,
+          "notes": "",
+          "createdAt": "2026-10-04T15:45:15.036Z",
+          "game": {
+            "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+            "igdbId": 900001,
+            "name": "Jogo Fixture Um",
+            "coverUrl": null,
+            "summary": "Sinopse de teste.",
+            "screenshots": [],
+            "platforms": [
+              "PC",
+              "PlayStation 5"
+            ],
+            "genres": [
+              "RPG"
+            ],
+            "cachedAt": "2026-10-04T01:15:34.636Z"
+          }
+        },
+        "game": {
+          "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "igdbId": 900001,
+          "name": "Jogo Fixture Um",
+          "coverUrl": null,
+          "summary": "Sinopse de teste.",
+          "screenshots": [],
+          "platforms": [
+            "PC",
+            "PlayStation 5"
+          ],
+          "genres": [
+            "RPG"
+          ],
+          "cachedAt": "2026-10-04T01:15:34.636Z"
+        },
+        "likeCount": 0,
+        "commentCount": 0,
+        "likedByMe": false
+      },
+      {
+        "id": "a08e3b17-8382-4aed-b1a5-75be9a6427a5",
+        "userId": "86d02c9f-0eb1-4817-96cf-c786a0ac5496",
+        "content": "zerou Jogo Fixture Um! 🎉",
+        "gameEntryId": "921cffc2-b71a-43e3-8488-fc1ea3f052ee",
+        "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "activityStatus": "completed",
+        "type": "activity",
+        "imageUrl": null,
+        "createdAt": "2026-10-04T15:45:04.375Z",
+        "user": {
+          "id": "86d02c9f-0eb1-4817-96cf-c786a0ac5496",
+          "username": "pc_mutzs92m",
+          "name": "Patch",
+          "avatarUrl": null
+        },
+        "gameEntry": {
+          "id": "921cffc2-b71a-43e3-8488-fc1ea3f052ee",
+          "userId": "86d02c9f-0eb1-4817-96cf-c786a0ac5496",
+          "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "platform": "Switch",
+          "status": "completed",
+          "startedAt": null,
+          "finishedAt": null,
+          "hoursPlayed": null,
+          "rating": null,
+          "notes": null,
+          "createdAt": "2026-10-04T15:45:04.366Z",
+          "game": {
+            "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+            "igdbId": 900001,
+            "name": "Jogo Fixture Um",
+            "coverUrl": null,
+            "summary": "Sinopse de teste.",
+            "screenshots": [],
+            "platforms": [
+              "PC",
+              "PlayStation 5"
+            ],
+            "genres": [
+              "RPG"
+            ],
+            "cachedAt": "2026-10-04T01:15:34.636Z"
+          }
+        },
+        "game": {
+          "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "igdbId": 900001,
+          "name": "Jogo Fixture Um",
+          "coverUrl": null,
+          "summary": "Sinopse de teste.",
+          "screenshots": [],
+          "platforms": [
+            "PC",
+            "PlayStation 5"
+          ],
+          "genres": [
+            "RPG"
+          ],
+          "cachedAt": "2026-10-04T01:15:34.636Z"
+        },
+        "likeCount": 0,
+        "commentCount": 0,
+        "likedByMe": false
+      },
+      {
+        "id": "edd3e059-a107-4e2c-9555-8d4fd251e439",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "content": "Quero jogar",
+        "gameEntryId": null,
+        "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "activityStatus": null,
+        "type": "status",
+        "imageUrl": null,
+        "createdAt": "2026-10-04T01:15:36.002Z",
+        "user": {
+          "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+          "username": "fixa_4q2w0",
+          "name": "Ana F.",
+          "avatarUrl": null
+        },
+        "gameEntry": null,
+        "game": {
+          "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "igdbId": 900001,
+          "name": "Jogo Fixture Um",
+          "coverUrl": null,
+          "summary": "Sinopse de teste.",
+          "screenshots": [],
+          "platforms": [
+            "PC",
+            "PlayStation 5"
+          ],
+          "genres": [
+            "RPG"
+          ],
+          "cachedAt": "2026-10-04T01:15:34.636Z"
+        },
+        "likeCount": 0,
+        "commentCount": 0,
+        "likedByMe": false
+      },
+      {
+        "id": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "content": "Terminei!",
+        "gameEntryId": null,
+        "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "activityStatus": null,
+        "type": "status",
+        "imageUrl": null,
+        "createdAt": "2026-10-04T01:15:35.994Z",
+        "user": {
+          "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+          "username": "fixa_4q2w0",
+          "name": "Ana F.",
+          "avatarUrl": null
+        },
+        "gameEntry": null,
+        "game": {
+          "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+          "igdbId": 900001,
+          "name": "Jogo Fixture Um",
+          "coverUrl": null,
+          "summary": "Sinopse de teste.",
+          "screenshots": [],
+          "platforms": [
+            "PC",
+            "PlayStation 5"
+          ],
+          "genres": [
+            "RPG"
+          ],
+          "cachedAt": "2026-10-04T01:15:34.636Z"
+        },
+        "likeCount": 0,
+        "commentCount": 2,
+        "likedByMe": false
+      },
+      {
         "id": "75343c59-e555-4ed5-b258-bb5c20f37835",
         "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
         "content": "adicionou Jogo Fixture Um ao backlog",
@@ -117,7 +386,7 @@
         "user": {
           "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
           "username": "fixa_4q2w0",
-          "name": "Ana Fixture",
+          "name": "Ana F.",
           "avatarUrl": null
         },
         "gameEntry": {
@@ -173,7 +442,7 @@
         "id": "10cefb4f-8287-49b7-bf25-0a2317f8487c",
         "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
         "content": "zerou Jogo Fixture Um! 🎉",
-        "gameEntryId": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
+        "gameEntryId": null,
         "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
         "activityStatus": "completed",
         "type": "activity",
@@ -182,38 +451,10 @@
         "user": {
           "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
           "username": "fixa_4q2w0",
-          "name": "Ana Fixture",
+          "name": "Ana F.",
           "avatarUrl": null
         },
-        "gameEntry": {
-          "id": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
-          "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
-          "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
-          "platform": "PC",
-          "status": "completed",
-          "startedAt": "2026-01-05T00:00:00.000Z",
-          "finishedAt": "2026-01-20T00:00:00.000Z",
-          "hoursPlayed": "20",
-          "rating": 8,
-          "notes": "",
-          "createdAt": "2026-10-04T01:15:35.896Z",
-          "game": {
-            "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
-            "igdbId": 900001,
-            "name": "Jogo Fixture Um",
-            "coverUrl": null,
-            "summary": "Sinopse de teste.",
-            "screenshots": [],
-            "platforms": [
-              "PC",
-              "PlayStation 5"
-            ],
-            "genres": [
-              "RPG"
-            ],
-            "cachedAt": "2026-10-04T01:15:34.636Z"
-          }
-        },
+        "gameEntry": null,
         "game": {
           "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
           "igdbId": 900001,

@@ -1,15 +1,15 @@
 {
   "status": 201,
   "body": {
-    "id": "4ebe2cb8-c4d0-4273-8f79-e9da4a0eda24",
-    "postId": "64947c9a-9d4a-40cf-a226-52378b2b576b",
-    "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
-    "parentCommentId": "be27a5f2-911c-4d1d-90bd-383998307b65",
+    "id": "2b497a2d-d0bf-4e54-8333-808bc289b4c9",
+    "postId": "040f2971-bca0-4fc5-9da2-5e2063515ec5",
+    "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
+    "parentCommentId": "a7ccc4a0-6ee8-4a5b-aafb-371819846b9e",
     "content": "Valeu",
-    "createdAt": "2026-10-04T01:15:36.026Z",
+    "createdAt": "2026-10-04T15:45:15.164Z",
     "user": {
-      "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
-      "username": "fixa_4q2w0",
+      "id": "16062635-ec79-4847-9714-10bbefcbfa31",
+      "username": "fixa_zsgkq",
       "name": "Ana Fixture",
       "avatarUrl": null
     }

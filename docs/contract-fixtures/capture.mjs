@@ -110,7 +110,7 @@ const entryId = e1.body.id ?? e1.body.entry?.id;
 await call('entries_list_mine', 'GET', '/game-entries/me', { token: tokA });
 await call('entries_list_filtered', 'GET', '/game-entries/me?igdbId=900001&sort=oldest', { token: tokA });
 await call('entries_patch_values', 'PATCH', `/game-entries/${entryId}`, { token: tokA, body: { hoursPlayed: 20, rating: 8 } });
-// Contrato atual de "limpar campo": null deve ser rejeitado (sem .nullable() no schema).
+// Limpar campo: null limpa (antes era 400). Contrato completo em patch_contract.mjs.
 await call('entries_patch_null_clear', 'PATCH', `/game-entries/${entryId}`, { token: tokA, body: { finishedAt: null, rating: null, hoursPlayed: null } });
 await call('entries_patch_empty_notes', 'PATCH', `/game-entries/${entryId}`, { token: tokA, body: { notes: '' } });
 await call('entries_list_after_patch', 'GET', '/game-entries/me?igdbId=900001', { token: tokA });

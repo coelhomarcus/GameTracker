@@ -18,7 +18,11 @@ interface CreateInput {
   notes?: string;
 }
 
-type UpdateInput = Partial<Omit<CreateInput, 'igdbId'>>;
+/** Por campo: `undefined` mantém, `null` limpa, valor substitui. */
+type ClearableFields = 'startedAt' | 'finishedAt' | 'hoursPlayed' | 'rating' | 'notes';
+type UpdateInput = Partial<Pick<CreateInput, 'platform' | 'status'>> & {
+  [K in ClearableFields]?: CreateInput[K] | null;
+};
 
 function getWithGame(id: string) {
   return db.query.gameEntries.findFirst({ where: eq(gameEntries.id, id), with: { game: true } });
@@ -109,10 +113,24 @@ export async function listMine(
 export async function update(userId: string, entryId: string, input: UpdateInput) {
   const existing = await getOwnedEntry(userId, entryId);
 
-  await db
-    .update(gameEntries)
-    .set({ ...input, hoursPlayed: input.hoursPlayed?.toString() })
-    .where(eq(gameEntries.id, entryId));
+  // Só as chaves presentes entram no SET: `undefined` não toca na coluna e `null` a limpa.
+  // hoursPlayed precisa de tratamento próprio — `null?.toString()` viraria `undefined`
+  // e a coluna nunca seria limpa.
+  const values: Partial<typeof gameEntries.$inferInsert> = {};
+  if (input.platform !== undefined) values.platform = input.platform;
+  if (input.status !== undefined) values.status = input.status;
+  if (input.startedAt !== undefined) values.startedAt = input.startedAt;
+  if (input.finishedAt !== undefined) values.finishedAt = input.finishedAt;
+  if (input.hoursPlayed !== undefined) {
+    values.hoursPlayed = input.hoursPlayed === null ? null : input.hoursPlayed.toString();
+  }
+  if (input.rating !== undefined) values.rating = input.rating;
+  if (input.notes !== undefined) values.notes = input.notes;
+
+  // PATCH vazio é válido (nada a mudar); o Drizzle rejeitaria um SET sem colunas.
+  if (Object.keys(values).length > 0) {
+    await db.update(gameEntries).set(values).where(eq(gameEntries.id, entryId));
+  }
 
   const result = await getWithGame(entryId);
 

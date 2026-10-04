@@ -1,8 +1,8 @@
 {
   "status": 200,
   "body": {
-    "id": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
-    "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+    "id": "b93970fd-aaf3-4d7a-83d4-e261d153c7ff",
+    "userId": "16062635-ec79-4847-9714-10bbefcbfa31",
     "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
     "platform": "PC",
     "status": "completed",
@@ -11,7 +11,7 @@
     "hoursPlayed": "20.0",
     "rating": 8,
     "notes": "Primeira vez",
-    "createdAt": "2026-10-04T01:15:35.896Z",
+    "createdAt": "2026-10-04T15:45:15.036Z",
     "game": {
       "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
       "igdbId": 900001,
