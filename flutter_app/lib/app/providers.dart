@@ -10,6 +10,7 @@ import '../features/auth/data/auth_api.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/session_controller.dart';
 import '../features/auth/presentation/session_state.dart';
+import '../features/feed/data/feed_repository.dart';
 import '../features/games/data/games_repository.dart';
 import '../features/library/data/library_repository.dart';
 
@@ -60,6 +61,10 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 
 final gamesRepositoryProvider = Provider<GamesRepository>(
   (ref) => RemoteGamesRepository(ref.watch(apiDioProvider)),
+);
+
+final feedRepositoryProvider = Provider<FeedRepository>(
+  (ref) => RemoteFeedRepository(ref.watch(apiDioProvider)),
 );
 
 final libraryRepositoryProvider = Provider<LibraryRepository>(

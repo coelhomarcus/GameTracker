@@ -6,11 +6,13 @@ import 'package:material_ui/material_ui.dart' show Scaffold;
 import 'package:gametracker/app/app.dart';
 import 'package:gametracker/app/providers.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
+import 'package:gametracker/features/feed/data/feed_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
 import 'package:gametracker/features/library/data/library_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth.dart';
+import 'fake_feed.dart';
 import 'fake_repos.dart';
 
 /// App completo com todos os repositórios substituídos por fakes.
@@ -19,16 +21,19 @@ class AppHarness {
     FakeAuthRepository? auth,
     FakeLibraryRepository? library,
     FakeGamesRepository? games,
+    FakeFeedRepository? feed,
     bool signedIn = true,
   }) : auth = auth ?? FakeAuthRepository(),
        library = library ?? FakeLibraryRepository(),
-       games = games ?? FakeGamesRepository() {
+       games = games ?? FakeGamesRepository(),
+       feed = feed ?? FakeFeedRepository() {
     if (signedIn) this.auth.restoreResult = Restored(fakeUser());
   }
 
   final FakeAuthRepository auth;
   final FakeLibraryRepository library;
   final FakeGamesRepository games;
+  final FakeFeedRepository feed;
 
   Future<void> pump(
     WidgetTester tester, {
@@ -53,6 +58,7 @@ class AppHarness {
             library as LibraryRepository,
           ),
           gamesRepositoryProvider.overrideWithValue(games as GamesRepository),
+          feedRepositoryProvider.overrideWithValue(feed as FeedRepository),
           sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         ],
         child: const GameTrackerApp(),

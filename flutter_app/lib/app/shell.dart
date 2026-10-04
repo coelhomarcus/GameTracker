@@ -1,7 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/design_system/tokens.dart';
+import '../features/feed/application/feed_controller.dart';
 
 class _Destination {
   const _Destination(this.label, this.icon, this.selectedIcon);
@@ -19,26 +21,35 @@ const _destinations = [
 ];
 
 /// Mesmos cinco destinos em qualquer largura: barra abaixo de 600, rail a partir daí.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
-  void _select(int index) => navigationShell.goBranch(
-    index,
-    // Tocar no destino já ativo volta à raiz dele.
-    initialLocation: index == navigationShell.currentIndex,
-  );
+  static const _communityIndex = 2;
+
+  void _select(WidgetRef ref, int index) {
+    // Ao entrar na Comunidade, revalida o feed se ele ficou velho ou foi marcado como
+    // desatualizado (ex.: uma atividade criada pelo backend depois de salvar um registro).
+    if (index == _communityIndex) {
+      ref.read(feedRevalidatorProvider).revalidateIfStale();
+    }
+    navigationShell.goBranch(
+      index,
+      // Tocar no destino já ativo volta à raiz dele.
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     if (width < Breakpoints.medium) {
       return Scaffold(
         body: navigationShell,
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _select,
+          onDestinationSelected: (i) => _select(ref, i),
           destinations: [
             for (final d in _destinations)
               NavigationDestination(
@@ -55,7 +66,7 @@ class AppShell extends StatelessWidget {
         children: [
           NavigationRail(
             selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: _select,
+            onDestinationSelected: (i) => _select(ref, i),
             extended: width >= Breakpoints.expanded + 400,
             labelType: width >= Breakpoints.expanded + 400
                 ? NavigationRailLabelType.none

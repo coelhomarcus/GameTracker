@@ -77,13 +77,17 @@ void main() {
   );
 
   test(
-    'busca sem IGDB configurada vira mensagem clara (não lista vazia)',
+    'busca: com IGDB devolve resultados reais; sem credenciais, erro claro (nunca lista vazia)',
     skip: skip,
     () async {
       try {
-        await games.search('zelda');
-        fail('deveria falhar sem credenciais da IGDB');
+        final results = await games.search('zelda');
+        // Ambiente com IGDB configurada.
+        expect(results, isNotEmpty);
+        expect(results.every((g) => g.igdbId > 0 && g.name.isNotEmpty), isTrue);
+        expect(results.first.platforms, isA<List<String>>());
       } on ApiException catch (e) {
+        // Ambiente sem credenciais: a falha precisa ser distinguível de "nenhum resultado".
         expect(e.code, 'igdb_not_configured');
         expect(describeError(e), contains('não está configurada'));
       }

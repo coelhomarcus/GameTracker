@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
+import 'package:gametracker/core/models/user_summary.dart';
 import 'package:gametracker/features/games/data/game_models.dart';
 
 import '../../support/fake_repos.dart';
@@ -119,7 +120,7 @@ void main() {
     final games = FakeGamesRepository()
       ..playersResult = [
         const GamePlayer(
-          user: PlayerUser(id: 'u9', username: 'beto', name: 'Beto'),
+          user: UserSummary(id: 'u9', username: 'beto', name: 'Beto'),
           status: GameStatus.playing,
           hoursPlayed: 3.5,
         ),

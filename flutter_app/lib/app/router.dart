@@ -8,6 +8,8 @@ import '../features/auth/presentation/session_state.dart';
 import '../features/chat/presentation/messages_page.dart';
 import '../features/explore/presentation/explore_page.dart';
 import '../features/feed/presentation/community_page.dart';
+import '../features/feed/presentation/create_post_page.dart';
+import '../features/feed/presentation/post_detail_page.dart';
 import '../features/games/presentation/game_page.dart';
 import '../features/library/presentation/library_page.dart';
 import '../features/library/presentation/tracking_form_page.dart';
@@ -143,6 +145,31 @@ GoRouter buildRouter({
           ],
         ),
       ],
+    ),
+    // `/posts/new` precisa vir antes de `/posts/:postId`.
+    GoRoute(
+      path: '/posts/new',
+      builder: (_, state) => CreatePostPage(
+        entryId: state.uri.queryParameters['entryId'],
+        initialText: state.uri.queryParameters['text'],
+      ),
+    ),
+    GoRoute(
+      path: '/posts/:postId',
+      builder: (_, state) =>
+          PostDetailPage(postId: state.pathParameters['postId'] ?? ''),
+    ),
+    GoRoute(
+      path: '/users/:userId',
+      // O próprio usuário é resolvido para a experiência canônica do perfil.
+      redirect: (context, state) {
+        final current = session();
+        final isMe =
+            current is SessionAuthenticated &&
+            current.user.id == state.pathParameters['userId'];
+        return isMe ? '/me' : null;
+      },
+      builder: (_, _) => const UserProfilePlaceholderPage(),
     ),
     GoRoute(
       path: '/games/:igdbId',

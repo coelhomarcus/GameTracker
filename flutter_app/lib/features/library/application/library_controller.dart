@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../feed/application/feed_controller.dart';
 import '../../games/application/game_providers.dart';
 import '../data/game_entry.dart';
 
@@ -80,6 +81,9 @@ class LibraryController extends AsyncNotifier<List<GameEntry>> {
     // Estatísticas e jogadores contam playthroughs e vêm do servidor.
     ref.invalidate(gameStatsProvider);
     ref.invalidate(gamePlayersProvider);
+    // O backend cria a atividade do registro de forma assíncrona e best-effort: o feed é
+    // revalidado quando o usuário voltar a ele, não agora (antes de o post existir).
+    ref.read(feedRevalidatorProvider).markStale();
   }
 }
 

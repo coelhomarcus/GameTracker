@@ -64,6 +64,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        // Tag própria: os FABs de todas as abas coexistem no IndexedStack.
+        heroTag: 'fab-library',
         onPressed: _addGame,
         icon: const Icon(Icons.add),
         label: const Text('Adicionar jogo'),

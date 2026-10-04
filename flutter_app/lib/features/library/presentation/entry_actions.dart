@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/game_status.dart';
 import '../../../core/network/error_messages.dart';
+import '../../feed/presentation/celebration.dart';
 import '../application/library_controller.dart';
 import '../data/game_entry.dart';
 
@@ -41,6 +42,7 @@ class EntryMenuButton extends ConsumerWidget {
 
   Future<void> _changeStatus(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
     final chosen = await showModalBottomSheet<GameStatus>(
       context: context,
       showDragHandle: true,
@@ -78,7 +80,7 @@ class EntryMenuButton extends ConsumerWidget {
 
     try {
       final draft = EntryDraft.fromEntry(entry);
-      await ref
+      final saved = await ref
           .read(libraryProvider.notifier)
           .edit(
             entry,
@@ -92,9 +94,13 @@ class EntryMenuButton extends ConsumerWidget {
               notes: draft.notes,
             ),
           );
-      messenger.showSnackBar(
-        SnackBar(content: Text('${entry.game.name}: ${chosen.label}')),
-      );
+      if (chosen == GameStatus.completed) {
+        offerCelebration(messenger: messenger, router: router, entry: saved);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text('${entry.game.name}: ${chosen.label}')),
+        );
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
     }

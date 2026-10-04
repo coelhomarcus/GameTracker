@@ -1,4 +1,5 @@
 import '../../../core/design_system/game_status.dart';
+import '../../../core/models/user_summary.dart';
 
 List<String> _strings(Object? value) => List<String>.unmodifiable(
   (value as List<dynamic>? ?? const <dynamic>[]).map((e) => e as String),
@@ -110,30 +111,6 @@ class GameStats {
   int get total => backlog + playing + completed + dropped;
 }
 
-class PlayerUser {
-  const PlayerUser({
-    required this.id,
-    required this.username,
-    this.name,
-    this.avatarUrl,
-  });
-
-  factory PlayerUser.fromJson(Map<String, dynamic> json) => PlayerUser(
-    id: json['id'] as String,
-    username: json['username'] as String,
-    name: json['name'] as String?,
-    avatarUrl: json['avatarUrl'] as String?,
-  );
-
-  final String id;
-  final String username;
-  final String? name;
-  final String? avatarUrl;
-
-  String get displayName =>
-      (name == null || name!.trim().isEmpty) ? username : name!;
-}
-
 class GamePlayer {
   const GamePlayer({
     required this.user,
@@ -142,14 +119,14 @@ class GamePlayer {
   });
 
   factory GamePlayer.fromJson(Map<String, dynamic> json) => GamePlayer(
-    user: PlayerUser.fromJson(json['user'] as Map<String, dynamic>),
+    user: UserSummary.fromJson(json['user'] as Map<String, dynamic>),
     status: GameStatus.fromApi(json['status'] as String),
     hoursPlayed: json['hoursPlayed'] == null
         ? null
         : double.parse(json['hoursPlayed'].toString()),
   );
 
-  final PlayerUser user;
+  final UserSummary user;
   final GameStatus status;
   final double? hoursPlayed;
 }

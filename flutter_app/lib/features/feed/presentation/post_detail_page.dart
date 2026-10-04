@@ -1,0 +1,448 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../../../core/dates/relative_time.dart';
+import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/tokens.dart';
+import '../../../core/design_system/user_avatar.dart';
+import '../../../core/network/error_messages.dart';
+import '../application/comments_controller.dart';
+import '../application/post_store.dart';
+import '../data/post_models.dart';
+import 'post_tiles.dart';
+
+/// Limite do recuo visual das respostas (px por nível, até [_maxIndentLevels] níveis). Depois
+/// disso o texto continua alinhado no último recuo; nenhum comentário é escondido.
+const _maxIndentLevels = 3;
+const _indentPerLevel = 16.0;
+const maxCommentLength = 500;
+
+/// Achata a árvore em linhas (comentário, profundidade), em ordem de leitura. Nada é cortado.
+List<(Comment, int)> flattenComments(List<Comment> tree, [int depth = 0]) => [
+  for (final c in tree) ...[
+    (c, depth),
+    ...flattenComments(c.replies, depth + 1),
+  ],
+];
+
+class PostDetailPage extends ConsumerStatefulWidget {
+  const PostDetailPage({super.key, required this.postId});
+
+  final String postId;
+
+  @override
+  ConsumerState<PostDetailPage> createState() => _PostDetailPageState();
+}
+
+class _PostDetailPageState extends ConsumerState<PostDetailPage> {
+  final _text = TextEditingController();
+  final _focus = FocusNode();
+  Comment? _replyTo;
+  bool _sending = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final content = _text.text.trim();
+    if (_sending || content.isEmpty || content.length > maxCommentLength) {
+      return;
+    }
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(commentsControllerProvider(widget.postId).notifier)
+          .add(content, parentCommentId: _replyTo?.id);
+      if (!mounted) return;
+      _text.clear();
+      setState(() => _replyTo = null);
+    } catch (e) {
+      // Mantém o texto e o alvo da resposta para tentar de novo.
+      if (mounted) setState(() => _error = describeError(e));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _reply(Comment comment) {
+    setState(() => _replyTo = comment);
+    _focus.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loader = ref.watch(postLoaderProvider(widget.postId));
+    final post = ref.watch(postByIdProvider(widget.postId));
+
+    if (post == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Post')),
+        body: loader.when(
+          loading: () => const LoadingView(),
+          error: (e, _) => ErrorView(
+            message: describeError(e),
+            onRetry: () => ref.invalidate(postLoaderProvider(widget.postId)),
+          ),
+          data: (_) => const LoadingView(),
+        ),
+      );
+    }
+
+    final comments = ref.watch(commentsControllerProvider(widget.postId));
+    return Scaffold(
+      appBar: AppBar(title: Text(post.isActivity ? 'Atividade' : 'Post')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(postLoaderProvider(widget.postId));
+                  ref.invalidate(commentsControllerProvider(widget.postId));
+                  try {
+                    await ref.read(
+                      commentsControllerProvider(widget.postId).future,
+                    );
+                  } catch (_) {
+                    // O erro aparece na seção de comentários.
+                  }
+                },
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    PostTile(postId: post.id),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Space.lg,
+                        Space.lg,
+                        Space.lg,
+                        Space.sm,
+                      ),
+                      child: Text(
+                        'Comentários (${post.commentCount})',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    _CommentsSection(
+                      postId: post.id,
+                      comments: comments,
+                      onReply: _reply,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _Composer(
+              controller: _text,
+              focus: _focus,
+              replyTo: _replyTo,
+              sending: _sending,
+              error: _error,
+              onClearReply: () => setState(() => _replyTo = null),
+              onSend: _send,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentsSection extends ConsumerWidget {
+  const _CommentsSection({
+    required this.postId,
+    required this.comments,
+    required this.onReply,
+  });
+
+  final String postId;
+  final AsyncValue<List<Comment>> comments;
+  final void Function(Comment comment) onReply;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return comments.when(
+      skipLoadingOnRefresh: true,
+      loading: () => const Padding(
+        padding: EdgeInsets.all(Space.xl),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: ErrorView(
+          message: describeError(e),
+          onRetry: () => ref.invalidate(commentsControllerProvider(postId)),
+        ),
+      ),
+      data: (tree) {
+        if (tree.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(Space.xl),
+            child: Center(
+              child: Text('Ainda não há comentários. Seja o primeiro.'),
+            ),
+          );
+        }
+        return Column(
+          children: [
+            for (final (comment, depth) in flattenComments(tree))
+              CommentTile(
+                key: ValueKey(comment.id),
+                comment: comment,
+                depth: depth,
+                onReply: () => onReply(comment),
+                onLike: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    await ref
+                        .read(commentsControllerProvider(postId).notifier)
+                        .toggleLike(comment.id);
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(describeError(e))),
+                    );
+                  }
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class CommentTile extends StatelessWidget {
+  const CommentTile({
+    super.key,
+    required this.comment,
+    required this.depth,
+    required this.onReply,
+    required this.onLike,
+  });
+
+  final Comment comment;
+  final int depth;
+  final VoidCallback onReply;
+  final VoidCallback onLike;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final indent =
+        (depth > _maxIndentLevels ? _maxIndentLevels : depth) * _indentPerLevel;
+    final author = comment.author;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Space.lg + indent, Space.sm, Space.lg, 0),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (depth > 0)
+              Container(
+                width: 2,
+                margin: const EdgeInsets.only(right: Space.md),
+                color: scheme.outlineVariant,
+              ),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: Space.md,
+                children: [
+                  UserAvatar(
+                    name: author.displayName,
+                    url: author.avatarUrl,
+                    radius: 16,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: Space.sm,
+                          children: [
+                            Text(author.displayName, style: text.titleSmall),
+                            Text(
+                              '@${author.username} · ${formatRelativeTime(comment.createdAt)}',
+                              style: text.bodySmall,
+                            ),
+                          ],
+                        ),
+                        Text(comment.content, style: text.bodyMedium),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            LikeButton(
+                              liked: comment.likedByMe,
+                              count: comment.likeCount,
+                              onPressed: onLike,
+                              subject: 'comentário de ${author.displayName}',
+                            ),
+                            TextButton(
+                              onPressed: onReply,
+                              child: Text(
+                                'Responder',
+                                semanticsLabel:
+                                    'Responder a ${author.displayName}',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Composer extends StatelessWidget {
+  const _Composer({
+    required this.controller,
+    required this.focus,
+    required this.replyTo,
+    required this.sending,
+    required this.error,
+    required this.onClearReply,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focus;
+  final Comment? replyTo;
+  final bool sending;
+  final String? error;
+  final VoidCallback onClearReply;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 3,
+      color: scheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          Space.lg,
+          Space.sm,
+          Space.sm,
+          Space.sm,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (replyTo != null)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Respondendo a @${replyTo!.author.username}',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Cancelar resposta',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: onClearReply,
+                  ),
+                ],
+              ),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.xs),
+                child: Semantics(
+                  liveRegion: true,
+                  child: Text(error!, style: TextStyle(color: scheme.error)),
+                ),
+              ),
+            ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) {
+                final length = controller.text.trim().length;
+                final canSend =
+                    !sending && length > 0 && length <= maxCommentLength;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        focusNode: focus,
+                        enabled: !sending,
+                        minLines: 1,
+                        maxLines: 4,
+                        maxLength: maxCommentLength,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          hintText: replyTo == null
+                              ? 'Escreva um comentário'
+                              : 'Escreva sua resposta',
+                          counterText: length > 400
+                              ? '$length/$maxCommentLength'
+                              : '',
+                        ),
+                      ),
+                    ),
+                    sending
+                        ? const Padding(
+                            padding: EdgeInsets.all(Space.md),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton.filled(
+                            tooltip: 'Enviar comentário',
+                            icon: const Icon(Icons.send),
+                            onPressed: canSend ? onSend : null,
+                          ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Rota provisória de perfil de outro usuário (a tela real chega na Etapa 6).
+class UserProfilePlaceholderPage extends StatelessWidget {
+  const UserProfilePlaceholderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      leading: BackButton(
+        onPressed: () =>
+            context.canPop() ? context.pop() : context.go('/community'),
+      ),
+    ),
+    body: const Center(
+      child: Padding(
+        padding: EdgeInsets.all(Space.xl),
+        child: Text('Perfis chegam na Etapa 6.'),
+      ),
+    ),
+  );
+}

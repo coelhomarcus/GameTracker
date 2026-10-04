@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/design_system/app_theme.dart';
 import '../features/auth/presentation/session_state.dart';
+import '../features/feed/application/feed_controller.dart';
 import '../features/library/application/library_controller.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -35,6 +36,7 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     if (ref.exists(libraryProvider)) {
       ref.read(libraryProvider.notifier).revalidateIfStale();
     }
+    ref.read(feedRevalidatorProvider).revalidateIfStale();
   }
 
   @override
