@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/app/app.dart';
+
+import 'support/fake_auth.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -14,7 +17,12 @@ Future<void> pumpApp(
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-  await tester.pumpWidget(const ProviderScope(child: GameTrackerApp()));
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: fakeAuthOverrides(FakeAuthRepository()),
+      child: const GameTrackerApp(),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 

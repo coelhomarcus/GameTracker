@@ -10,4 +10,12 @@ flutter run -d chrome          # web
 flutter build apk --debug      # Android
 ```
 
-Estado: fundação da Etapa 2 com dados de fixture. Ainda não conversa com o backend.
+Testes de integração contra um backend **isolado** (nunca produção):
+
+```bash
+flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
+```
+
+URL da API no app: `--dart-define=API_URL=https://...` (padrão: `http://localhost:3100`, ou `http://10.0.2.2:3100` no emulador Android).
+
+Estado: autenticação e sessão reais (Etapa 3). Biblioteca e jogo ainda usam dados de fixture.
