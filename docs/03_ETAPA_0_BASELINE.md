@@ -49,7 +49,7 @@ Confirmado por execução (antes eram inferências do plano):
 
 | Achado | Evidência |
 | --- | --- |
-| `PATCH` com `null` é rejeitado | `entries_patch_null_clear` → 400 `validation_error` |
+| `PATCH` com `null` era rejeitado (**corrigido na Etapa 4**: agora `null` limpa o campo) | Baseline: 400 `validation_error`. Hoje: `docs/contract-fixtures/patch_contract.mjs` |
 | Limpar campo hoje só é possível para `notes` (vira `""`, não `null`) | `entries_list_after_patch` |
 | Horas voltam como string (`"20.0"`, `"0.0"`); zero é válido | `entries_create_zero_hours` |
 | Datas de progresso voltam como instante UTC à meia-noite (`2026-01-05T00:00:00.000Z`) | `entries_list_after_patch`; o cliente deve ler ano/mês/dia em UTC |
@@ -123,3 +123,35 @@ Achados:
 - O limitador de `/auth/login` e `/auth/register` (20 por 15 minutos por IP) pode interferir em testes repetidos; reiniciar o backend zera o contador.
 
 Não verificado: execução em emulador/aparelho (sandbox bloqueia o emulador), web contra o backend em navegador real, teste de atualização por cima do app legado (declarado irrelevante).
+
+## 8. Etapa 4: catálogo e biblioteca
+
+Implementado em `flutter_app/` e no backend, com dados reais.
+
+**Backend:** contrato de `PATCH /game-entries/:id` com três estados por campo opcional (omitido = manter, `null` = limpar, valor = substituir) para `startedAt`, `finishedAt`, `hoursPlayed`, `rating` e `notes`. `PATCH {}` é válido. `platform` e `status` não aceitam `null`. Verificado por `docs/contract-fixtures/patch_contract.mjs` (13 verificações), incluindo o cliente legado que omite campos.
+
+**App:**
+- **Busca de jogos** com debounce de 400 ms, mínimo de 2 letras e cancelamento da requisição em voo; erro (inclusive "IGDB não configurada") é distinto de "nenhum resultado". Seletor de jogo em sheet para "Adicionar jogo".
+- **Biblioteca** com dados reais: filtros por status com contagem, ordenação (recentes, antigos, mais jogados com "sem horas" no fim), grade/lista persistidas, alterar status direto, editar e remover com confirmação. Cada registro é um card (replay = dois cards).
+- **Página de jogo** por `igdbId` (deep link): Sobre (sinopse, gêneros, screenshots com galeria em tela cheia e zoom), Meu progresso (playthroughs e "Novo playthrough (replay)") e Comunidade (contagem de playthroughs por status e jogadores, escopo Todos/Quem eu sigo). Favoritar com resposta imediata, rollback e uma alternância por vez.
+- **Formulário de playthrough** (criar/editar, também por deep link): plataformas do jogo como chips, status, datas de calendário por date picker com botão limpar, horas com vírgula ou ponto, teto de 24 h por dia de calendário, nota 1–10 ou "Sem nota" (nunca zero), notas. Falha de salvar preserva tudo; sair com alterações pede confirmação.
+- **Consistência:** `libraryProvider` é a fonte única; cada mutação aplica a resposta do servidor, então Biblioteca, página de jogo e formulário concordam sem refetch. Estatísticas e jogadores são invalidados após mutações. Mutação concluída depois de logout ou troca de conta não entra na coleção da outra conta.
+- **Cache:** revalida ao voltar para o app se os dados têm mais de 30 s. Se a atualização falha, a lista continua visível com um aviso "Mostrando os dados salvos".
+- Sem retry automático em nenhum provider (`noAutomaticRetry`): o Riverpod 3 repete sozinho por padrão, o que esconderia erros e reiniciaria o carregamento.
+
+Verificado: `flutter analyze` sem avisos, 165 testes de unidade/widget, 14 testes de integração contra o backend real, builds web e APK debug. Os modelos são validados contra as respostas reais gravadas em `contract-fixtures`.
+
+Achados:
+
+- **Bug de perda de dados achado por teste:** o `PopScope` do formulário calculava `canPop` no `build`, mas digitar em campos de texto não reconstruía a tela. Quem editasse só as horas ou as notas perdia tudo ao voltar, sem confirmação. Corrigido ouvindo os controllers.
+- **Bug de URL achado por teste:** `Uri.replace(port: null)` mantém a porta original, o que gerava `api.test:3100`. Corrigido reconstruindo a URI.
+- As URLs de imagem do backend usam `PUBLIC_API_URL`, que em desenvolvimento é `localhost` e não funciona no emulador. O app reescreve o host das rotas `/api/images/` e `/uploads/` para o da API em uso.
+- Overflow real no formulário (linha da nota) em largura estreita, achado por teste.
+- `ensureVisible` do teste dentro de `TabBarView` troca de aba; o helper `tapAndSettle` só rola quando o alvo está fora da tela.
+
+Não feito / não verificado:
+
+- **Convite para publicar após concluir um jogo:** depende do compositor de posts, que é da Etapa 5.
+- **Busca real na IGDB:** o ambiente isolado não tem credenciais. A busca foi verificada com repositório falso e, no backend real, só o caminho de erro `igdb_not_configured`. O caminho de sucesso contra a IGDB não foi exercitado.
+- **Execução em emulador/aparelho:** o sandbox bloqueia o emulador.
+- **Volume:** coleção de 500 registros ainda não medida; a lista é lazy, mas o backend não pagina.
