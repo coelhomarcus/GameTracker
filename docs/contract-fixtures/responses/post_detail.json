@@ -1,0 +1,68 @@
+{
+  "status": 200,
+  "body": {
+    "id": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+    "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+    "content": "Terminei!",
+    "gameEntryId": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
+    "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+    "activityStatus": null,
+    "type": "status",
+    "imageUrl": null,
+    "createdAt": "2026-10-04T01:15:35.994Z",
+    "user": {
+      "id": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+      "username": "fixa_4q2w0",
+      "name": "Ana Fixture",
+      "avatarUrl": null
+    },
+    "gameEntry": {
+      "id": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
+      "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+      "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+      "platform": "PC",
+      "status": "completed",
+      "startedAt": "2026-01-05T00:00:00.000Z",
+      "finishedAt": "2026-01-20T00:00:00.000Z",
+      "hoursPlayed": "20",
+      "rating": 8,
+      "notes": "",
+      "createdAt": "2026-10-04T01:15:35.896Z",
+      "game": {
+        "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+        "igdbId": 900001,
+        "name": "Jogo Fixture Um",
+        "coverUrl": null,
+        "summary": "Sinopse de teste.",
+        "screenshots": [],
+        "platforms": [
+          "PC",
+          "PlayStation 5"
+        ],
+        "genres": [
+          "RPG"
+        ],
+        "cachedAt": "2026-10-04T01:15:34.636Z"
+      }
+    },
+    "game": {
+      "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+      "igdbId": 900001,
+      "name": "Jogo Fixture Um",
+      "coverUrl": null,
+      "summary": "Sinopse de teste.",
+      "screenshots": [],
+      "platforms": [
+        "PC",
+        "PlayStation 5"
+      ],
+      "genres": [
+        "RPG"
+      ],
+      "cachedAt": "2026-10-04T01:15:34.636Z"
+    },
+    "likeCount": 1,
+    "commentCount": 2,
+    "likedByMe": true
+  }
+}

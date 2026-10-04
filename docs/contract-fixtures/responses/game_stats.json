@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "body": {
+    "backlog": 1,
+    "playing": 0,
+    "completed": 1,
+    "dropped": 0
+  }
+}

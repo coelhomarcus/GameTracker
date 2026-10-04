@@ -1,0 +1,49 @@
+# ADRs — migração para Flutter
+
+**Data:** 04/10/2026. Registros curtos das decisões da Etapa 0 do [plano](02_PLANO_MIGRACAO_FLUTTER.md). Evidências em [03_ETAPA_0_BASELINE.md](03_ETAPA_0_BASELINE.md).
+
+## ADR-1 — Stack do frontend
+
+**Status:** aceita.  
+**Decisão:** Flutter 3.47.6 / Dart 3.13.5, `material_ui` 1.5.0, Riverpod 3.4.3, `go_router` 18.0.2, Dio 5.11.1, `socket_io_client` 3.1.6, `flutter_secure_storage` 11.2.0, `shared_preferences` 2.5.5, `image_picker` 1.2.3, `firebase_messaging` 16.7.0.  
+**Porquê:** o conjunto resolveu sem conflitos e compilou para Android (debug) e web. Socket.IO interoperou com o servidor 4.8.x.  
+**Consequência:** versões fixadas pelo `pubspec.lock`, sem `any` nem dependências flutuantes. Qualquer atualização de SDK exige repetir os builds.
+
+## ADR-2 — Plataformas
+
+**Status:** aceita (decisão do dono do projeto em 03/10/2026).  
+**Decisão:** Android e web. iOS fora de escopo; sem APNs, runner macOS ou pasta `ios/`.  
+**Consequência:** push só via FCM Android. Se iOS voltar, é uma nova etapa, não um ajuste.
+
+## ADR-3 — Sessão
+
+**Status:** aceita para nativo; **provisória** para web.  
+**Decisão (Android):** refresh token no armazenamento seguro, access token só em memória. Refresh serializado: vários 401 esperam a mesma operação.  
+**Porquê:** o refresh token é de uso único (reuso devolve 401 `invalid_refresh_token`), então duas renovações concorrentes derrubam a sessão.  
+**Decisão (web):** sessão só em memória, com novo login ao recarregar, até existir cookie `HttpOnly` no backend. Muda se a web virar canal público.  
+**Consequência:** logout descarta o socket (`enableForceNew()` ao criar outro) e todos os providers de dados.
+
+## ADR-4 — Contratos e datas
+
+**Status:** aceita.  
+**Decisão:** o cliente trata datas de progresso como datas de calendário lidas em UTC (o backend devolve `…T00:00:00.000Z`) e `createdAt` como instante convertido para horário local. Horas chegam como string decimal e são normalizadas para uma casa.  
+**Decisão:** limpar campo opcional exige mudança no backend (hoje `null` dá 400). Até lá, o formulário não promete remover valores salvos, exceto `notes` (vira `""`).  
+**Consequência:** as fixtures em `docs/contract-fixtures/` viram testes de contrato do cliente Dart.
+
+## ADR-5 — Push
+
+**Status:** proposta; não existe projeto Firebase (informado em 04/10/2026). O projeto é acadêmico e há uma VPS disponível; a criação do projeto Firebase, gratuito, ainda precisa ser decidida.  
+**Decisão:** tabela `push_installations` com adaptadores Expo e FCM durante a coexistência, conforme o plano (seção 6.5). O envio por provider fica atrás de um serviço único.  
+**Consequência:** nenhuma mudança de schema antes de o Firebase estar acessível. Push do legado continua intacto.
+
+## ADR-6 — Transição do app instalado
+
+**Status:** provisória. Distribuição confirmada em 04/10/2026: apenas APK manual, trabalho de faculdade, sem loja. Falta confirmar se existe keystore do build EAS anterior.  
+**Decisão:** assumir novo login na atualização e mesmo application ID `com.marcuscoelho.gametracker`. Se a assinatura antiga não existir, a atualização por cima não será possível e o app novo entra como instalação separada.  
+**Consequência:** sem loja, rollout gradual e AAB deixam de valer; a Etapa 9 gera só APK assinado e artefato web. A Etapa 9 só fecha depois de confirmar a keystore.
+
+## ADR-7 — Design
+
+**Status:** aceita como ponto de partida.  
+**Decisão:** Material 3 com `ColorScheme.fromSeed` (violeta), temas claro/escuro/sistema, Biblioteca como destino inicial. Cores de domínio de status (backlog, jogando, concluído, abandonado) em extensão de tema, sempre acompanhadas de texto ou ícone.  
+**Consequência:** a identidade final é validada na Etapa 1 com protótipo; o hex atual do legado (`#5D4FE3`) não é obrigatório.

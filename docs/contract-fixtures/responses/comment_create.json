@@ -1,0 +1,17 @@
+{
+  "status": 201,
+  "body": {
+    "id": "be27a5f2-911c-4d1d-90bd-383998307b65",
+    "postId": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+    "userId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+    "parentCommentId": null,
+    "content": "Parabéns",
+    "createdAt": "2026-10-04T01:15:36.018Z",
+    "user": {
+      "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+      "username": "fixb_4q2w0",
+      "name": "Beto Fixture",
+      "avatarUrl": null
+    }
+  }
+}

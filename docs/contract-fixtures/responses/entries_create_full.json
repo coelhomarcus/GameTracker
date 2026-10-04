@@ -1,0 +1,32 @@
+{
+  "status": 201,
+  "body": {
+    "id": "0b5103cd-01a8-43ec-9a3d-6031c7380aca",
+    "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+    "gameId": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+    "platform": "PC",
+    "status": "completed",
+    "startedAt": "2026-01-05T00:00:00.000Z",
+    "finishedAt": "2026-01-20T00:00:00.000Z",
+    "hoursPlayed": "12.5",
+    "rating": 9,
+    "notes": "Primeira vez",
+    "createdAt": "2026-10-04T01:15:35.896Z",
+    "game": {
+      "id": "879e5be3-0672-45a7-bd5e-ab040b20018f",
+      "igdbId": 900001,
+      "name": "Jogo Fixture Um",
+      "coverUrl": null,
+      "summary": "Sinopse de teste.",
+      "screenshots": [],
+      "platforms": [
+        "PC",
+        "PlayStation 5"
+      ],
+      "genres": [
+        "RPG"
+      ],
+      "cachedAt": "2026-10-04T01:15:34.636Z"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "status": 201,
+  "body": {
+    "id": "9d81f3cb-c0d3-4c8b-8ab8-efe0bd49d82c",
+    "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+    "gameId": "8da3ee47-c048-49cd-8a38-7acf643215bb",
+    "platform": "PC",
+    "status": "backlog",
+    "startedAt": null,
+    "finishedAt": null,
+    "hoursPlayed": "0.0",
+    "rating": null,
+    "notes": null,
+    "createdAt": "2026-10-04T01:15:35.924Z",
+    "game": {
+      "id": "8da3ee47-c048-49cd-8a38-7acf643215bb",
+      "igdbId": 900002,
+      "name": "Jogo Fixture Dois",
+      "coverUrl": null,
+      "summary": null,
+      "screenshots": [],
+      "platforms": [
+        "PC"
+      ],
+      "genres": [],
+      "cachedAt": "2026-10-04T01:15:34.636Z"
+    }
+  }
+}

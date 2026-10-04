@@ -1,0 +1,83 @@
+{
+  "status": 200,
+  "body": {
+    "items": [
+      {
+        "id": "d4a86645-1d93-4d5a-b01b-17db3968d9fa",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "actorId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+        "type": "comment",
+        "postId": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+        "read": false,
+        "createdAt": "2026-10-04T01:15:36.021Z",
+        "actor": {
+          "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+          "username": "fixb_4q2w0",
+          "name": "Beto Fixture",
+          "avatarUrl": null
+        }
+      },
+      {
+        "id": "ef744c45-b95b-4c2d-ba1c-5393e0921cbd",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "actorId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+        "type": "like",
+        "postId": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+        "read": false,
+        "createdAt": "2026-10-04T01:15:36.014Z",
+        "actor": {
+          "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+          "username": "fixb_4q2w0",
+          "name": "Beto Fixture",
+          "avatarUrl": null
+        }
+      },
+      {
+        "id": "59ea6518-5502-4a96-b09e-f70ff7f09b8c",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "actorId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+        "type": "like",
+        "postId": "64947c9a-9d4a-40cf-a226-52378b2b576b",
+        "read": false,
+        "createdAt": "2026-10-04T01:15:36.010Z",
+        "actor": {
+          "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+          "username": "fixb_4q2w0",
+          "name": "Beto Fixture",
+          "avatarUrl": null
+        }
+      },
+      {
+        "id": "1c5667fb-2735-4220-bc42-1151cefd710e",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "actorId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+        "type": "follow",
+        "postId": null,
+        "read": false,
+        "createdAt": "2026-10-04T01:15:35.990Z",
+        "actor": {
+          "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+          "username": "fixb_4q2w0",
+          "name": "Beto Fixture",
+          "avatarUrl": null
+        }
+      },
+      {
+        "id": "1fb7927b-4be6-4934-9b17-5696474a858d",
+        "userId": "d7f2e926-8d50-4316-a878-fa2a89caf081",
+        "actorId": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+        "type": "follow",
+        "postId": null,
+        "read": false,
+        "createdAt": "2026-10-04T01:15:35.986Z",
+        "actor": {
+          "id": "d9335d0f-201a-438a-b7c4-89c9714ea093",
+          "username": "fixb_4q2w0",
+          "name": "Beto Fixture",
+          "avatarUrl": null
+        }
+      }
+    ],
+    "unreadCount": 5
+  }
+}
