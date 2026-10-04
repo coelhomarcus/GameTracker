@@ -11,6 +11,7 @@ import { gamesRouter } from './routes/games.routes';
 import { imagesRouter } from './routes/images.routes';
 import { notificationsRouter } from './routes/notifications.routes';
 import { postsRouter } from './routes/posts.routes';
+import { pushRouter } from './routes/push.routes';
 import { usersRouter } from './routes/users.routes';
 
 export const app = express();
@@ -35,5 +36,6 @@ app.use('/api/feed', feedRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/conversations', conversationsRouter);
+app.use('/api/push', pushRouter);
 
 app.use(errorHandler);

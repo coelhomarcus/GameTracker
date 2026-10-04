@@ -19,6 +19,7 @@ import {
 
 export const gameEntryStatusEnum = pgEnum('game_entry_status', ['backlog', 'playing', 'completed', 'dropped']);
 export const postTypeEnum = pgEnum('post_type', ['status', 'review', 'activity']);
+export const pushProviderEnum = pgEnum('push_provider', ['expo', 'fcm']);
 export const notificationTypeEnum = pgEnum('notification_type', ['like', 'comment', 'follow']);
 
 export const users = pgTable('users', {
@@ -294,6 +295,35 @@ export const messages = pgTable(
     clientMessageUnique: uniqueIndex('messages_conversation_sender_client_message_unique')
       .on(table.conversationId, table.senderId, table.clientMessageId)
       .where(sql`${table.clientMessageId} is not null`),
+  }),
+);
+
+/**
+ * Uma linha por instalação do app (id gerado no aparelho). O token pertence à instalação, não ao
+ * usuário: ao trocar de conta no mesmo aparelho a instalação passa para o novo dono, então a conta
+ * anterior para de receber push ali. Substitui o campo único `users.expo_push_token`, que
+ * continua sendo lido enquanto houver cliente legado.
+ */
+export const pushInstallations = pgTable(
+  'push_installations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    installationId: uuid('installation_id').notNull().unique(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: pushProviderEnum('provider').notNull(),
+    platform: varchar('platform', { length: 20 }).notNull(),
+    // Tokens FCM passam de 255 caracteres; o limite antigo não serve.
+    token: text('token').notNull(),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index('push_installations_user_id_idx').on(table.userId),
+    // Um token só pode estar em uma instalação por provider.
+    providerTokenUnique: unique('push_installations_provider_token_unique').on(table.provider, table.token),
   }),
 );
 

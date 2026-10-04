@@ -2,7 +2,7 @@ import { and, eq, ne } from 'drizzle-orm';
 import type { Server, Socket } from 'socket.io';
 import { db } from '../db';
 import { conversationParticipants, messages } from '../db/schema';
-import { sendPushNotification } from '../lib/push';
+import { sendPushToUser } from '../push/pushService';
 
 const userColumns = { id: true, username: true, name: true, avatarUrl: true } as const;
 
@@ -144,10 +144,17 @@ export function registerChatHandlers(io: Server, socket: Socket) {
             eq(conversationParticipants.conversationId, conversationId),
             ne(conversationParticipants.userId, userId),
           ),
-          with: { user: { columns: { expoPushToken: true } } },
+          columns: { userId: true },
         });
         for (const other of others) {
-          void sendPushNotification(other.user.expoPushToken, message!.sender.username, text);
+          void sendPushToUser(other.userId, {
+            title: message!.sender.username,
+            // Clientes novos: texto genérico (o app busca a mensagem já autenticado). O cliente
+            // legado (Expo) segue recebendo o texto, como sempre recebeu.
+            body: 'Nova mensagem',
+            expoBody: text,
+            data: { type: 'message', recipientId: other.userId, conversationId, messageId: message!.id },
+          });
         }
       },
     ),

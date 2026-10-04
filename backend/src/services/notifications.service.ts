@@ -1,7 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { notifications, notificationTypeEnum, users } from '../db/schema';
-import { sendPushNotification } from '../lib/push';
+import { sendPushToUser } from '../push/pushService';
 
 type NotificationType = (typeof notificationTypeEnum.enumValues)[number];
 
@@ -22,15 +22,25 @@ interface NotifyInput {
 export async function notify({ userId, actorId, type, postId }: NotifyInput) {
   if (userId === actorId) return;
 
-  const [[notification], actor, recipient] = await Promise.all([
+  const [[notification], actor] = await Promise.all([
     db.insert(notifications).values({ userId, actorId, type, postId }).returning(),
     db.query.users.findFirst({ where: eq(users.id, actorId), columns: { username: true } }),
-    db.query.users.findFirst({ where: eq(users.id, userId), columns: { expoPushToken: true } }),
   ]);
 
-  if (actor && recipient?.expoPushToken) {
+  if (actor && notification) {
     const { title, body } = PUSH_MESSAGES[type](actor.username);
-    void sendPushNotification(recipient.expoPushToken, title, body);
+    // O destino é montado no app só a partir de ids (nunca de um caminho vindo no push).
+    void sendPushToUser(userId, {
+      title,
+      body,
+      data: {
+        type,
+        recipientId: userId,
+        notificationId: notification.id,
+        actorId,
+        ...(postId ? { postId } : {}),
+      },
+    });
   }
 
   return notification;

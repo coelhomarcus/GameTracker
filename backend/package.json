@@ -11,7 +11,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "keywords": [],
   "author": "",
@@ -26,6 +26,7 @@
     "expo-server-sdk": "^7.2.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
+    "firebase-admin": "^14.5.0",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.3.0",
