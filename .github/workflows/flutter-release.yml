@@ -1,0 +1,65 @@
+name: Flutter release
+
+# Candidato de lançamento: APK assinado + web, com a URL da API de produção.
+# Manual ou por tag `flutter-v*`. Exige os secrets abaixo (nunca entram no repositório):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# e a variável de repositório API_URL (https, sem /api no fim).
+on:
+  workflow_dispatch:
+  push:
+    tags: ['flutter-v*']
+
+defaults:
+  run:
+    working-directory: flutter_app
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+      - name: Quality gate
+        run: |
+          flutter pub get
+          dart format --output=none --set-exit-if-changed lib test
+          flutter analyze
+          flutter test
+      - name: Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || { echo "secrets de assinatura ausentes"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 -d > android/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+      - name: Build (falha se não for HTTPS ou se sair com chave de debug)
+        run: tool/build_release.sh
+      - name: Remove chaves do runner
+        if: always()
+        run: rm -f android/release.jks android/key.properties
+      - run: cd build/web && zip -qr ../gametracker-web.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gametracker-release
+          path: |
+            flutter_app/build/app/outputs/flutter-apk/app-release.apk
+            flutter_app/build/gametracker-web.zip
+          retention-days: 30
