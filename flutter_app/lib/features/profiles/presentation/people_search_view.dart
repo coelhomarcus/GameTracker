@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
+import '../../../core/models/user_summary.dart';
 import '../application/profile_providers.dart';
 import '../data/profile_models.dart';
 import 'follow_button.dart';
@@ -12,7 +13,12 @@ import 'follow_button.dart';
 /// Busca de pessoas (aba Pessoas de Explorar). Termos curtos não consultam o servidor; erro é
 /// diferente de "nenhuma pessoa encontrada".
 class PeopleSearchView extends ConsumerStatefulWidget {
-  const PeopleSearchView({super.key});
+  const PeopleSearchView({super.key, this.onSelect, this.autofocus = false});
+
+  /// Quando informado, tocar numa pessoa a escolhe (em vez de abrir o perfil) e não há botão de seguir.
+  /// Usado para escolher com quem iniciar uma conversa.
+  final void Function(UserSummary user)? onSelect;
+  final bool autofocus;
 
   @override
   ConsumerState<PeopleSearchView> createState() => _PeopleSearchViewState();
@@ -47,6 +53,7 @@ class _PeopleSearchViewState extends ConsumerState<PeopleSearchView>
           ),
           child: SearchBar(
             controller: _controller,
+            autoFocus: widget.autofocus,
             hintText: 'Buscar pessoas',
             leading: const Icon(Icons.search),
             trailing: [
@@ -110,12 +117,16 @@ class _PeopleSearchViewState extends ConsumerState<PeopleSearchView>
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: FollowButton(
-                userId: user.id,
-                serverFollowing: person.isFollowedByMe,
-                name: user.displayName,
-              ),
-              onTap: () => context.push('/users/${user.id}'),
+              trailing: widget.onSelect != null
+                  ? null
+                  : FollowButton(
+                      userId: user.id,
+                      serverFollowing: person.isFollowedByMe,
+                      name: user.displayName,
+                    ),
+              onTap: () => widget.onSelect != null
+                  ? widget.onSelect!(user)
+                  : context.push('/users/${user.id}'),
             );
           },
         );

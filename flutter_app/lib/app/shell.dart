@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/design_system/tokens.dart';
+import '../features/chat/application/conversations_controller.dart';
 import '../features/feed/application/feed_controller.dart';
 
 class _Destination {
@@ -27,12 +28,18 @@ class AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   static const _communityIndex = 2;
+  static const _messagesIndex = 3;
 
   void _select(WidgetRef ref, int index) {
     // Ao entrar na Comunidade, revalida o feed se ele ficou velho ou foi marcado como
     // desatualizado (ex.: uma atividade criada pelo backend depois de salvar um registro).
     if (index == _communityIndex) {
       ref.read(feedRevalidatorProvider).revalidateIfStale();
+    }
+    // Não há evento por usuário no backend: ao entrar em Mensagens, a lista é revalidada.
+    if (index == _messagesIndex &&
+        ref.exists(conversationsControllerProvider)) {
+      ref.read(conversationsControllerProvider.notifier).revalidateIfStale();
     }
     navigationShell.goBranch(
       index,
@@ -41,9 +48,19 @@ class AppShell extends ConsumerWidget {
     );
   }
 
+  /// O ícone de Mensagens ganha um selo com as conversas não lidas.
+  Widget _icon(_Destination d, {required bool selected, required int unread}) {
+    final icon = Icon(selected ? d.selectedIcon : d.icon);
+    if (d.label != 'Mensagens' || unread == 0) return icon;
+    return Badge(label: Text('$unread'), child: icon);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
+    final unread = ref.watch(unreadConversationsProvider);
+    final label = unread == 0 ? 'Mensagens' : 'Mensagens, $unread não lidas';
+
     if (width < Breakpoints.medium) {
       return Scaffold(
         body: navigationShell,
@@ -53,9 +70,10 @@ class AppShell extends ConsumerWidget {
           destinations: [
             for (final d in _destinations)
               NavigationDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
+                icon: _icon(d, selected: false, unread: unread),
+                selectedIcon: _icon(d, selected: true, unread: unread),
                 label: d.label,
+                tooltip: d.label == 'Mensagens' ? label : d.label,
               ),
           ],
         ),
@@ -74,8 +92,8 @@ class AppShell extends ConsumerWidget {
             destinations: [
               for (final d in _destinations)
                 NavigationRailDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
+                  icon: _icon(d, selected: false, unread: unread),
+                  selectedIcon: _icon(d, selected: true, unread: unread),
                   label: Text(d.label),
                 ),
             ],

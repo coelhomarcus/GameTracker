@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/painting.dart' show Size;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +8,9 @@ import 'package:material_ui/material_ui.dart' show Scaffold;
 import 'package:gametracker/app/app.dart';
 import 'package:gametracker/app/providers.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
+import 'package:gametracker/core/realtime/chat_connection.dart';
+import 'package:gametracker/features/chat/application/chat_providers.dart';
+import 'package:gametracker/features/chat/data/chat_repository.dart';
 import 'package:gametracker/features/feed/data/feed_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
@@ -14,6 +19,8 @@ import 'package:gametracker/features/library/data/library_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth.dart';
+import 'fake_chat.dart';
+import 'fake_transport.dart';
 import 'fake_feed.dart';
 import 'fake_profiles.dart';
 import 'fake_repos.dart';
@@ -27,13 +34,18 @@ class AppHarness {
     FakeFeedRepository? feed,
     FakeProfilesRepository? profiles,
     FakeImagePicker? picker,
+    FakeChatRepository? chat,
+    FakeChatTransport? transport,
     bool signedIn = true,
   }) : auth = auth ?? FakeAuthRepository(),
        library = library ?? FakeLibraryRepository(),
        games = games ?? FakeGamesRepository(),
        feed = feed ?? FakeFeedRepository(),
        profiles = profiles ?? FakeProfilesRepository(),
-       picker = picker ?? FakeImagePicker() {
+       picker = picker ?? FakeImagePicker(),
+       chat = chat ?? FakeChatRepository(),
+       transport = transport ?? FakeChatTransport() {
+    chatServer = FakeChatServer(this.transport, this.chat);
     if (signedIn && this.auth.restoreResult is SignedOut) {
       this.auth.restoreResult = Restored(fakeUser());
     }
@@ -45,6 +57,9 @@ class AppHarness {
   final FakeFeedRepository feed;
   final FakeProfilesRepository profiles;
   final FakeImagePicker picker;
+  final FakeChatRepository chat;
+  final FakeChatTransport transport;
+  late final FakeChatServer chatServer;
 
   Future<void> pump(
     WidgetTester tester, {
@@ -74,6 +89,24 @@ class AppHarness {
             profiles as ProfilesRepository,
           ),
           profileImagePickerProvider.overrideWithValue(picker),
+          chatTransportProvider.overrideWithValue(transport),
+          chatRepositoryProvider.overrideWithValue(chat as ChatRepository),
+          chatConnectionProvider.overrideWith((ref) {
+            // Igual ao provider real: sem sessão não há conexão; ao sair, ela é encerrada.
+            if (ref.watch(currentUserIdProvider) == null) return null;
+            final connection = ChatConnection(
+              transport: transport,
+              accessToken: () async => 'token',
+              refresh: (_) async => TokenRefresh.refreshed,
+              backoff: (a) => Duration(seconds: a + 1),
+            );
+            connection.start();
+            ref.onDispose(() => unawaited(connection.stop()));
+            return connection;
+          }),
+          chatRetryDelayProvider.overrideWithValue(
+            (attempt) => Duration(seconds: attempt),
+          ),
           sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         ],
         child: const GameTrackerApp(),

@@ -66,7 +66,7 @@ void main() {
     expect(find.text('Jogo Fixture Um'), findsNothing);
 
     await tapAndSettle(tester, find.text('Mensagens').last);
-    expect(find.textContaining('Etapa 7'), findsOneWidget);
+    expect(find.text('beto'), findsOneWidget);
 
     await tapAndSettle(tester, find.text('Biblioteca').last);
     expect(

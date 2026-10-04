@@ -5,6 +5,7 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/session_pages.dart';
 import '../features/auth/presentation/session_state.dart';
+import '../features/chat/presentation/chat_room_page.dart';
 import '../features/chat/presentation/messages_page.dart';
 import '../features/explore/presentation/explore_page.dart';
 import '../features/feed/presentation/community_page.dart';
@@ -173,6 +174,12 @@ GoRouter buildRouter({
       },
       builder: (_, state) =>
           UserProfilePage(userId: state.pathParameters['userId'] ?? ''),
+    ),
+    GoRoute(
+      path: '/messages/:conversationId',
+      builder: (_, state) => ChatRoomPage(
+        conversationId: state.pathParameters['conversationId'] ?? '',
+      ),
     ),
     GoRoute(path: '/me/edit', builder: (_, _) => const EditProfilePage()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),

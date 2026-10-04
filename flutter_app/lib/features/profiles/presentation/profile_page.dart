@@ -12,6 +12,7 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
+import '../../chat/presentation/start_conversation.dart';
 import '../../feed/presentation/post_list.dart';
 import '../../games/presentation/image_viewer.dart';
 import '../../library/application/library_controller.dart';
@@ -267,10 +268,23 @@ class _Header extends ConsumerWidget {
                     onPressed: () => context.push('/me/edit'),
                     child: const Text('Editar perfil'),
                   )
-                : FollowButton(
-                    userId: profile.id,
-                    serverFollowing: profile.isFollowedByMe,
-                    name: profile.displayName,
+                : Wrap(
+                    spacing: Space.sm,
+                    runSpacing: Space.sm,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            startConversation(context, ref, profile.id),
+                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                        label: const Text('Mensagem'),
+                      ),
+                      FollowButton(
+                        userId: profile.id,
+                        serverFollowing: profile.isFollowedByMe,
+                        name: profile.displayName,
+                      ),
+                    ],
                   ),
           ),
         ),
