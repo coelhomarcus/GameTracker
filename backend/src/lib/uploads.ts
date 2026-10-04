@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import multer from 'multer';
 import sharp from 'sharp';
+import { AppError } from './errors';
 
 const AVATARS_DIR = path.join(process.cwd(), 'uploads', 'avatars');
 const BANNERS_DIR = path.join(process.cwd(), 'uploads', 'banners');
@@ -24,12 +25,24 @@ const imageUploadOptions = {
 export const avatarUpload = multer(imageUploadOptions);
 export const bannerUpload = multer(imageUploadOptions);
 
+/**
+ * O MIME vem do cliente e não prova nada: bytes corrompidos com `image/png` chegam até aqui e
+ * o sharp lança. Isso é erro do arquivo enviado (400), não falha do servidor (500).
+ */
+async function processImage(buffer: Buffer, width: number, height: number, filepath: string) {
+  try {
+    await sharp(buffer).resize(width, height, { fit: 'cover' }).jpeg({ quality: 85 }).toFile(filepath);
+  } catch {
+    throw new AppError(400, 'validation_error', 'Imagem inválida ou corrompida');
+  }
+}
+
 /** Redimensiona/comprime e salva o avatar; devolve o path relativo (ex: /uploads/avatars/xxx.jpg). */
 export async function saveAvatar(buffer: Buffer): Promise<string> {
   const filename = `${crypto.randomUUID()}.jpg`;
   const filepath = path.join(AVATARS_DIR, filename);
 
-  await sharp(buffer).resize(400, 400, { fit: 'cover' }).jpeg({ quality: 85 }).toFile(filepath);
+  await processImage(buffer, 400, 400, filepath);
 
   return `/uploads/avatars/${filename}`;
 }
@@ -39,7 +52,7 @@ export async function saveBanner(buffer: Buffer): Promise<string> {
   const filename = `${crypto.randomUUID()}.jpg`;
   const filepath = path.join(BANNERS_DIR, filename);
 
-  await sharp(buffer).resize(1500, 500, { fit: 'cover' }).jpeg({ quality: 85 }).toFile(filepath);
+  await processImage(buffer, 1500, 500, filepath);
 
   return `/uploads/banners/${filename}`;
 }

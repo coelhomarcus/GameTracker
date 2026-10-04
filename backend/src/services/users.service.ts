@@ -85,7 +85,19 @@ export async function updateProfile(userId: string, input: { username?: string; 
     }
   }
 
-  await db.update(users).set(input).where(eq(users.id, userId));
+  // Corpo vazio é válido (nada a alterar); o Drizzle rejeitaria um SET sem colunas.
+  if (Object.keys(input).length === 0) return;
+
+  try {
+    await db.update(users).set(input).where(eq(users.id, userId));
+  } catch (err) {
+    // Duas trocas simultâneas para o mesmo username passam pela checagem acima; quem perde
+    // a corrida bate na restrição de unicidade do banco (23505).
+    if ((err as { code?: string; cause?: { code?: string } }).code === '23505' || (err as { cause?: { code?: string } }).cause?.code === '23505') {
+      throw new AppError(409, 'conflict', 'Username já está em uso');
+    }
+    throw err;
+  }
 }
 
 export async function updateAvatar(userId: string, buffer: Buffer) {
