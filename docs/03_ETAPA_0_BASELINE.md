@@ -99,3 +99,27 @@ Achados durante a implementação:
 - Grade com `childAspectRatio` fixo estoura com texto ampliado. A Biblioteca usa linhas de altura intrínseca (lazy, número de colunas pela largura).
 
 Não feito ainda: CI (depende do provedor do repositório), execução em emulador/aparelho, autenticação, Dio e socket integrados ao app, validação visual por você.
+
+## 7. Etapa 3: autenticação e sessão
+
+Implementado em `flutter_app/` e verificado contra o backend isolado.
+
+- **Rede e sessão** (`core/network`, `core/storage`): `SessionManager` com uma única renovação em andamento, geração de sessão que descarta refresh e respostas tardias após logout/troca de conta, `AuthInterceptor` (Bearer, uma repetição após 401, sem recursão nas rotas `/auth/*`) e erros de domínio (`ApiException`, `NetworkException`, `CancelledException`) com fallback para corpo fora do envelope (429/HTML de proxy).
+- **Armazenamento:** refresh token no `flutter_secure_storage` no Android; na web, só memória (ADR-3). Access token só em memória.
+- **Estados da sessão:** inicializando, autenticado, não autenticado e restauração indisponível. Falha de rede ou 5xx no bootstrap mostra "Tentar novamente" e **não** apaga o token.
+- **Guard de rotas** com `from` preservado para deep links; só caminhos internos são aceitos como destino.
+- **Telas:** login e cadastro reais (limites de validação iguais aos do backend, erro inline, formulário preservado, envio único), splash, tela de restauração indisponível e botão Sair no perfil.
+- **Isolamento entre contas:** `currentUserIdProvider` muda ao sair/trocar de conta; providers de dados devem observá-lo.
+
+Verificado: `flutter analyze` sem avisos; 56 testes unitários/widget; 5 testes de integração com o backend real (`flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100`); builds web, APK debug e APK release (com `--dart-define=API_URL=...`). Os testes de sessão foram validados por mutação: remover o single-flight ou a checagem de geração faz testes falharem.
+
+Achados:
+
+- **Corrida de refresh confirmada no backend:** com 8 requisições simultâneas e o mesmo refresh token, todas as 25 rodadas emitiram mais de uma sessão válida (`docs/contract-fixtures/refresh_race.mjs`). Corrigido com `UPDATE` condicional atômico em `auth.service.ts`; depois da correção, 0 de 25.
+- Riverpod 3 proíbe `ref.read` dentro de `onDispose`; capturar o objeto antes.
+- O manifesto padrão do Flutter não declara `INTERNET` no build release (só no debug). Adicionado ao manifesto principal; o debug ganhou `usesCleartextTraffic` para o backend local.
+- O build release usa assinatura de debug. Para distribuir o APK, falta criar uma keystore própria.
+- O CORS do backend está `*`. Aceitável em desenvolvimento; restringir por origem antes de publicar a web.
+- O limitador de `/auth/login` e `/auth/register` (20 por 15 minutos por IP) pode interferir em testes repetidos; reiniciar o backend zera o contador.
+
+Não verificado: execução em emulador/aparelho (sandbox bloqueia o emulador), web contra o backend em navegador real, teste de atualização por cima do app legado (declarado irrelevante).
