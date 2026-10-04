@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/design_system/game_status.dart';
+import '../../profiles/application/profile_providers.dart';
 import '../data/game_models.dart';
 
 /// Debounce da busca (plano, seção 2.3) e tamanho mínimo do termo.
@@ -52,6 +53,8 @@ class GameController extends AsyncNotifier<Game> {
       await ref
           .read(gamesRepositoryProvider)
           .setFavorite(game.id, favorite: target);
+      // Os favoritos mostrados nos perfis (inclusive o próprio) mudaram.
+      ref.invalidate(profileFavoritesProvider);
     } catch (_) {
       state = AsyncData(game.copyWith(isFavoritedByMe: !target));
       rethrow;

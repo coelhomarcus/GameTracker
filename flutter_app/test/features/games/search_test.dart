@@ -112,12 +112,6 @@ void main() {
     expect(find.text('Busque um jogo pelo nome'), findsOneWidget);
   });
 
-  testWidgets('aba Pessoas indica a etapa em que chega', (tester) async {
-    await openExplore(tester);
-    await tapAndSettle(tester, find.text('Pessoas'));
-    expect(find.textContaining('Etapa 6'), findsOneWidget);
-  });
-
   testWidgets('seletor de jogo da Biblioteca leva ao formulário', (
     tester,
   ) async {

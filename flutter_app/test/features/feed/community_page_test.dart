@@ -6,6 +6,7 @@ import 'package:gametracker/features/feed/data/post_models.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../support/fake_feed.dart';
+import '../../support/fake_profiles.dart';
 import '../../support/fake_repos.dart';
 import '../../support/harness.dart';
 
@@ -16,8 +17,9 @@ Future<AppHarness> openCommunity(
   WidgetTester tester, {
   FakeFeedRepository? feed,
   FakeLibraryRepository? library,
+  FakeProfilesRepository? profiles,
 }) async {
-  final h = AppHarness(feed: feed, library: library);
+  final h = AppHarness(feed: feed, library: library, profiles: profiles);
   await h.pump(tester);
   await tapAndSettle(tester, find.text('Comunidade').last);
   return h;
@@ -207,28 +209,45 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('tocar no autor abre a rota do usuário', (tester) async {
+  testWidgets('tocar no autor abre o perfil dele', (tester) async {
+    final profiles = FakeProfilesRepository()
+      ..profiles['u-beto'] = fakeProfile(
+        name: 'Beto Silva',
+        bio: 'Gosto de RPG',
+      );
     final feed = FakeFeedRepository(
       general: [fakePost(id: 'p1', author: beto)],
     );
     final semantics = tester.ensureSemantics();
-    await openCommunity(tester, feed: feed);
+    await openCommunity(tester, feed: feed, profiles: profiles);
     await tapAndSettle(tester, find.bySemanticsLabel('Perfil de beto'));
-    expect(find.text('Perfis chegam na Etapa 6.'), findsOneWidget);
+    expect(find.text('Beto Silva'), findsWidgets);
+    expect(find.text('Gosto de RPG'), findsOneWidget);
     semantics.dispose();
   });
 
   testWidgets('o próprio autor resolve para o perfil do usuário logado', (
     tester,
   ) async {
+    final profiles = FakeProfilesRepository()
+      ..profiles['u1'] = fakeProfile(
+        id: 'u1',
+        username: 'ana',
+        name: 'ANA',
+        bio: 'Esta é minha bio',
+      );
     final feed = FakeFeedRepository(
       general: [fakePost(id: 'p1', author: me)],
     );
     final semantics = tester.ensureSemantics();
-    await openCommunity(tester, feed: feed);
+    await openCommunity(tester, feed: feed, profiles: profiles);
     await tapAndSettle(tester, find.bySemanticsLabel('Perfil de ANA'));
-    expect(find.text('Perfis chegam na Etapa 6.'), findsNothing);
-    expect(find.text('Perfil'), findsWidgets, reason: 'foi para /me');
+    expect(
+      find.text('Editar perfil'),
+      findsOneWidget,
+      reason: 'o próprio perfil tem edição',
+    );
+    expect(find.text('Esta é minha bio'), findsOneWidget);
     semantics.dispose();
   });
 

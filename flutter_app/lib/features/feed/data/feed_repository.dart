@@ -7,6 +7,13 @@ abstract interface class FeedRepository {
   Future<PostPage> feed(FeedScope scope, {String? cursor});
   Future<Post> post(String id);
 
+  /// Posts de um perfil, só atividades (`activity`) ou só publicações (`post`).
+  Future<PostPage> userPosts(
+    String userId, {
+    required bool activities,
+    String? cursor,
+  });
+
   /// Com `gameEntryId` o backend deriva o jogo (e exige que o registro seja do usuário).
   Future<Post> create({
     required String content,
@@ -43,6 +50,23 @@ class RemoteFeedRepository implements FeedRepository {
         );
         return PostPage.fromJson(r.data!);
       });
+
+  @override
+  Future<PostPage> userPosts(
+    String userId, {
+    required bool activities,
+    String? cursor,
+  }) => guardApi(() async {
+    final r = await _dio.get<Map<String, dynamic>>(
+      '/users/$userId/posts',
+      queryParameters: {
+        'type': activities ? 'activity' : 'post',
+        'limit': pageSize,
+        'cursor': ?cursor,
+      },
+    );
+    return PostPage.fromJson(r.data!);
+  });
 
   @override
   Future<Post> post(String id) => guardApi(() async {

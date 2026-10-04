@@ -34,6 +34,9 @@ abstract interface class AuthRepository {
   });
   Future<RestoreResult> restore();
 
+  /// Dados atuais da conta (ex.: depois de editar o perfil).
+  Future<AuthUser> me();
+
   /// Encerra a sessão local imediatamente; a revogação remota é best-effort.
   Future<void> logout();
 }
@@ -74,6 +77,12 @@ class RemoteAuthRepository implements AuthRepository {
     await _session.start(result.tokens);
     return result.user;
   }
+
+  @override
+  Future<AuthUser> me() => guardApi(() async {
+    final r = await _apiDio.get<Map<String, dynamic>>('/auth/me');
+    return AuthUser.fromJson(r.data!);
+  });
 
   @override
   Future<RestoreResult> restore() async {

@@ -258,6 +258,7 @@ void main() {
     await h.pump(tester);
     expect(find.text('Jogo Fixture Um'), findsWidgets);
     await tapAndSettle(tester, find.text('Perfil').last);
+    await tapAndSettle(tester, find.byTooltip('Configurações'));
     await tapAndSettle(tester, find.text('Sair'));
     expect(find.text('Jogo Fixture Um'), findsNothing);
     expect(find.text('Entrar'), findsWidgets);

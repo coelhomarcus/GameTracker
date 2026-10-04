@@ -13,6 +13,7 @@ import '../features/auth/presentation/session_state.dart';
 import '../features/feed/data/feed_repository.dart';
 import '../features/games/data/games_repository.dart';
 import '../features/library/data/library_repository.dart';
+import '../features/profiles/data/profiles_repository.dart';
 
 /// Web: sem persistência do refresh token (ADR-3). Nativo: armazenamento seguro.
 final tokenStoreProvider = Provider<TokenStore>(
@@ -65,6 +66,10 @@ final gamesRepositoryProvider = Provider<GamesRepository>(
 
 final feedRepositoryProvider = Provider<FeedRepository>(
   (ref) => RemoteFeedRepository(ref.watch(apiDioProvider)),
+);
+
+final profilesRepositoryProvider = Provider<ProfilesRepository>(
+  (ref) => RemoteProfilesRepository(ref.watch(apiDioProvider)),
 );
 
 final libraryRepositoryProvider = Provider<LibraryRepository>(

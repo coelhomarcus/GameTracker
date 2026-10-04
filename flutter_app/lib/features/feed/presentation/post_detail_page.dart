@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/dates/relative_time.dart';
@@ -424,25 +423,4 @@ class _Composer extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Rota provisória de perfil de outro usuário (a tela real chega na Etapa 6).
-class UserProfilePlaceholderPage extends StatelessWidget {
-  const UserProfilePlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      leading: BackButton(
-        onPressed: () =>
-            context.canPop() ? context.pop() : context.go('/community'),
-      ),
-    ),
-    body: const Center(
-      child: Padding(
-        padding: EdgeInsets.all(Space.xl),
-        child: Text('Perfis chegam na Etapa 6.'),
-      ),
-    ),
-  );
 }

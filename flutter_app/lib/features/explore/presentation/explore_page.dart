@@ -1,8 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../core/design_system/placeholder_page.dart';
 import '../../games/presentation/game_search_view.dart';
+import '../../profiles/presentation/people_search_view.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({super.key});
@@ -28,10 +28,7 @@ class ExplorePage extends StatelessWidget {
               onAdd: (game) =>
                   context.push('/games/${game.igdbId}/playthroughs/new'),
             ),
-            const PlaceholderBody(
-              icon: Icons.group_outlined,
-              message: 'Busca de pessoas chega na Etapa 6.',
-            ),
+            const PeopleSearchView(),
           ],
         ),
       ),

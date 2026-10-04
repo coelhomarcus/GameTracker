@@ -113,6 +113,30 @@ class FakeFeedRepository implements FeedRepository {
     );
   }
 
+  /// Posts por perfil, na chave `<userId>:activity` ou `<userId>:post`.
+  final userPostLists = <String, List<Post>>{};
+  final userPostCalls = <(String, bool, String?)>[];
+
+  @override
+  Future<PostPage> userPosts(
+    String userId, {
+    required bool activities,
+    String? cursor,
+  }) async {
+    userPostCalls.add((userId, activities, cursor));
+    final error = feedError;
+    if (error != null) throw error;
+    final all =
+        userPostLists['$userId:${activities ? 'activity' : 'post'}'] ??
+        const <Post>[];
+    final start = cursor == null ? 0 : int.parse(cursor.substring(1));
+    final end = (start + pageSize).clamp(0, all.length);
+    return PostPage(
+      items: all.sublist(start, end),
+      nextCursor: end < all.length ? 'c$end' : null,
+    );
+  }
+
   @override
   Future<Post> post(String id) async {
     final error = postError;

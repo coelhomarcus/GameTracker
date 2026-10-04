@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/models/user_summary.dart';
 import '../data/post_models.dart';
 import 'feed_controller.dart';
 
@@ -61,6 +62,22 @@ class PostStore extends Notifier<Map<String, Post>> {
     } finally {
       _likePending.remove(postId);
     }
+  }
+
+  /// Depois de editar o perfil, os posts já carregados do próprio usuário passam a mostrar o
+  /// nome, o username e o avatar novos (o servidor devolveria isso numa nova consulta).
+  void replaceAuthor(UserSummary author) {
+    var changed = false;
+    final next = <String, Post>{};
+    for (final entry in state.entries) {
+      if (entry.value.author.id == author.id) {
+        next[entry.key] = entry.value.withAuthor(author);
+        changed = true;
+      } else {
+        next[entry.key] = entry.value;
+      }
+    }
+    if (changed) state = next;
   }
 
   /// Atualiza só o contador de comentários (depois de comentar ou de recarregar a árvore).

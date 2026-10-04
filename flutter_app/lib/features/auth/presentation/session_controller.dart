@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../data/auth_models.dart';
 import '../data/auth_repository.dart';
 import 'session_state.dart';
 
@@ -46,6 +47,23 @@ class SessionController extends Notifier<SessionState> {
       password: password,
     );
     state = SessionAuthenticated(user);
+  }
+
+  /// Relê a conta no servidor (depois de editar o perfil ou enviar uma foto). Devolve o usuário
+  /// novo, ou `null` se a sessão mudou ou a consulta falhou: nesse caso o dado anterior fica.
+  Future<AuthUser?> refreshUser() async {
+    final current = state;
+    if (current is! SessionAuthenticated) return null;
+    try {
+      final user = await _repo.me();
+      // Logout ou troca de conta durante a consulta: não aplica o usuário a outra sessão.
+      final now = state;
+      if (now is! SessionAuthenticated || now.user.id != user.id) return null;
+      state = SessionAuthenticated(user);
+      return user;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> logout() async {

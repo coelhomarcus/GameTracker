@@ -8,11 +8,14 @@ import 'package:gametracker/app/providers.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
 import 'package:gametracker/features/feed/data/feed_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
+import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
+import 'package:gametracker/features/profiles/data/profiles_repository.dart';
 import 'package:gametracker/features/library/data/library_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth.dart';
 import 'fake_feed.dart';
+import 'fake_profiles.dart';
 import 'fake_repos.dart';
 
 /// App completo com todos os repositórios substituídos por fakes.
@@ -22,18 +25,26 @@ class AppHarness {
     FakeLibraryRepository? library,
     FakeGamesRepository? games,
     FakeFeedRepository? feed,
+    FakeProfilesRepository? profiles,
+    FakeImagePicker? picker,
     bool signedIn = true,
   }) : auth = auth ?? FakeAuthRepository(),
        library = library ?? FakeLibraryRepository(),
        games = games ?? FakeGamesRepository(),
-       feed = feed ?? FakeFeedRepository() {
-    if (signedIn) this.auth.restoreResult = Restored(fakeUser());
+       feed = feed ?? FakeFeedRepository(),
+       profiles = profiles ?? FakeProfilesRepository(),
+       picker = picker ?? FakeImagePicker() {
+    if (signedIn && this.auth.restoreResult is SignedOut) {
+      this.auth.restoreResult = Restored(fakeUser());
+    }
   }
 
   final FakeAuthRepository auth;
   final FakeLibraryRepository library;
   final FakeGamesRepository games;
   final FakeFeedRepository feed;
+  final FakeProfilesRepository profiles;
+  final FakeImagePicker picker;
 
   Future<void> pump(
     WidgetTester tester, {
@@ -59,6 +70,10 @@ class AppHarness {
           ),
           gamesRepositoryProvider.overrideWithValue(games as GamesRepository),
           feedRepositoryProvider.overrideWithValue(feed as FeedRepository),
+          profilesRepositoryProvider.overrideWithValue(
+            profiles as ProfilesRepository,
+          ),
+          profileImagePickerProvider.overrideWithValue(picker),
           sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         ],
         child: const GameTrackerApp(),

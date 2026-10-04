@@ -41,24 +41,25 @@ class FeedState {
   static const _keep = Object();
 }
 
-/// Feed de um escopo, paginado por cursor, sem duplicatas e com no máximo uma página
-/// sendo carregada por vez.
-class FeedController extends AsyncNotifier<FeedState> {
-  FeedController(this.scope);
-  final FeedScope scope;
-
+/// Lista de posts paginada por cursor, sem duplicatas e com no máximo uma página sendo carregada
+/// por vez. Serve ao feed e às listas de posts de um perfil: a subclasse só diz como buscar uma
+/// página. Os posts em si vão para o [PostStore]; aqui ficam só os ids.
+abstract class PagedPostsController extends AsyncNotifier<FeedState> {
   /// Idade máxima antes de revalidar ao voltar para o app (plano, seção 5.3).
   static const maxAge = Duration(seconds: 30);
 
   DateTime? _loadedAt;
   bool _stale = false;
 
+  /// Busca uma página (`cursor == null` é a primeira).
+  Future<PostPage> fetchPage(String? cursor);
+
   @override
   Future<FeedState> build() async {
     final userId = ref.watch(currentUserIdProvider);
     if (userId == null) return const FeedState(ids: [], nextCursor: null);
 
-    final page = await ref.watch(feedRepositoryProvider).feed(scope);
+    final page = await fetchPage(null);
     _loadedAt = ref.read(clockProvider)();
     _stale = false;
     ref.read(postStoreProvider.notifier).upsert(page.items);
@@ -75,8 +76,8 @@ class FeedController extends AsyncNotifier<FeedState> {
     await future;
   }
 
-  /// Algo que muda este feed aconteceu em outro lugar (ex.: a atividade automática de um
-  /// registro, criada de forma assíncrona no backend). Revalida quando o usuário voltar a ele.
+  /// Algo que muda esta lista aconteceu em outro lugar (ex.: a atividade automática de um
+  /// registro, criada de forma assíncrona no backend). Revalida quando o usuário voltar a ela.
   void markStale() => _stale = true;
 
   void revalidateIfStale() {
@@ -100,9 +101,7 @@ class FeedController extends AsyncNotifier<FeedState> {
 
     state = AsyncData(current.copyWith(loadingMore: true, loadMoreError: null));
     try {
-      final page = await ref
-          .read(feedRepositoryProvider)
-          .feed(scope, cursor: current.nextCursor);
+      final page = await fetchPage(current.nextCursor);
       if (ref.read(currentUserIdProvider) != userId) return;
       ref.read(postStoreProvider.notifier).upsert(page.items);
       final latest = state.value ?? current;
@@ -120,6 +119,16 @@ class FeedController extends AsyncNotifier<FeedState> {
       state = AsyncData(latest.copyWith(loadingMore: false, loadMoreError: e));
     }
   }
+}
+
+/// Feed de um escopo (Geral ou Seguindo).
+class FeedController extends PagedPostsController {
+  FeedController(this.scope);
+  final FeedScope scope;
+
+  @override
+  Future<PostPage> fetchPage(String? cursor) =>
+      ref.read(feedRepositoryProvider).feed(scope, cursor: cursor);
 }
 
 final feedControllerProvider =

@@ -54,6 +54,17 @@ class FakeAuthRepository implements AuthRepository {
     return restoreResult;
   }
 
+  /// Conta devolvida por `me()` (nula = `nextUser`). Simula o servidor depois de editar o perfil.
+  AuthUser? meResult;
+  Object? meError;
+
+  @override
+  Future<AuthUser> me() async {
+    final error = meError;
+    if (error != null) throw error;
+    return meResult ?? nextUser;
+  }
+
   @override
   Future<void> logout() async => logoutCalls++;
 }

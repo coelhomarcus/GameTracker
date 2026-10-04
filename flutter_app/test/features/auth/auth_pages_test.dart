@@ -138,11 +138,12 @@ void main() {
     expect(repo.logoutCalls, 0);
   });
 
-  testWidgets('sair no perfil volta ao login', (tester) async {
+  testWidgets('sair pelas configurações volta ao login', (tester) async {
     final repo = FakeAuthRepository()..restoreResult = Restored(fakeUser());
     await pumpApp(tester, repo);
     await tapText(tester, 'Perfil');
-    expect(find.text('@ana'), findsOneWidget);
+    await tapFinder(tester, find.byTooltip('Configurações'));
+    expect(find.text('@ana · ana@example.test'), findsOneWidget);
     await tapText(tester, 'Sair');
     expect(find.text('Entrar'), findsOneWidget);
     expect(repo.logoutCalls, 1);

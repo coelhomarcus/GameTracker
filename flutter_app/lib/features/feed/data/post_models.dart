@@ -82,6 +82,21 @@ class Post {
 
   bool get isActivity => type == PostType.activity;
 
+  Post withAuthor(UserSummary newAuthor) => Post(
+    id: id,
+    author: newAuthor,
+    content: content,
+    type: type,
+    activityStatus: activityStatus,
+    createdAt: createdAt,
+    game: game,
+    entry: entry,
+    imageUrl: imageUrl,
+    likeCount: likeCount,
+    commentCount: commentCount,
+    likedByMe: likedByMe,
+  );
+
   Post copyWith({int? likeCount, int? commentCount, bool? likedByMe}) => Post(
     id: id,
     author: author,

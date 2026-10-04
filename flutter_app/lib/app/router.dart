@@ -13,7 +13,9 @@ import '../features/feed/presentation/post_detail_page.dart';
 import '../features/games/presentation/game_page.dart';
 import '../features/library/presentation/library_page.dart';
 import '../features/library/presentation/tracking_form_page.dart';
+import '../features/profiles/presentation/edit_profile_page.dart';
 import '../features/profiles/presentation/profile_page.dart';
+import '../features/profiles/presentation/settings_page.dart';
 import 'shell.dart';
 
 const _publicRoutes = {'/login', '/register'};
@@ -169,8 +171,11 @@ GoRouter buildRouter({
             current.user.id == state.pathParameters['userId'];
         return isMe ? '/me' : null;
       },
-      builder: (_, _) => const UserProfilePlaceholderPage(),
+      builder: (_, state) =>
+          UserProfilePage(userId: state.pathParameters['userId'] ?? ''),
     ),
+    GoRoute(path: '/me/edit', builder: (_, _) => const EditProfilePage()),
+    GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
     GoRoute(
       path: '/games/:igdbId',
       builder: (_, state) => GamePage(igdbId: _igdbId(state)),
