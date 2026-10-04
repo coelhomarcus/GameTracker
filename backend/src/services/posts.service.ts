@@ -180,9 +180,17 @@ async function getPostOrThrow(postId: string) {
 export async function like(userId: string, postId: string) {
   const post = await getPostOrThrow(postId);
 
-  await db.insert(likes).values({ postId, userId }).onConflictDoNothing({ target: [likes.postId, likes.userId] });
+  // `returning` vem vazio quando o like já existia (conflito ignorado): curtir de novo é
+  // idempotente e não pode gerar outra notificação nem outro push.
+  const inserted = await db
+    .insert(likes)
+    .values({ postId, userId })
+    .onConflictDoNothing({ target: [likes.postId, likes.userId] })
+    .returning({ id: likes.id });
 
-  await notificationsService.notify({ userId: post.userId, actorId: userId, type: 'like', postId });
+  if (inserted.length > 0) {
+    await notificationsService.notify({ userId: post.userId, actorId: userId, type: 'like', postId });
+  }
 }
 
 export async function unlike(userId: string, postId: string) {

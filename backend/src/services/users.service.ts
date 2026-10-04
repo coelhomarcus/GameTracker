@@ -57,12 +57,16 @@ export async function follow(followerId: string, followingId: string) {
   const target = await db.query.users.findFirst({ where: eq(users.id, followingId) });
   if (!target) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
-  await db
+  // Só notifica quando a relação foi realmente criada; seguir de novo é idempotente.
+  const inserted = await db
     .insert(follows)
     .values({ followerId, followingId })
-    .onConflictDoNothing({ target: [follows.followerId, follows.followingId] });
+    .onConflictDoNothing({ target: [follows.followerId, follows.followingId] })
+    .returning({ id: follows.id });
 
-  await notificationsService.notify({ userId: followingId, actorId: followerId, type: 'follow' });
+  if (inserted.length > 0) {
+    await notificationsService.notify({ userId: followingId, actorId: followerId, type: 'follow' });
+  }
 }
 
 export async function unfollow(followerId: string, followingId: string) {
