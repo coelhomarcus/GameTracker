@@ -219,3 +219,34 @@ Não feito / não verificado:
 - Execução em emulador/aparelho (o sandbox bloqueia), seleção real de foto no Android e permissão negada em aparelho; só o seletor foi simulado.
 - HEIC: o suporte depende do aparelho e do `sharp` do servidor; não foi testado com arquivo real.
 - Seguidores e seguindo não têm tela própria (não há API de lista), por isso os contadores não são links.
+
+## 11. Etapa 7: chat confiável
+
+**Backend** (verificado por `docs/contract-fixtures/chat_contract.mjs`, 13 verificações; migration aditiva `0009`):
+- **Falha grave:** um `conversationId` que não é UUID em `conversation:join` fazia o Postgres lançar dentro de um handler assíncrono sem `try/catch`: a *unhandled rejection* **derrubava o processo do backend**. Qualquer usuário autenticado conseguia tirar o servidor do ar. Reproduzido antes da correção. Agora todos os ids são validados antes de consultar, e todos os handlers respondem o ACK com erro em vez de falhar.
+- `clientMessageId` opcional no envio, com índice único parcial `(conversa, remetente, clientMessageId)`: repetir o envio devolve a mensagem já gravada, sem nova linha, sem novo evento e sem novo push. O campo vai nos eventos `message:receive` e no histórico (nulo nas mensagens do cliente legado, que continua funcionando).
+- `typing:*` só é retransmitido para quem está na sala da conversa. `socket.to(sala)` não exige estar na sala, então antes qualquer usuário podia emitir digitação para conversas alheias.
+- Snapshot de presença (`presence:get`), restrito a participantes. Contagem de conexões feita de forma síncrona e avisos de presença calculados com as conversas atuais. Continua em memória por instância (precisa de armazenamento compartilhado antes de escalar).
+- Criar conversa ao mesmo tempo (inclusive cada pessoa iniciando com a outra) criava 2 ou 3 conversas. Agora há lock consultivo por par; sem o lock o teste volta a falhar.
+
+**App:**
+- **`ChatTransport`/`ChatConnection`:** uma conexão por sessão com reconexão própria (a do Socket.IO reaproveitaria o token de 15 min e não sabe quais salas reentrar). Backoff 1, 2, 4, 8, 16, 30 s com variação; queda depois de conectado reconecta na hora; servidor recusa o token → renova a sessão e reconecta (no máximo 2 repetições imediatas antes de voltar ao backoff; sessão encerrada → para); reentra nas salas com ACK (timeout derruba e refaz a conexão); `verify()` ao voltar do segundo plano; logout fecha o socket e esquece as salas.
+- **Mensagens com estado** (enviando, enviada, incerta, falhou) e mescla pura por `clientMessageId`/`id` (testada com embaralhamentos aleatórios): evento antes do ACK, ACK antes do evento ou ACK perdido nunca duplicam. ACK perdido reenvia com o **mesmo** `clientMessageId` (seguro por idempotência); 3 tentativas sem confirmação viram "Não enviada" com **o texto preservado**, "Tentar de novo" e "Descartar". Recusa definitiva do servidor falha na hora. Sem conexão, a mensagem fica na fila e sai uma vez ao reconectar, sem gastar tentativas.
+- **Sincronização depois de reconectar:** busca páginas recentes até reencontrar a última mensagem conhecida (até 10 páginas; acima disso, descarta o histórico antigo já carregado e guarda o cursor, porque não dá para garantir contiguidade). Eventos que chegam durante a carga inicial são guardados e mesclados.
+- **Digitação** (aviso no máximo a cada 2 s, para sozinho em 3 s; a da outra pessoa expira em 4 s sem aviso), **presença** (snapshot na entrada e a cada reconexão; "desconhecido" nunca vira "offline"), **leitura só com a conversa visível** (tela aberta e app em primeiro plano), sem repetir para a mesma mensagem.
+- **Lista de conversas** com polling de 30 s só com o app aberto, revalidação ao voltar e ao entrar na aba, selo de não lidas na navegação e atualização local ao enviar, receber e ler. Em telas largas (840+) vira lista + conversa lado a lado.
+- **Telas:** bolhas agrupadas por autor e por janela de 5 min com separadores de dia, estado de entrega, banner "Sem conexão" com "Tentar agora", rascunho por conversa que sobrevive a sair e voltar, contador perto do limite de 2000. Nova conversa por busca de pessoas e botão **Mensagem** no perfil.
+
+Verificado: `flutter analyze` sem avisos, 487 testes de unidade/widget, 42 de integração contra o backend real (9 do chat com sockets reais: token recusado e renovado, idempotência, queda com interrupção e reconexão automática com reentrada na sala, presença, digitação, ids inválidos, paginação), builds web e APK debug. Mutações confirmadas: sem a sincronização pós-reconexão, sem o `clientMessageId` e sem a substituição da pendente na mescla, testes falham.
+
+Achados (por teste):
+- O crash do backend acima.
+- `ref.read` dentro de `onDispose` (proibido no Riverpod 3) fazia o controller nunca deixar a sala ao fechar a tela.
+- Falsos positivos que eu mesmo escrevi (relógio real dentro de `fakeAsync`, premissas de lista lazy): ajustados nos testes, sem mudar o app.
+
+Não feito / não verificado:
+- **Compatibilidade Flutter ↔ Expo:** não há cliente Expo executável aqui. O contrato do evento foi mantido compatível (campos novos opcionais, envio sem `clientMessageId` testado), mas a interoperabilidade real não foi exercitada.
+- **Push de mensagens** e abertura da conversa pelo toque: Etapa 8.
+- Execução em emulador/aparelho (o sandbox bloqueia), suspensão real do app e troca de rede em aparelho.
+- Presença com mais de uma instância do backend (hoje em memória).
+- A visibilidade da conversa considera tela aberta e app em primeiro plano; uma rota empilhada por cima (ex.: perfil) ainda a conta como visível.
