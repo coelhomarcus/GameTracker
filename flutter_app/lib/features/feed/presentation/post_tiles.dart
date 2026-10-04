@@ -237,12 +237,16 @@ class _AuthorAvatar extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Perfil de ${post.author.displayName}',
+      // Alvo de toque de 48 dp (o avatar tem 40).
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: () => context.push('/users/${post.author.id}'),
-        child: UserAvatar(
-          name: post.author.displayName,
-          url: post.author.avatarUrl,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: UserAvatar(
+            name: post.author.displayName,
+            url: post.author.avatarUrl,
+          ),
         ),
       ),
     );

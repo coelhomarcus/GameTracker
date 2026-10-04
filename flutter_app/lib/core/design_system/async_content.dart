@@ -101,6 +101,34 @@ class LoadingView extends StatelessWidget {
   );
 }
 
+/// Centraliza o conteúdo de um estado (erro/vazio) com largura máxima de 420. Se a altura
+/// disponível for menor que o conteúdo (janela baixa, texto ampliado), reduz o conjunto até caber
+/// em vez de estourar. Não usa rolagem: uma área rolável dentro de uma aba vira um nó de
+/// acessibilidade focável sem rótulo cobrindo a tela.
+class _StateLayout extends StatelessWidget {
+  const _StateLayout({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - 2 * Space.xl;
+        final width = available.isFinite ? available.clamp(0.0, 420.0) : 420.0;
+        final content = SizedBox(width: width, child: child);
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(Space.xl),
+            child: constraints.hasBoundedHeight
+                ? FittedBox(fit: BoxFit.scaleDown, child: content)
+                : content,
+          ),
+        );
+      },
+    );
+  }
+}
+
 class ErrorView extends StatelessWidget {
   const ErrorView({super.key, required this.message, required this.onRetry});
 
@@ -109,29 +137,23 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Space.xl),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 40,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: Space.md),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: Space.lg),
-              OutlinedButton(
-                onPressed: onRetry,
-                child: const Text('Tentar de novo'),
-              ),
-            ],
+    return _StateLayout(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 40,
+            color: Theme.of(context).colorScheme.error,
           ),
-        ),
+          const SizedBox(height: Space.md),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: Space.lg),
+          OutlinedButton(
+            onPressed: onRetry,
+            child: const Text('Tentar de novo'),
+          ),
+        ],
       ),
     );
   }
@@ -155,32 +177,19 @@ class EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Space.xl),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 48,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: Space.lg),
-              Text(title, style: text.titleMedium, textAlign: TextAlign.center),
-              if (message != null) ...[
-                const SizedBox(height: Space.sm),
-                Text(message!, textAlign: TextAlign.center),
-              ],
-              if (action != null) ...[
-                const SizedBox(height: Space.xl),
-                action!,
-              ],
-            ],
-          ),
-        ),
+    return _StateLayout(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: Theme.of(context).colorScheme.outline),
+          const SizedBox(height: Space.lg),
+          Text(title, style: text.titleMedium, textAlign: TextAlign.center),
+          if (message != null) ...[
+            const SizedBox(height: Space.sm),
+            Text(message!, textAlign: TextAlign.center),
+          ],
+          if (action != null) ...[const SizedBox(height: Space.xl), action!],
+        ],
       ),
     );
   }
