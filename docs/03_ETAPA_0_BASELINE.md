@@ -250,3 +250,28 @@ Não feito / não verificado:
 - Execução em emulador/aparelho (o sandbox bloqueia), suspensão real do app e troca de rede em aparelho.
 - Presença com mais de uma instância do backend (hoje em memória).
 - A visibilidade da conversa considera tela aberta e app em primeiro plano; uma rota empilhada por cima (ex.: perfil) ainda a conta como visível.
+
+## 12. Etapa 8: notificações e push
+
+**Backend** (commit `d8fb38c`, 7 testes `npm test`, contrato em `push_contract.mjs`, migration aditiva `0010`):
+- `push_installations` com `PUT/DELETE /api/push/installations/:installationId`, provedores Expo e FCM (`firebase-admin`), desativação de tokens que o provedor declara inexistentes, FCM desligado sem credenciais. `notify` e o chat passam pelo mesmo `sendPushToUser`.
+- Payload: `type`, `recipientId`, `notificationId`, `actorId`, `postId`/`conversationId` (só ids). `docs/contract-fixtures/responses/push_payloads.json` foi gravado pelo código real (`backend/scripts/capturePushPayloads.ts`, recusa banco que não seja local) e o app o usa nos testes.
+
+**App:**
+- **Central de notificações** (`/notifications`, sino com selo na Biblioteca e na Comunidade): Tudo / Interações / Seguidores, não lidas em destaque, destino por ids, estados vazio/erro/desatualizado. O backend só tem "ler todas", então **abrir uma notificação não marca nada**; a ação é explícita, otimista e volta ao estado anterior se falhar, uma por vez. Polling de 60 s só em primeiro plano, revalidação ao voltar/abrir/receber push, e o polling não atropela uma marcação em andamento (desfaria o "lido"). O backend devolve no máximo 50: com 50 itens a tela avisa "Mostrando as 50 mais recentes". Tipo desconhecido (backend mais novo) é ignorado em vez de quebrar a lista.
+- **Push do cliente:** `PushPlatform` (padrão `Noop`), `PushController` (registro com `installationId` persistente, token renovado, nova tentativa ao voltar ao app se falhou, descarte de sessão obsoleta), `pushUnregisterProvider` chamado pelo logout, rota de destino (`resolvePushRoute`) e `pendingPushRouteProvider` consumido pelo app. Configurações mostram o estado (indisponível, desativadas, negadas, falhou, ativadas) com a ação cabível.
+
+Verificado: `flutter analyze` sem avisos, formatação, 554 testes de unidade/widget (27 da central, 40 do push) e 48 de integração contra o backend real (6 novos: seguir gera notificação sem duplicar, marcar todas, 401, registro idempotente, troca de conta, revogar a de outra pessoa sem vazar, id inválido → 400), builds web e APK debug. Mutações confirmadas: sem a checagem de `recipientId` e sem o descarte de sessão obsoleta, testes falham.
+
+Achados (por teste):
+- `ref.read` do `PushController` dentro do logout dava `CircularDependencyError` (o controller depende da sessão): a revogação virou um provider sem dependência da sessão.
+- A ação "Marcar todas como lidas" e o botão de push estouravam a 360 px com texto a 200% (botão em `AppBar`/`ListTile.trailing`): viraram botão de ícone e coluna.
+- Meus primeiros testes liam `fixtureBody` num arquivo sem o formato `{status, body}`: o gerador agora usa o mesmo formato dos demais.
+
+Não feito / não verificado:
+- **Entrega real por FCM**: não existe projeto Firebase. O adaptador do cliente não foi escrito (ver ADR-5), então hoje nenhum aparelho se registra e não há push em produção; a central funciona por polling.
+- **Interoperabilidade com o app Expo** (mesmo usuário nos dois clientes) não foi exercitada.
+- Exibição da notificação do sistema em primeiro plano (hoje só atualiza o selo) e canais de notificação do Android: dependem do adaptador.
+- Notificação individual como lida e paginação da central: o backend não oferece.
+- Execução em emulador/aparelho (o sandbox bloqueia).
+

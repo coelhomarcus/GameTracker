@@ -18,4 +18,4 @@ flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 
 URL da API no app: `--dart-define=API_URL=https://...` (padrão: `http://localhost:3100`, ou `http://10.0.2.2:3100` no emulador Android).
 
-Estado: autenticação, catálogo, biblioteca, comunidade, perfis, configurações e chat reais (Etapas 3 a 7). Chat em tempo real incluído (Etapa 7). Notificações e push ainda são placeholders.
+Estado: autenticação, catálogo, biblioteca, comunidade, perfis, configurações, chat em tempo real e central de notificações reais (Etapas 3 a 8). O push do cliente está pronto atrás de uma interface, mas sem adaptador FCM até existir um projeto Firebase (ADR-5).

@@ -32,9 +32,15 @@
 
 ## ADR-5 — Push
 
-**Status:** proposta; não existe projeto Firebase (informado em 04/10/2026). O projeto é acadêmico e há uma VPS disponível; a criação do projeto Firebase, gratuito, ainda precisa ser decidida.  
-**Decisão:** tabela `push_installations` com adaptadores Expo e FCM durante a coexistência, conforme o plano (seção 6.5). O envio por provider fica atrás de um serviço único.  
-**Consequência:** nenhuma mudança de schema antes de o Firebase estar acessível. Push do legado continua intacto.
+**Status:** aceita para backend e cliente; o adaptador FCM do cliente está **pendente** porque não existe projeto Firebase (informado em 04/10/2026; há uma VPS, e criar o projeto, gratuito, ainda precisa ser decidido pelo dono).  
+**Decisão:**
+- Backend: tabela `push_installations` (uma linha por instalação do app, `installationId` gerado no cliente), provedores Expo e FCM atrás de um serviço único, tokens inválidos desativados, FCM desligado sem credenciais. Trocar de conta no aparelho transfere a instalação; um token só tem um dono.
+- Payload `data` só com `type` e ids (`recipientId`, `actorId`, `postId`, `conversationId`...). O texto exibido é genérico (`Nova mensagem`), nunca o conteúdo; o cliente legado (Expo) continua recebendo o texto, como sempre recebeu.
+- Cliente: interface `PushPlatform` (permissão, token, mensagens em primeiro plano, toque, mensagem inicial). O padrão é `NoopPushPlatform`, sem dependência do Firebase: o app compila, roda e a central de notificações funciona por polling. O adaptador `firebase_messaging` é um arquivo novo que implementa a interface, mais `google-services.json` e o plugin do Gradle; nada mais muda.
+- Consentimento do usuário: só registra com a permissão já concedida; o pedido parte das Configurações. Ao sair, revoga a instalação **antes** de encerrar a sessão (precisa do token de acesso), com limite de 3 s e sem bloquear o logout.
+- Destino do toque montado só de ids que são UUID e só se `recipientId` for a conta atual; push de outra conta, tipo desconhecido ou id inválido não abre nada. Toque antes de a sessão restaurar espera até 2 minutos.
+
+**Consequência:** o fluxo de push do cliente está testado com uma plataforma falsa (registro, renovação de token, troca de conta, logout, toque, mensagem inicial), mas a entrega real por FCM não foi exercitada. Push do legado continua intacto.
 
 ## ADR-6 — Transição do app instalado
 
