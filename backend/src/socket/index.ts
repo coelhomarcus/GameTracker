@@ -1,12 +1,13 @@
 import type { Server as HttpServer } from 'node:http';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Server } from 'socket.io';
+import { parseCorsOrigins } from '../lib/corsOptions';
 import { createRedisClient } from '../lib/redis';
 import { verifyAccessToken } from '../lib/tokens';
 import { registerChatHandlers } from './chatHandlers';
 
 export function initSocket(httpServer: HttpServer) {
-  const io = new Server(httpServer, { cors: { origin: '*' } });
+  const io = new Server(httpServer, { cors: { origin: parseCorsOrigins(process.env.CORS_ORIGINS) } });
 
   const pubClient = createRedisClient('redis:pub');
   const subClient = pubClient.duplicate();

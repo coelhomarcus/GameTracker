@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import path from 'node:path';
+import { buildCorsOptions } from './lib/corsOptions';
 import { errorHandler } from './middlewares/errorHandler';
 import { authRouter } from './routes/auth.routes';
 import { commentsRouter } from './routes/comments.routes';
@@ -18,7 +19,7 @@ export const app = express();
 
 app.set('trust proxy', 1);
 
-app.use(cors());
+app.use(cors(buildCorsOptions(process.env.CORS_ORIGINS)));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
