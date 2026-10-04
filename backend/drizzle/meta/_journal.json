@@ -64,6 +64,13 @@
       "when": 1788202881022,
       "tag": "0008_stormy_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791152063619,
+      "tag": "0009_cynical_millenium_guard",
+      "breakpoints": true
     }
   ]
 }

@@ -41,11 +41,13 @@ export async function listMine(userId: string) {
     });
 }
 
-async function findExistingConversation(userId: string, otherUserId: string) {
-  const candidates = await db.query.conversations.findMany({
+type DbOrTx = Pick<typeof db, 'query' | 'select'>;
+
+async function findExistingConversation(executor: DbOrTx, userId: string, otherUserId: string) {
+  const candidates = await executor.query.conversations.findMany({
     where: and(
       exists(
-        db
+        executor
           .select()
           .from(conversationParticipants)
           .where(
@@ -53,7 +55,7 @@ async function findExistingConversation(userId: string, otherUserId: string) {
           ),
       ),
       exists(
-        db
+        executor
           .select()
           .from(conversationParticipants)
           .where(
@@ -78,10 +80,16 @@ export async function findOrCreateWithUser(userId: string, otherUserId: string) 
   const otherUser = await db.query.users.findFirst({ where: eq(users.id, otherUserId) });
   if (!otherUser) throw new AppError(404, 'not_found', 'Usuário não encontrado');
 
-  const existing = await findExistingConversation(userId, otherUserId);
-  if (existing) return { id: existing.id };
-
   return db.transaction(async (tx) => {
+    // Duas requisições simultâneas para o mesmo par (inclusive cada pessoa iniciando com a outra)
+    // não podem criar duas conversas: o lock é por par, independente da ordem dos ids, e vale até
+    // o fim da transação. A checagem de existência acontece já com o lock.
+    const [low, high] = [userId, otherUserId].sort();
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`conversation:${low}:${high}`}, 0))`);
+
+    const existing = await findExistingConversation(tx, userId, otherUserId);
+    if (existing) return { id: existing.id };
+
     const [conversation] = await tx.insert(conversations).values({}).returning();
     await tx.insert(conversationParticipants).values([
       { conversationId: conversation!.id, userId },

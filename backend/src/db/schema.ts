@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   boolean,
@@ -12,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -274,6 +275,12 @@ export const messages = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     content: varchar('content', { length: 2000 }).notNull(),
+    /**
+     * Id gerado pelo cliente para tornar o envio idempotente: repetir o mesmo envio (ex.: o ACK
+     * se perdeu) devolve a mensagem já gravada em vez de criar outra. Nulo nas mensagens do
+     * cliente legado, que não envia o campo.
+     */
+    clientMessageId: uuid('client_message_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
@@ -283,6 +290,10 @@ export const messages = pgTable(
       table.createdAt,
       table.id,
     ),
+    // Parcial: só vale quando o cliente informa o id (as mensagens legadas têm NULL).
+    clientMessageUnique: uniqueIndex('messages_conversation_sender_client_message_unique')
+      .on(table.conversationId, table.senderId, table.clientMessageId)
+      .where(sql`${table.clientMessageId} is not null`),
   }),
 );
 
