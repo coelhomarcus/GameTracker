@@ -38,9 +38,9 @@
 
 ## ADR-6 — Transição do app instalado
 
-**Status:** provisória. Distribuição confirmada em 04/10/2026: apenas APK manual, trabalho de faculdade, sem loja. Falta confirmar se existe keystore do build EAS anterior.  
-**Decisão:** assumir novo login na atualização e mesmo application ID `com.marcuscoelho.gametracker`. Se a assinatura antiga não existir, a atualização por cima não será possível e o app novo entra como instalação separada.  
-**Consequência:** sem loja, rollout gradual e AAB deixam de valer; a Etapa 9 gera só APK assinado e artefato web. A Etapa 9 só fecha depois de confirmar a keystore.
+**Status:** aceita. Distribuição confirmada em 04/10/2026: apenas APK manual, trabalho de faculdade, sem loja. Keystore do build EAS anterior declarada irrelevante pelo dono do projeto (04/10/2026).  
+**Decisão:** assumir novo login na atualização e mesmo application ID `com.marcuscoelho.gametracker`. O app novo pode entrar como instalação separada; atualizar por cima do legado não é requisito.  
+**Consequência:** sem loja, rollout gradual e AAB deixam de valer; a Etapa 9 gera só APK assinado e artefato web.
 
 ## ADR-7 — Design
 
