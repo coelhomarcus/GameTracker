@@ -186,3 +186,36 @@ Não feito / não verificado:
 - Edição e exclusão de posts não existem no backend, então não foram feitas.
 - Posts de um jogo na aba Comunidade da página de jogo (`GET /games/:id/posts`) ainda não estão ligados.
 - Execução em emulador/aparelho (o sandbox bloqueia).
+
+## 10. Etapa 6: pessoas, perfis e uploads
+
+**Backend** (verificado por `docs/contract-fixtures/profile_contract.mjs`, 16 verificações):
+- `PATCH /users/me` com corpo vazio devolvia **500** (o Drizzle rejeita `SET` sem colunas). Agora é 204 e não altera nada.
+- Imagem corrompida com MIME `image/*` devolvia **500** (o `sharp` lança). Agora é **400** `validation_error` ("Imagem inválida ou corrompida").
+- Duas trocas simultâneas para o mesmo username: a perdedora batia na restrição de unicidade e dava 500. Agora é 409.
+
+**App:**
+- **Busca de pessoas** (aba Pessoas de Explorar): debounce de 400 ms, mínimo de 2 letras, cancelamento; erro distinto de "ninguém encontrado"; Seguir/Seguindo direto nos resultados.
+- **Seguir** com resposta imediata, rollback em erro e uma alternância por vez por pessoa, em um `FollowStore` compartilhado: seguir na busca aparece no perfil, com o contador de seguidores somado. Dados novos do servidor descartam o ajuste local. Seguir marca o feed Seguindo como desatualizado.
+- **Perfil único** para o próprio usuário (`/me`, dentro da navegação principal) e para outras pessoas (`/users/:id`, o próprio id redireciona para `/me`): capa e foto (tocar abre a visualização ampliada), nome (com fallback para o username), bio, contadores como rótulos (não são links) e abas **Coleção / Atividades / Posts**.
+- **Coleção:** favoritos, "Jogando agora", "Concluídos" (renomeado de "completos recentemente", que ordenava pela criação do registro, não pela conclusão) e todos os registros com filtro e contagem. Somente leitura, sem menu de edição. O próprio usuário usa a coleção da Biblioteca (sempre consistente); favoritar um jogo atualiza os favoritos do perfil.
+- **Privacidade:** `GET /users/:id/game-entries` devolve o registro inteiro, inclusive as **notas pessoais**, a qualquer usuário autenticado. O app nunca as exibe para outra pessoa, mas o dado continua exposto pela API. **Decisão pendente do dono do projeto:** remover `notes` da resposta pública.
+- **Atividades e posts** do perfil: mesma lista paginada do feed (extraída para `PostList`/`PagedPostsController`), mesma fonte única de posts: curtir no perfil reflete no feed.
+- **Editar perfil:** nome, username (409 vira erro no campo, sem perder o resto) e bio (vazia limpa). Foto e capa com pré-visualização local, progresso, recusa de arquivo acima de 8 MB antes de enviar, erro com "Tentar de novo" que reenvia sem reabrir a galeria, e aviso explícito de que **as fotos são salvas na hora**. Sair com alterações explica o que se perde (textos) e o que não (fotos já enviadas).
+- **Identidade nova** propagada depois de salvar: sessão, perfil e posts do próprio usuário já carregados.
+- **Configurações:** tema Sistema/Claro/Escuro **persistido** no aparelho, conta, versão (um teste confere que bate com o `pubspec.yaml`) e Sair. O botão Sair saiu do perfil.
+
+Verificado: `flutter analyze` sem avisos, 341 testes de unidade/widget, 33 de integração contra o backend real (inclui upload real de PNG pelo `sharp`, arquivo corrompido, não-imagem e acima de 8 MiB), builds web e APK debug.
+
+Achados (todos por teste):
+
+- **A tela de edição não fechava depois de salvar com sucesso.** O `PopScope` só enxerga o `canPop` novo depois de reconstruir, e o `pop()` acontecia na mesma pilha de chamadas. Agora marca o estado e sai no frame seguinte.
+- Overflow real na linha foto + botão em largura estreita com texto grande.
+- Os dois 500 do backend acima.
+
+Não feito / não verificado:
+
+- **Mensagem** no perfil de outra pessoa: depende do chat (Etapa 7).
+- Execução em emulador/aparelho (o sandbox bloqueia), seleção real de foto no Android e permissão negada em aparelho; só o seletor foi simulado.
+- HEIC: o suporte depende do aparelho e do `sharp` do servidor; não foi testado com arquivo real.
+- Seguidores e seguindo não têm tela própria (não há API de lista), por isso os contadores não são links.
