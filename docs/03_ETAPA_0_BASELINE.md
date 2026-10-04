@@ -53,7 +53,7 @@ Confirmado por execução (antes eram inferências do plano):
 | Limpar campo hoje só é possível para `notes` (vira `""`, não `null`) | `entries_list_after_patch` |
 | Horas voltam como string (`"20.0"`, `"0.0"`); zero é válido | `entries_create_zero_hours` |
 | Datas de progresso voltam como instante UTC à meia-noite (`2026-01-05T00:00:00.000Z`) | `entries_list_after_patch`; o cliente deve ler ano/mês/dia em UTC |
-| Curtir e seguir repetidos geram notificações duplicadas | `notifications_list`: 2× `like`, 2× `follow`, `unreadCount: 5` para 3 eventos reais |
+| Curtir e seguir repetidos geravam notificações duplicadas (**corrigido na Etapa 5**) | Baseline: `notifications_list` com 2× `like`, 2× `follow`, `unreadCount: 5` para 3 eventos reais. Hoje: `docs/contract-fixtures/notification_dedup.mjs` |
 | Refresh token é de uso único (reuso → 401 `invalid_refresh_token`) | `auth_refresh_reused_token` |
 | Envelope de erro `{ error: { code, message } }`; validação devolve só a primeira mensagem | `auth_register_invalid` |
 | Editar registro de outro usuário devolve 404, não 403 | `entries_patch_forbidden` |
@@ -155,3 +155,34 @@ Não feito / não verificado:
 - **Busca real na IGDB:** o ambiente isolado não tem credenciais. A busca foi verificada com repositório falso e, no backend real, só o caminho de erro `igdb_not_configured`. O caminho de sucesso contra a IGDB não foi exercitado.
 - **Execução em emulador/aparelho:** o sandbox bloqueia o emulador.
 - **Volume:** coleção de 500 registros ainda não medida; a lista é lazy, mas o backend não pagina.
+
+## 9. Etapa 5: comunidade, posts e comentários
+
+**Backend:** `like` e `follow` só notificam (e só disparam push) quando a relação é realmente criada, usando `returning` do `INSERT ... ON CONFLICT DO NOTHING`. Descurtir e curtir de novo continua gerando uma nova notificação, porque é uma nova curtida de verdade. Verificado por `docs/contract-fixtures/notification_dedup.mjs` (7 verificações), que falha no código antigo. O limite de login/cadastro agora aceita `AUTH_RATE_LIMIT_MAX` (padrão 20 por 15 min por IP) para suítes de integração.
+
+**App:**
+- **Fonte única de posts** (`PostStore`): feed Geral, Seguindo e detalhe guardam só ids e leem o post de um mesmo lugar, então curtida e contadores são iguais em todas as superfícies. Curtir é imediato, com rollback exato em erro e uma alternância por vez por post. Descartado ao sair ou trocar de conta.
+- **Feed paginado por cursor** (Geral/Seguindo, escopo enviado sempre de forma explícita porque o padrão do servidor é `following`): sem duplicatas, uma página por vez, erro de rodapé recuperável, "Você chegou ao fim", pull-to-refresh, dados antigos mantidos com aviso quando a atualização falha.
+- **Atividades** como linha compacta, com o ícone do status *no momento da atividade* (`activityStatus`); sobrevivem à exclusão do registro (`gameEntry` nulo).
+- **Detalhe do post** por deep link, com a árvore de comentários inteira (recuo limitado a 3 níveis; nenhum comentário é escondido), curtida otimista por comentário, resposta com alvo visível e composer que preserva texto e alvo em falha.
+- **Publicar:** texto de até 500 caracteres, jogo opcional (por busca; o backend vincula pelo UUID) e registro opcional. Com registro, só o `gameEntryId` é enviado (o backend deriva o jogo). Falha preserva texto e vínculos; sair com texto pede confirmação.
+- **Convite para publicar ao concluir um jogo**, só depois do servidor confirmar e só quando o status *passa* a concluído (menu de status e formulário). O compositor abre com "Zerei {jogo}! 🎉" e o registro vinculado. É distinto da atividade automática.
+- **Revalidação:** as mutações da biblioteca marcam os feeds como desatualizados (a atividade é criada de forma assíncrona no backend); eles revalidam ao entrar na aba Comunidade e ao voltar para o app (30 s).
+- Rota `/users/:userId` provisória (placeholder); o próprio usuário resolve para `/me`.
+
+Verificado: `flutter analyze` sem avisos, 254 testes de unidade/widget, 22 de integração contra o backend real (inclui paginação com 23 posts em 2 páginas, árvore de comentários de 4 níveis, atividade com snapshot de status e exclusão do registro), builds web e APK debug.
+
+Achados (todos por teste):
+
+- **Loop infinito no feed:** quando carregar mais falhava, o pré-carregamento automático tentava de novo a cada reconstrução. Agora, após um erro, só o botão repete.
+- **Crash de Hero:** os FABs da Biblioteca e da Comunidade coexistem no `IndexedStack` e compartilhavam a tag padrão; navegar para outra rota quebrava. Cada um tem tag própria.
+- **Overflow** na linha de ações (curtir/comentar/responder) em largura estreita com texto grande; trocado por `Wrap`.
+- O tratamento de **429 fora do envelope** foi exercitado de verdade pelo limitador do backend.
+- `PopScope` e `ListenableBuilder`: quando o estado vive em `TextEditingController`, é preciso ouvi-lo.
+
+Não feito / não verificado:
+
+- Perfis de outras pessoas (Etapa 6): tocar no autor abre uma página provisória.
+- Edição e exclusão de posts não existem no backend, então não foram feitas.
+- Posts de um jogo na aba Comunidade da página de jogo (`GET /games/:id/posts`) ainda não estão ligados.
+- Execução em emulador/aparelho (o sandbox bloqueia).
