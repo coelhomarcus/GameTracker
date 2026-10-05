@@ -94,6 +94,64 @@ void main() {
   );
 
   test(
+    'posts por jogo: só os daquele jogo, pelo UUID, paginados sem repetir',
+    skip: skip,
+    () async {
+      final a = await signUp('fg');
+      final b = await signUp('fh');
+      final one = await a.games.byIgdbId(900001);
+      final two = await a.games.byIgdbId(900002);
+
+      // 5 posts do jogo 1 (de duas contas), 1 do jogo 2 e 1 sem jogo.
+      final ids = <String>[];
+      for (var i = 0; i < 3; i++) {
+        ids.add((await a.feed.create(content: 'A$i', gameId: one.id)).id);
+      }
+      for (var i = 0; i < 2; i++) {
+        ids.add((await b.feed.create(content: 'B$i', gameId: one.id)).id);
+      }
+      final other = await a.feed.create(content: 'Outro jogo', gameId: two.id);
+      final none = await a.feed.create(content: 'Sem jogo');
+
+      final seen = <String>[];
+      String? cursor;
+      var pages = 0;
+      do {
+        final page = await b.feed.gamePosts(one.id, cursor: cursor);
+        seen.addAll(page.items.map((p) => p.id));
+        for (final p in page.items) {
+          expect(p.game?.id, one.id, reason: 'só posts deste jogo');
+        }
+        cursor = page.nextCursor;
+        pages++;
+      } while (cursor != null && pages < 10);
+
+      expect(seen.toSet(), hasLength(seen.length), reason: 'sem repetição');
+      expect(seen.toSet(), containsAll(ids));
+      expect(seen, isNot(contains(other.id)));
+      expect(seen, isNot(contains(none.id)));
+
+      final pageOfTwo = await b.feed.gamePosts(two.id);
+      expect(pageOfTwo.items.map((p) => p.id), contains(other.id));
+      expect(pageOfTwo.items.map((p) => p.id), isNot(contains(ids.first)));
+    },
+  );
+
+  test(
+    'posts por jogo: UUID inexistente devolve lista vazia',
+    skip: skip,
+    () async {
+      final a = await signUp('fi');
+      await expectLater(
+        a.feed
+            .gamePosts('00000000-0000-0000-0000-000000000000')
+            .then((p) => p.items),
+        completion(isEmpty),
+      );
+    },
+  );
+
+  test(
     'post vinculado a um jogo (sem registro) e a um registro',
     skip: skip,
     () async {

@@ -171,15 +171,15 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Editar:** `frontend/lib/features/games/presentation/game_page.dart`, `frontend/lib/features/feed/data/feed_repository.dart`, `application/post_store.dart`, `presentation/create_post_page.dart` e `frontend/lib/app/router.dart`.
 **Criar:** `frontend/lib/features/games/application/game_posts_controller.dart`.
 
-- [ ] Hero com capa, título, plataformas e gêneros, favorito e ação principal. Sem registros: “Adicionar à biblioteca”; com registros: “Novo registro” e indicação do total.
-- [ ] Manter três abas: Sobre, Meu progresso e Comunidade. Aceitar `/games/:igdbId?tab=progress` e `?tab=community`; ausência/valor inválido abre Sobre. Trocas de aba atualizam a rota sem acumular um histórico por clique.
-- [ ] Sobre: sinopse limitada inicialmente a seis linhas com “Ler mais”, gêneros/plataformas e screenshots existentes com viewer. Não inventar ano, nota média ou outros campos ausentes no modelo.
-- [ ] Meu progresso: um card por `entry.id`, identificado por plataforma, status, data de criação e datas de jogo quando existirem. Mostrar nota/horas e menu Editar/Excluir. Anotações só na experiência própria.
-- [ ] Adicionar `FeedRepository.gamePosts(String gameId, {String? cursor})` retornando `PostPage`, com GET `/games/:id/posts?limit=20&cursor=...`. Usar UUID interno, não igdbId.
-- [ ] Controller de posts por jogo estende `PagedPostsController`; armazenar entidades no `PostStore` e IDs/cursor no controller. Reutilizar deduplicação, erro de rodapé e invalidação por conta.
-- [ ] Comunidade: estatísticas rotuladas “Registros da comunidade”, jogadores já disponíveis e lista paginada de posts. Manter no máximo 10 jogadores por consulta e não sugerir que seja uma listagem completa.
-- [ ] Botão “Publicar sobre este jogo” abre `/posts/new?igdbId=...`. O composer resolve `byIgdbId` para UUID; `entryId` válido tem precedência se ambos vierem na rota. Falha ao resolver vínculo bloqueia publicação até retry ou remoção explícita do vínculo.
-- [ ] Ao publicar, inserir/invalidate a lista do jogo afetado; curtida deve atualizar feed, perfil, jogo e detalhe pela mesma entidade. Atualizar fakes que implementam `FeedRepository`.
+- [x] Hero com capa, título, plataformas e gêneros, favorito e ação principal. Sem registros: “Adicionar à biblioteca”; com registros: “Novo registro” e indicação do total.
+- [x] Manter três abas: Sobre, Meu progresso e Comunidade. Aceitar `/games/:igdbId?tab=progress` e `?tab=community`; ausência/valor inválido abre Sobre. Trocas de aba atualizam a rota sem acumular um histórico por clique.
+- [x] Sobre: sinopse limitada inicialmente a seis linhas com “Ler mais”, gêneros/plataformas e screenshots existentes com viewer. Não inventar ano, nota média ou outros campos ausentes no modelo.
+- [x] Meu progresso: um card por `entry.id`, identificado por plataforma, status, data de criação e datas de jogo quando existirem. Mostrar nota/horas e menu Editar/Excluir. Anotações só na experiência própria.
+- [x] Adicionar `FeedRepository.gamePosts(String gameId, {String? cursor})` retornando `PostPage`, com GET `/games/:id/posts?limit=20&cursor=...`. Usar UUID interno, não igdbId.
+- [x] Controller de posts por jogo estende `PagedPostsController`; armazenar entidades no `PostStore` e IDs/cursor no controller. Reutilizar deduplicação, erro de rodapé e invalidação por conta.
+- [x] Comunidade: estatísticas rotuladas “Registros da comunidade”, jogadores já disponíveis e lista paginada de posts. Manter no máximo 10 jogadores por consulta e não sugerir que seja uma listagem completa.
+- [x] Botão “Publicar sobre este jogo” abre `/posts/new?igdbId=...`. O composer resolve `byIgdbId` para UUID; `entryId` válido tem precedência se ambos vierem na rota. Falha ao resolver vínculo bloqueia publicação até retry ou remoção explícita do vínculo.
+- [x] Ao publicar, inserir/invalidate a lista do jogo afetado; curtida deve atualizar feed, perfil, jogo e detalhe pela mesma entidade. Atualizar fakes que implementam `FeedRepository`.
 
 **Aceite:** posts aparecem somente no jogo correto, paginação não duplica, novo post fica vinculado, erro no vínculo não gera post genérico silencioso e nenhum dado pessoal vaza. Adicionar teste do repository/controller e fluxo integrado com API de teste.
 

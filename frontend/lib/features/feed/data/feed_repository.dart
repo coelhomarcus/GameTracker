@@ -14,6 +14,9 @@ abstract interface class FeedRepository {
     String? cursor,
   });
 
+  /// Posts sobre um jogo. [gameId] é o UUID interno (`Game.id`), nunca o `igdbId`.
+  Future<PostPage> gamePosts(String gameId, {String? cursor});
+
   /// Com `gameEntryId` o backend deriva o jogo (e exige que o registro seja do usuário).
   Future<Post> create({
     required String content,
@@ -67,6 +70,16 @@ class RemoteFeedRepository implements FeedRepository {
     );
     return PostPage.fromJson(r.data!);
   });
+
+  @override
+  Future<PostPage> gamePosts(String gameId, {String? cursor}) =>
+      guardApi(() async {
+        final r = await _dio.get<Map<String, dynamic>>(
+          '/games/$gameId/posts',
+          queryParameters: {'limit': pageSize, 'cursor': ?cursor},
+        );
+        return PostPage.fromJson(r.data!);
+      });
 
   @override
   Future<Post> post(String id) => guardApi(() async {

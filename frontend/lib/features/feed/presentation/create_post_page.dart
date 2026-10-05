@@ -21,9 +21,18 @@ String celebrationText(String gameName) => 'Zerei $gameName! 🎉';
 /// Compor um post. Pode vir ligado a um registro (`entryId`, ex.: ao concluir um jogo) e com
 /// um texto sugerido. Em falha o texto e os vínculos ficam como estão.
 class CreatePostPage extends ConsumerStatefulWidget {
-  const CreatePostPage({super.key, this.entryId, this.initialText});
+  const CreatePostPage({
+    super.key,
+    this.entryId,
+    this.igdbId,
+    this.initialText,
+  });
 
+  /// Registro ao qual o post fica ligado. Tem precedência sobre [igdbId] quando é válido.
   final String? entryId;
+
+  /// Jogo (pelo `igdbId` do catálogo) ao qual o post fica ligado; é resolvido para o UUID.
+  final int? igdbId;
   final String? initialText;
 
   @override
@@ -39,6 +48,10 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   Game? _game;
   GameEntry? _entry;
   bool _loadingGame = false;
+
+  /// O vínculo pedido (pela rota ou escolhido) não pôde ser resolvido. Publicar fica bloqueado
+  /// até tentar de novo ou remover o vínculo de propósito: nunca sai um post genérico em silêncio.
+  _LinkFailure? _linkFailure;
   bool _sending = false;
   bool _done = false;
   String? _error;
@@ -46,7 +59,11 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.entryId != null) _resolveEntry(widget.entryId!);
+    if (widget.entryId != null) {
+      _resolveEntry(widget.entryId!);
+    } else if (widget.igdbId != null) {
+      _resolveGame(widget.igdbId!);
+    }
   }
 
   @override
@@ -55,50 +72,82 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     super.dispose();
   }
 
-  /// O registro vem da coleção carregada, então a tela abre direto de um deep link.
+  /// O registro vem da coleção carregada, então a tela abre direto de um deep link. Se não for
+  /// possível resolvê-lo, o jogo da rota (se houver) é o vínculo; senão, o usuário decide.
   Future<void> _resolveEntry(String id) async {
+    setState(() {
+      _loadingGame = true;
+      _linkFailure = null;
+    });
     try {
       final entries = await ref.read(libraryProvider.future);
       final match = entries.where((e) => e.id == id).firstOrNull;
-      if (match != null && mounted) {
+      if (!mounted) return;
+      if (match == null) {
+        if (widget.igdbId != null) {
+          await _resolveGame(widget.igdbId!);
+          return;
+        }
         setState(() {
-          _entry = match;
-          _game = match.game;
+          _loadingGame = false;
+          _linkFailure = _LinkFailure(
+            'Não encontramos o registro deste post.',
+            () => _resolveEntry(id),
+          );
         });
+        return;
       }
-    } catch (_) {
-      // Sem o vínculo, o usuário ainda pode publicar o texto.
+      setState(() {
+        _entry = match;
+        _game = match.game;
+        _loadingGame = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingGame = false;
+        _linkFailure = _LinkFailure(describeError(e), () => _resolveEntry(id));
+      });
+    }
+  }
+
+  /// O backend vincula pelo UUID do jogo; a busca e a rota só trazem o `igdbId`.
+  Future<void> _resolveGame(int igdbId) async {
+    setState(() {
+      _loadingGame = true;
+      _linkFailure = null;
+      _error = null;
+    });
+    try {
+      final game = await ref.read(gamesRepositoryProvider).byIgdbId(igdbId);
+      if (!mounted) return;
+      setState(() {
+        _game = game;
+        _entry = null;
+        _loadingGame = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingGame = false;
+        _linkFailure = _LinkFailure(
+          'Não foi possível vincular ao jogo. ${describeError(e)}',
+          () => _resolveGame(igdbId),
+        );
+      });
     }
   }
 
   Future<void> _pickGame() async {
     final picked = await pickGame(context);
     if (picked == null || !mounted) return;
-    setState(() {
-      _loadingGame = true;
-      _error = null;
-    });
-    try {
-      // O backend vincula pelo UUID do jogo; a busca só traz o igdbId.
-      final game = await ref
-          .read(gamesRepositoryProvider)
-          .byIgdbId(picked.igdbId);
-      if (mounted) {
-        setState(() {
-          _game = game;
-          _entry = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _error = describeError(e));
-    } finally {
-      if (mounted) setState(() => _loadingGame = false);
-    }
+    await _resolveGame(picked.igdbId);
   }
 
   void _removeGame() => setState(() {
     _game = null;
     _entry = null;
+    _linkFailure = null;
   });
 
   bool get _dirty =>
@@ -174,7 +223,12 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       listenable: _text,
       builder: (context, child) {
         final length = _text.text.trim().length;
-        final canPublish = !_sending && length > 0 && length <= maxPostLength;
+        final canPublish =
+            !_sending &&
+            !_loadingGame &&
+            _linkFailure == null &&
+            length > 0 &&
+            length <= maxPostLength;
         return PopScope(
           canPop: !_dirty,
           onPopInvokedWithResult: (didPop, _) {
@@ -270,9 +324,44 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
   Widget _gameLink() {
     if (_loadingGame) {
-      return const Align(
-        alignment: Alignment.centerLeft,
-        child: CircularProgressIndicator(),
+      return Row(
+        spacing: Space.md,
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          Expanded(
+            child: Semantics(
+              liveRegion: true,
+              child: const Text('Vinculando ao jogo…'),
+            ),
+          ),
+        ],
+      );
+    }
+    final failure = _linkFailure;
+    if (failure != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FormErrorBanner(failure.message),
+          const SizedBox(height: Space.sm),
+          Wrap(
+            spacing: Space.sm,
+            children: [
+              FilledButton.tonal(
+                onPressed: failure.retry,
+                child: const Text('Tentar de novo'),
+              ),
+              TextButton(
+                onPressed: _removeGame,
+                child: const Text('Publicar sem vínculo'),
+              ),
+            ],
+          ),
+        ],
       );
     }
     final game = _game;
@@ -296,4 +385,12 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       ),
     );
   }
+}
+
+/// Por que o vínculo falhou e como tentar de novo.
+class _LinkFailure {
+  const _LinkFailure(this.message, this.retry);
+
+  final String message;
+  final VoidCallback retry;
 }

@@ -159,6 +159,7 @@ GoRouter buildRouter({
       path: '/posts/new',
       builder: (_, state) => CreatePostPage(
         entryId: state.uri.queryParameters['entryId'],
+        igdbId: int.tryParse(state.uri.queryParameters['igdbId'] ?? ''),
         initialText: state.uri.queryParameters['text'],
       ),
     ),

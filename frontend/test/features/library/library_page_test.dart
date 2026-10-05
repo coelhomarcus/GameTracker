@@ -676,10 +676,19 @@ void main() {
     tester,
   ) async {
     final library = FakeLibraryRepository([
-      fakeEntry(id: 'a', status: GameStatus.completed),
-      fakeEntry(id: 'b', status: GameStatus.backlog),
+      fakeEntry(
+        id: 'a',
+        status: GameStatus.completed,
+        createdAt: DateTime.utc(2026, 3, 1),
+      ),
+      fakeEntry(
+        id: 'b',
+        status: GameStatus.backlog,
+        createdAt: DateTime.utc(2026, 1, 1),
+      ),
     ]);
     await AppHarness(library: library).pump(tester);
+    // O primeiro card da página do jogo é o registro mais novo ('a').
     await openMenu(tester, 0, 'Alterar status');
     await tapAndSettle(tester, find.widgetWithText(ListTile, 'Abandonado'));
     expect(library.updated, hasLength(1), reason: 'só um registro é enviado');

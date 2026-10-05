@@ -113,6 +113,30 @@ class FakeFeedRepository implements FeedRepository {
     );
   }
 
+  /// Posts por jogo (chave: UUID do jogo) e as chamadas feitas, com o cursor.
+  final gamePostLists = <String, List<Post>>{};
+  final gamePostCalls = <(String, String?)>[];
+  Completer<void>? gamePostsGate;
+
+  @override
+  Future<PostPage> gamePosts(String gameId, {String? cursor}) async {
+    gamePostCalls.add((gameId, cursor));
+    await gamePostsGate?.future;
+    final error = feedError;
+    if (error != null) throw error;
+    if (cursor != null) {
+      final pageError = pageTwoError;
+      if (pageError != null) throw pageError;
+    }
+    final all = gamePostLists[gameId] ?? const <Post>[];
+    final start = cursor == null ? 0 : int.parse(cursor.substring(1));
+    final end = (start + pageSize).clamp(0, all.length);
+    return PostPage(
+      items: all.sublist(start, end),
+      nextCursor: end < all.length ? 'c$end' : null,
+    );
+  }
+
   /// Posts por perfil, na chave `<userId>:activity` ou `<userId>:post`.
   final userPostLists = <String, List<Post>>{};
   final userPostCalls = <(String, bool, String?)>[];
@@ -161,6 +185,17 @@ class FakeFeedRepository implements FeedRepository {
       id: 'new${created.length}',
       author: ana,
       content: content,
+      // O backend devolve o jogo do vínculo; o falso só sabe o UUID.
+      game: gameId == null
+          ? null
+          : Game(
+              id: gameId,
+              igdbId: 0,
+              name: 'Jogo $gameId',
+              screenshots: const [],
+              platforms: const [],
+              genres: const [],
+            ),
     );
     posts[post.id] = post;
     feeds[FeedScope.general] = [post, ...feeds[FeedScope.general]!];

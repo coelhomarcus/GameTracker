@@ -11,7 +11,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 05 Biblioteca | Concluída (sem inspeção no navegador) | Verificada por testes, goldens e volume de 1.000 registros; ver abaixo |
 | 06 Formulário de registro | Concluída (sem inspeção no navegador) | Verificada por testes; corrige regressão da Etapa 03; ver abaixo |
 | 07 Pesquisa / Explorar | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
-| 08 Página do jogo | Pendente | |
+| 08 Página do jogo | Concluída (sem inspeção no navegador) | Verificada por testes e pela API de teste; ver abaixo |
 | 09 Comunidade | Pendente | |
 | 10 Mensagens | Pendente | |
 | 11 Perfil | Pendente | |
@@ -159,3 +159,23 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 921 passaram, 46 pulados, 0 falhas; integração 51 passaram. Novos: 35 testes em `test/features/explore/explore_test.dart` (barra única, consulta compartilhada, só a aba ativa consulta, preservação ao abrir resultado/trocar destino, escopo pela rota, debounce, resposta atrasada descartada com a requisição antiga cancelada, mensagens de erro, resultados de jogo e pessoa, recentes, início, 360 px a 200%, e o seletor em modal intacto). Capturas temporárias do início e dos resultados a 390 px conferidas (fora do repositório).
 
 **Não verificado:** aparência e teclado no navegador/aparelho; o ajuste de `MergeSemantics` foi validado pela diretriz do Flutter, não com leitor de tela real.
+
+## Etapa 08 — a página do jogo como centro da experiência
+
+**Arquivos:** novo `games/application/game_posts_controller.dart`; `feed_repository.dart` (`gamePosts`), `post_store.dart` (o post novo entra na lista do jogo), `post_list.dart` (`PostListFooter` público), `create_post_page.dart`, `router.dart` (`igdbId` na rota do compositor) e a reescrita de `game_page.dart`. Nenhuma API mudou.
+
+**Estrutura:** a página é uma rolagem só (`CustomScrollView`): barra de título fixa, cabeçalho, abas fixas e o conteúdo da aba ativa. Escolhi isso em vez de `NestedScrollView`: com cabeçalho grande e abas fixas ele exige `SliverOverlapAbsorber/Injector` em cada lista, e eu não conseguiria validar o resultado visualmente. Consequência: não dá para arrastar lateralmente entre abas (só tocar), e só a aba ativa é construída (os posts não são buscados até abrir Comunidade).
+
+**Cabeçalho:** capa, título, plataformas, gêneros, favorito e a ação principal: "Adicionar à biblioteca" sem registros; com registros, "Novo registro" e "Você tem N registros deste jogo". O favorito saiu da barra de título e foi para o cabeçalho.
+
+**Abas pela rota:** `?tab=progress` e `?tab=community`; ausente ou inválido abre Sobre. Trocar de aba usa `GoRouter.replace`, que reaproveita a página, não anima e não empilha: quatro trocas e um voltar levam de volta a quem abriu o jogo. A rota mudando por fora (link, histórico) troca a aba.
+
+**Sobre:** sinopse em seis linhas com "Ler mais/Ler menos" só quando não cabe (medido com `TextPainter` e a escala do texto), plataformas, gêneros e screenshots com o visualizador; nenhum campo inventado. **Meu progresso:** um card por `entry.id`, **do mais novo ao mais antigo** (como a Biblioteca; antes seguia a ordem da API), com plataforma, status, datas de início/fim, "Criado em", horas, `Nota 8/10`, notas pessoais e o menu do registro. **Comunidade:** "Registros da comunidade", jogadores ("Alguns dos jogadores, até 10."), "Publicar sobre este jogo" e a lista de posts paginada por cursor (`GET /games/:uuid/posts?limit=20`), com deduplicação, erro de rodapé e a primeira página falhando sem derrubar as estatísticas.
+
+**Compositor:** `/posts/new?igdbId=…` resolve o jogo para o UUID; com `entryId` válido, o registro tem precedência (registro inexistente cai no jogo da rota; `igdbId` não numérico é ignorado). Falha ao resolver (pela rota ou pelo jogo escolhido na busca) **bloqueia publicar** e oferece "Tentar de novo" ou "Publicar sem vínculo"; o texto digitado fica. Enquanto resolve, "Vinculando ao jogo…" e o botão fica desabilitado. A falha de um registro pedido também passou a bloquear (antes publicava sem o vínculo, em silêncio).
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 972 passaram, 48 pulados, 0 falhas; integração 53 passaram. Novos: repositório (rota, UUID, limite, cursor), 41 de página (cabeçalho, abas pela rota, sem histórico acumulado, sinopse, progresso, posts do jogo: só o jogo certo, paginação sem duplicar, erro de rodapé, vazio, curtida compartilhada com o feed, novo post no topo, layout 360/200%/1440), 9 de compositor, e 2 contra a API de teste (5 posts de duas contas em 2 jogos paginados sem repetir nem vazar; UUID inexistente devolve vazio). Capturas temporárias das três abas a 390 px conferidas (fora do repositório).
+
+**Divergência:** o plano pede menu "Editar/Excluir" no registro; o menu continua dizendo "Remover" (e o diálogo "Remover registro?"), para não renomear o que já tem teste e confirmação própria.
+
+**Não verificado:** a aparência no navegador/aparelho e o comportamento do pinned `SliverPersistentHeader` das abas com um leitor de tela; a 200% de texto e 320 px o cabeçalho passa da primeira tela e as abas só aparecem depois de rolar.

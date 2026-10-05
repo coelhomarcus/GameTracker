@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/models/user_summary.dart';
+import '../../games/application/game_posts_controller.dart';
 import '../data/post_models.dart';
 import 'feed_controller.dart';
 
@@ -103,6 +104,13 @@ class PostStore extends Notifier<Map<String, Post>> {
       if (ref.exists(feedControllerProvider(FeedScope.general))) {
         ref
             .read(feedControllerProvider(FeedScope.general).notifier)
+            .prepend(created.id);
+      }
+      // E na lista do jogo ao qual ficou vinculado, se ela estiver aberta.
+      final gameId = created.game?.id;
+      if (gameId != null && ref.exists(gamePostsControllerProvider(gameId))) {
+        ref
+            .read(gamePostsControllerProvider(gameId).notifier)
             .prepend(created.id);
       }
     }

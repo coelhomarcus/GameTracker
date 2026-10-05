@@ -3,23 +3,31 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/data/hours.dart';
+import '../../../core/dates/date_only.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/game_cover.dart';
 import '../../../core/design_system/game_status.dart';
+import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
+import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
 import '../../../core/navigation/back_navigation.dart';
+import '../../feed/presentation/post_list.dart';
+import '../../feed/presentation/post_tiles.dart';
 import '../../library/application/library_controller.dart';
 import '../../library/data/game_entry.dart';
 import '../../library/presentation/entry_actions.dart';
+import '../application/game_posts_controller.dart';
 import '../application/game_providers.dart';
 import '../data/game_models.dart';
 import 'image_viewer.dart';
 
 /// Página de jogo reconstruída pelo `igdbId` da rota (funciona em deep link e recarga).
-/// Cada aba carrega a sua parte: a falha de uma não derruba a página inteira.
+/// A aba vem da rota (`?tab=progress`, `?tab=community`); cada aba carrega a sua parte, então a
+/// falha de uma não derruba a página inteira.
 class GamePage extends ConsumerWidget {
   const GamePage({super.key, required this.igdbId, this.tab});
 
@@ -66,121 +74,445 @@ class GamePage extends ConsumerWidget {
           onRetry: () => ref.invalidate(gameControllerProvider(igdbId)),
         ),
       ),
-      data: (game) => _GameScaffold(game: game, initialTab: tabIndex(tab)),
+      data: (game) => _GameScaffold(game: game, tab: tab),
     );
   }
 }
 
-class _GameScaffold extends ConsumerWidget {
-  const _GameScaffold({required this.game, required this.initialTab});
+class _GameScaffold extends ConsumerStatefulWidget {
+  const _GameScaffold({required this.game, required this.tab});
 
   final Game game;
-  final int initialTab;
+  final String? tab;
 
-  Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<_GameScaffold> createState() => _GameScaffoldState();
+}
+
+class _GameScaffoldState extends ConsumerState<_GameScaffold>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(
+    length: 3,
+    vsync: this,
+    initialIndex: GamePage.tabIndex(widget.tab),
+  )..addListener(_syncRoute);
+
+  /// Distância do fim, em px, a partir da qual a próxima página de posts é pedida.
+  static const _prefetchExtent = 400.0;
+
+  static const _communityTab = 2;
+
+  /// Trocar de aba atualiza a rota, mas sem empilhar: `replace` reaproveita a página (e o estado)
+  /// e não anima, então o botão de voltar continua levando a quem abriu o jogo.
+  void _syncRoute() {
+    if (_tabs.indexIsChanging) return;
+    final target = _tabs.index;
+    if (target == GamePage.tabIndex(widget.tab)) return;
+    final query = switch (target) {
+      1 => '?tab=progress',
+      2 => '?tab=community',
+      _ => '',
+    };
+    context.replace('/games/${widget.game.igdbId}$query');
+  }
+
+  @override
+  void didUpdateWidget(_GameScaffold old) {
+    super.didUpdateWidget(old);
+    // A rota mudou por fora (link, histórico do navegador): a aba acompanha.
+    final target = GamePage.tabIndex(widget.tab);
+    if (target != _tabs.index) _tabs.animateTo(target);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleFavorite() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
-          .read(gameControllerProvider(game.igdbId).notifier)
+          .read(gameControllerProvider(widget.game.igdbId).notifier)
           .toggleFavorite();
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
     }
   }
 
+  Future<void> _refresh() async {
+    switch (_tabs.index) {
+      case 1:
+        try {
+          await ref.read(libraryProvider.notifier).refresh();
+        } catch (_) {
+          // O erro aparece na própria aba.
+        }
+      case _communityTab:
+        ref.invalidate(gameStatsProvider(widget.game.id));
+        ref.invalidate(gamePlayersProvider);
+        try {
+          await ref
+              .read(gamePostsControllerProvider(widget.game.id).notifier)
+              .refresh();
+        } catch (_) {
+          // O erro aparece na lista de posts.
+        }
+    }
+  }
+
+  /// Pede a próxima página de posts perto do fim da rolagem (só na aba Comunidade).
+  bool _onScroll(Notification notification) {
+    if (_tabs.index != _communityTab) return false;
+    final ScrollMetrics? metrics = switch (notification) {
+      ScrollNotification(:final metrics) => metrics,
+      ScrollMetricsNotification(:final metrics) => metrics,
+      _ => null,
+    };
+    if (metrics == null || metrics.axis != Axis.vertical) return false;
+    if (metrics.extentAfter < _prefetchExtent) {
+      // Fora do quadro atual: as notificações podem chegar durante o layout.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final provider = gamePostsControllerProvider(widget.game.id);
+        // Depois de uma falha, só o botão "Tentar de novo" repete.
+        if (ref.read(provider).value?.loadMoreError != null) return;
+        ref.read(provider.notifier).loadMore();
+      });
+    }
+    return false;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final favorite = game.isFavoritedByMe;
-    return DefaultTabController(
-      length: 3,
-      initialIndex: initialTab,
-      child: Scaffold(
-        body: NestedScrollView(
-          headerSliverBuilder: (context, _) => [
-            SliverAppBar(
-              pinned: true,
-              leading: GamePage._back,
-              title: Text(
-                game.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              actions: [
-                IconButton(
-                  tooltip: favorite ? 'Remover dos favoritos' : 'Favoritar',
-                  isSelected: favorite,
-                  icon: const Icon(Icons.favorite_border),
-                  selectedIcon: Icon(
-                    Icons.favorite,
-                    color: context.domainColors.like,
-                  ),
-                  onPressed: () => _toggleFavorite(context, ref),
+  Widget build(BuildContext context) {
+    final game =
+        ref.watch(gameControllerProvider(widget.game.igdbId)).value ??
+        widget.game;
+    final library = ref.watch(libraryProvider);
+    final mine = [
+      for (final e in library.value ?? const <GameEntry>[])
+        if (e.game.id == game.id) e,
+    ]..sort(_newestFirst);
+
+    return Scaffold(
+      body: NotificationListener<Notification>(
+        onNotification: _onScroll,
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final insets = PageContainer.insetsFor(
+                box.maxWidth,
+                PageWidth.reading,
+              );
+              return ListenableBuilder(
+                listenable: _tabs,
+                builder: (context, _) => CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverAppBar(
+                      pinned: true,
+                      leading: GamePage._back,
+                      title: Text(
+                        game.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: insets.copyWith(top: Space.lg, bottom: Space.lg),
+                      sliver: SliverToBoxAdapter(
+                        child: _Hero(
+                          game: game,
+                          records: library.hasValue ? mine.length : null,
+                          onFavorite: _toggleFavorite,
+                        ),
+                      ),
+                    ),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _TabsHeader(
+                        TabBar(
+                          controller: _tabs,
+                          tabs: const [
+                            Tab(text: 'Sobre'),
+                            Tab(text: 'Meu progresso'),
+                            Tab(text: 'Comunidade'),
+                          ],
+                        ),
+                        Theme.of(context).colorScheme.surface,
+                      ),
+                    ),
+                    ..._content(game, mine, library, insets),
+                  ],
                 ),
-              ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Sobre'),
-                  Tab(text: 'Meu progresso'),
-                  Tab(text: 'Comunidade'),
-                ],
-              ),
-            ),
-          ],
-          body: TabBarView(
-            children: [
-              _AboutTab(game: game),
-              _ProgressTab(game: game),
-              _CommunityTab(game: game),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+
+  List<Widget> _content(
+    Game game,
+    List<GameEntry> mine,
+    AsyncValue<List<GameEntry>> library,
+    EdgeInsets insets,
+  ) {
+    final padding = insets.copyWith(top: Space.lg, bottom: Space.xxl);
+    return switch (_tabs.index) {
+      1 => [
+        SliverPadding(
+          padding: padding,
+          sliver: SliverToBoxAdapter(
+            child: _ProgressSection(game: game, mine: mine, library: library),
+          ),
+        ),
+      ],
+      2 => _communitySlivers(game, insets),
+      _ => [
+        SliverPadding(
+          padding: padding,
+          sliver: SliverToBoxAdapter(child: _AboutSection(game: game)),
+        ),
+      ],
+    };
+  }
+
+  List<Widget> _communitySlivers(Game game, EdgeInsets insets) {
+    final provider = gamePostsControllerProvider(game.id);
+    final posts = ref.watch(provider);
+    final padding = insets.copyWith(top: Space.lg);
+    return [
+      SliverPadding(
+        padding: padding,
+        sliver: SliverToBoxAdapter(child: _CommunitySection(game: game)),
+      ),
+      if (!posts.hasValue)
+        SliverPadding(
+          padding: insets.copyWith(bottom: Space.xxl),
+          sliver: SliverToBoxAdapter(
+            child: posts.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(Space.xl),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : ErrorView(
+                    message: describeError(posts.error!),
+                    onRetry: () => ref.invalidate(provider),
+                  ),
+          ),
+        )
+      else if (posts.requireValue.ids.isEmpty)
+        SliverPadding(
+          padding: insets.copyWith(bottom: Space.xxl),
+          sliver: const SliverToBoxAdapter(
+            child: EmptyView(
+              icon: Icons.forum_outlined,
+              title: 'Ninguém publicou sobre este jogo',
+              message: 'Seja a primeira pessoa a contar o que achou.',
+            ),
+          ),
+        )
+      else
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(insets.left, 0, insets.right, Space.xxl),
+          sliver: SliverList.separated(
+            itemCount: posts.requireValue.ids.length + 1,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, i) {
+              final state = posts.requireValue;
+              if (i == state.ids.length) {
+                return PostListFooter(state: state, provider: provider);
+              }
+              final id = state.ids[i];
+              return PostTile(
+                postId: id,
+                onTap: () => context.push('/posts/$id'),
+              );
+            },
+          ),
+        ),
+    ];
+  }
 }
 
-class _AboutTab extends StatelessWidget {
-  const _AboutTab({required this.game});
+/// Do mais novo ao mais antigo, como na Biblioteca; o id desempata.
+int _newestFirst(GameEntry a, GameEntry b) {
+  final byDate = b.createdAt.compareTo(a.createdAt);
+  return byDate != 0 ? byDate : b.id.compareTo(a.id);
+}
+
+/// Mantém as abas fixas abaixo da barra de título enquanto o conteúdo rola.
+class _TabsHeader extends SliverPersistentHeaderDelegate {
+  const _TabsHeader(this.tabBar, this.background);
+
+  final TabBar tabBar;
+  final Color background;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => Material(
+    color: background,
+    elevation: overlapsContent ? 1 : 0,
+    child: tabBar,
+  );
+
+  @override
+  bool shouldRebuild(_TabsHeader old) =>
+      old.tabBar != tabBar || old.background != background;
+}
+
+/// Capa, título, plataformas, gêneros, favorito e a ação principal. Sem registros a ação é
+/// "Adicionar à biblioteca"; com registros, "Novo registro" e quantos já existem.
+class _Hero extends StatelessWidget {
+  const _Hero({
+    required this.game,
+    required this.records,
+    required this.onFavorite,
+  });
+
+  final Game game;
+
+  /// Registros do usuário neste jogo; `null` enquanto a coleção não carregou.
+  final int? records;
+  final VoidCallback onFavorite;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = theme.textTheme;
+    final muted = text.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final favorite = game.isFavoritedByMe;
+    final count = records;
+    final has = count != null && count > 0;
+
+    return LayoutBuilder(
+      builder: (context, box) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: Space.lg,
+        children: [
+          SizedBox(
+            width: box.maxWidth < 420 ? 96 : 128,
+            child: GameCover(name: game.name, url: game.coverUrl),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    game.name,
+                    style: text.headlineMedium,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (game.platforms.isNotEmpty) ...[
+                  const SizedBox(height: Space.xs),
+                  Text(
+                    game.platforms.join(' · '),
+                    style: muted,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (game.genres.isNotEmpty)
+                  Text(
+                    game.genres.join(' · '),
+                    style: muted,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const SizedBox(height: Space.md),
+                Wrap(
+                  spacing: Space.sm,
+                  runSpacing: Space.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => context.push(
+                        '/games/${game.igdbId}/playthroughs/new',
+                      ),
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        has || count == null
+                            ? 'Novo registro'
+                            : 'Adicionar à biblioteca',
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: favorite ? 'Remover dos favoritos' : 'Favoritar',
+                      isSelected: favorite,
+                      icon: const Icon(Icons.favorite_border),
+                      selectedIcon: Icon(
+                        Icons.favorite,
+                        color: context.domainColors.like,
+                      ),
+                      onPressed: onFavorite,
+                    ),
+                  ],
+                ),
+                if (has)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.xs),
+                    child: Text(
+                      count == 1
+                          ? 'Você tem 1 registro deste jogo'
+                          : 'Você tem $count registros deste jogo',
+                      style: muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AboutSection extends StatelessWidget {
+  const _AboutSection({required this.game});
 
   final Game game;
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return ListView(
-      padding: const EdgeInsets.all(Space.lg),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: Space.lg,
-          children: [
-            SizedBox(
-              width: 120,
-              child: GameCover(name: game.name, url: game.coverUrl),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(game.name, style: text.titleLarge),
-                  if (game.platforms.isNotEmpty) ...[
-                    const SizedBox(height: Space.sm),
-                    Text(game.platforms.join(' · '), style: text.bodyMedium),
-                  ],
-                  const SizedBox(height: Space.md),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        context.push('/games/${game.igdbId}/playthroughs/new'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Novo registro'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        const SectionHeader(title: 'Sinopse'),
+        _Synopsis(summary: game.summary),
+        if (game.platforms.isNotEmpty) ...[
+          const SizedBox(height: Space.xl),
+          const SectionHeader(title: 'Plataformas'),
+          Wrap(
+            spacing: Space.sm,
+            runSpacing: Space.sm,
+            children: [
+              for (final platform in game.platforms)
+                Chip(label: Text(platform)),
+            ],
+          ),
+        ],
         if (game.genres.isNotEmpty) ...[
           const SizedBox(height: Space.xl),
+          const SectionHeader(title: 'Gêneros'),
           Wrap(
             spacing: Space.sm,
             runSpacing: Space.sm,
@@ -189,14 +521,9 @@ class _AboutTab extends StatelessWidget {
             ],
           ),
         ],
-        const SizedBox(height: Space.xl),
-        Text('Sinopse', style: text.titleMedium),
-        const SizedBox(height: Space.sm),
-        Text(game.summary ?? 'Este jogo ainda não tem sinopse.'),
         if (game.screenshots.isNotEmpty) ...[
           const SizedBox(height: Space.xl),
-          Text('Screenshots', style: text.titleMedium),
-          const SizedBox(height: Space.sm),
+          const SectionHeader(title: 'Screenshots'),
           SizedBox(
             height: 140,
             child: ListView.separated(
@@ -208,7 +535,7 @@ class _AboutTab extends StatelessWidget {
                 label:
                     'Abrir screenshot ${i + 1} de ${game.screenshots.length}',
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Radii.cover),
                   onTap: () => ImageViewerPage.open(
                     context,
                     urls: game.screenshots,
@@ -216,7 +543,7 @@ class _AboutTab extends StatelessWidget {
                     title: 'Screenshot de ${game.name}',
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Radii.cover),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: Image.network(
@@ -242,22 +569,85 @@ class _AboutTab extends StatelessWidget {
   }
 }
 
-class _ProgressTab extends ConsumerWidget {
-  const _ProgressTab({required this.game});
+/// Sinopse limitada a seis linhas, com "Ler mais" só quando o texto não cabe nelas.
+class _Synopsis extends StatefulWidget {
+  const _Synopsis({required this.summary});
 
-  final Game game;
+  final String? summary;
+
+  static const collapsedLines = 6;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final library = ref.watch(libraryProvider);
-    return AsyncContent<List<GameEntry>>(
-      value: library,
-      onRetry: () => ref.invalidate(libraryProvider),
-      data: (all) {
-        // Chave de coleção é o id do registro; o jogo pode ter vários (replay).
-        final mine = all.where((e) => e.game.id == game.id).toList();
-        return ListView(
-          padding: const EdgeInsets.all(Space.lg),
+  State<_Synopsis> createState() => _SynopsisState();
+}
+
+class _SynopsisState extends State<_Synopsis> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = widget.summary?.trim();
+    if (summary == null || summary.isEmpty) {
+      return const Text('Este jogo ainda não tem sinopse.');
+    }
+    final style = Theme.of(context).textTheme.bodyLarge;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final painter = TextPainter(
+          text: TextSpan(text: summary, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: _Synopsis.collapsedLines,
+        )..layout(maxWidth: box.maxWidth);
+        final overflows = painter.didExceedMaxLines;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedSize(
+              duration: Motion.resolve(context, Motion.medium),
+              alignment: Alignment.topCenter,
+              child: Text(
+                summary,
+                style: style,
+                maxLines: _expanded ? null : _Synopsis.collapsedLines,
+                overflow: _expanded
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
+              ),
+            ),
+            if (overflows)
+              TextButton(
+                onPressed: () => setState(() => _expanded = !_expanded),
+                child: Text(_expanded ? 'Ler menos' : 'Ler mais'),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Um card por registro (`entry.id`), do mais novo ao mais antigo. As notas pessoais só aparecem
+/// aqui, na experiência do próprio usuário.
+class _ProgressSection extends StatelessWidget {
+  const _ProgressSection({
+    required this.game,
+    required this.mine,
+    required this.library,
+  });
+
+  final Game game;
+  final List<GameEntry> mine;
+  final AsyncValue<List<GameEntry>> library;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, _) => AsyncContent<List<GameEntry>>(
+        value: library,
+        onRetry: () => ref.invalidate(libraryProvider),
+        data: (_) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (mine.isEmpty)
               const Padding(
@@ -272,7 +662,7 @@ class _ProgressTab extends ConsumerWidget {
             for (final e in mine)
               Padding(
                 padding: const EdgeInsets.only(bottom: Space.md),
-                child: _PlaythroughCard(entry: e),
+                child: _RecordCard(entry: e),
               ),
             const SizedBox(height: Space.sm),
             FilledButton.tonalIcon(
@@ -284,25 +674,28 @@ class _ProgressTab extends ConsumerWidget {
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-class _PlaythroughCard extends StatelessWidget {
-  const _PlaythroughCard({required this.entry});
+class _RecordCard extends StatelessWidget {
+  const _RecordCard({required this.entry});
 
   final GameEntry entry;
 
   @override
   Widget build(BuildContext context) {
+    final created = DateOnly.fromLocal(entry.createdAt.toLocal()).format();
     final details = [
       if (entry.startedAt != null) 'Início ${entry.startedAt!.format()}',
       if (entry.finishedAt != null) 'Fim ${entry.finishedAt!.format()}',
     ];
     final notes = entry.notes?.trim();
-    return Card.filled(
+    final muted = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    return Card(
       child: ListTile(
         onTap: () => context.push(
           '/games/${entry.game.igdbId}/playthroughs/${entry.id}/edit',
@@ -324,10 +717,11 @@ class _PlaythroughCard extends StatelessWidget {
                   if (entry.rating != null) Text('Nota ${entry.rating}/10'),
                 ],
               ),
-              if (details.isNotEmpty) ...[
-                const SizedBox(height: Space.xs),
-                Text(details.join(' · ')),
-              ],
+              const SizedBox(height: Space.xs),
+              Text(
+                [...details, 'Criado em $created'].join(' · '),
+                style: muted,
+              ),
               if (notes != null && notes.isNotEmpty) ...[
                 const SizedBox(height: Space.xs),
                 Text(notes, maxLines: 3, overflow: TextOverflow.ellipsis),
@@ -341,16 +735,17 @@ class _PlaythroughCard extends StatelessWidget {
   }
 }
 
-class _CommunityTab extends ConsumerStatefulWidget {
-  const _CommunityTab({required this.game});
+/// Estatísticas, jogadores e o convite para publicar. Os posts vêm logo abaixo, paginados.
+class _CommunitySection extends ConsumerStatefulWidget {
+  const _CommunitySection({required this.game});
 
   final Game game;
 
   @override
-  ConsumerState<_CommunityTab> createState() => _CommunityTabState();
+  ConsumerState<_CommunitySection> createState() => _CommunitySectionState();
 }
 
-class _CommunityTabState extends ConsumerState<_CommunityTab> {
+class _CommunitySectionState extends ConsumerState<_CommunitySection> {
   PlayersScope _scope = PlayersScope.all;
 
   @override
@@ -366,8 +761,8 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
     );
     final text = Theme.of(context).textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(Space.lg),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Registros da comunidade', style: text.titleMedium),
         const SizedBox(height: Space.sm),
@@ -401,6 +796,7 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
         ),
         const SizedBox(height: Space.xl),
         Text('Jogando agora', style: text.titleMedium),
+        Text('Alguns dos jogadores, até 10.', style: text.bodySmall),
         const SizedBox(height: Space.sm),
         SegmentedButton<PlayersScope>(
           showSelectedIcon: false,
@@ -434,21 +830,32 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
                 for (final p in list)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      child: Text(
-                        p.user.displayName.characters.first.toUpperCase(),
-                      ),
+                    leading: UserAvatar(
+                      name: p.user.displayName,
+                      url: p.user.avatarUrl,
                     ),
                     title: Text(p.user.displayName),
                     subtitle: Text('@${p.user.username}'),
                     trailing: p.hoursPlayed == null
                         ? null
                         : Text('${formatHours(p.hoursPlayed!)} h'),
+                    onTap: () => context.push('/users/${p.user.id}'),
                   ),
               ],
             );
           },
         ),
+        const SizedBox(height: Space.xl),
+        const SectionHeader(title: 'Posts'),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.tonalIcon(
+            onPressed: () => context.push('/posts/new?igdbId=${game.igdbId}'),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Publicar sobre este jogo'),
+          ),
+        ),
+        const SizedBox(height: Space.md),
       ],
     );
   }

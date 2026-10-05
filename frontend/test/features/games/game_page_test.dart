@@ -2,7 +2,7 @@ import 'package:flutter/painting.dart' show Offset, Size;
 import 'package:flutter/rendering.dart' show RenderBox;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart'
-    show Chip, Scrollable, SegmentedButton, TabBarView;
+    show Chip, Scrollable, SegmentedButton;
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
 import 'package:gametracker/core/models/user_summary.dart';
@@ -49,7 +49,11 @@ void main() {
     expect(find.text('Jogo Fixture Um'), findsWidgets);
     expect(find.text('Sinopse de teste.'), findsOneWidget);
     expect(find.text('PC · PlayStation 5'), findsOneWidget);
-    expect(find.text('RPG'), findsOneWidget);
+    expect(
+      find.text('RPG'),
+      findsWidgets,
+      reason: 'no cabeçalho e nos gêneros de Sobre',
+    );
   });
 
   testWidgets('jogo sem sinopse nem screenshots não quebra', (tester) async {
@@ -157,8 +161,22 @@ void main() {
         final h = harness(games: games);
         await h.pump(tester, size: Size(width, 900), textScale: scale);
         await goTo(tester, '/games/900001');
+        // Com texto muito grande o cabeçalho ocupa a primeira tela: rola até as abas.
+        await tester.scrollUntilVisible(
+          find.text('Comunidade'),
+          150,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tapAndSettle(tester, find.text('Comunidade'));
         expect(tester.takeException(), isNull);
+        // A página é uma rolagem só e preguiçosa: com texto grande o cabeçalho ocupa a primeira
+        // tela, e as estatísticas só são construídas depois de rolar até elas.
+        final page = find.byType(Scrollable).first;
+        final stats = find.textContaining('registros, não pessoas');
+        for (var i = 0; i < 20 && stats.evaluate().isEmpty; i++) {
+          await tester.drag(page, const Offset(0, -150));
+          await tester.pump();
+        }
 
         final chips = tester.widgetList<Chip>(find.byType(Chip)).length;
         expect(chips, GameStatus.values.length);
@@ -178,12 +196,8 @@ void main() {
 
         // A lista é preguiçosa: rola até o seletor ser construído e mede os dois no mesmo estado.
         final scope = find.byType(SegmentedButton<PlayersScope>);
-        final list = find
-            .descendant(
-              of: find.byType(TabBarView),
-              matching: find.byType(Scrollable),
-            )
-            .first;
+        // A página é uma rolagem só (cabeçalho, abas e conteúdo).
+        final list = find.byType(Scrollable).first;
         for (var i = 0; i < 20 && scope.evaluate().isEmpty; i++) {
           await tester.drag(list, const Offset(0, -200));
           await tester.pump();

@@ -100,7 +100,10 @@ class _PostListState extends ConsumerState<PostList>
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {
                     if (i == state.ids.length) {
-                      return _Footer(state: state, provider: widget.provider);
+                      return PostListFooter(
+                        state: state,
+                        provider: widget.provider,
+                      );
                     }
                     final id = state.ids[i];
                     return PostTile(
@@ -115,8 +118,13 @@ class _PostListState extends ConsumerState<PostList>
   }
 }
 
-class _Footer extends ConsumerWidget {
-  const _Footer({required this.state, required this.provider});
+/// Rodapé de uma lista paginada: carregando mais, erro com "Tentar de novo" ou fim.
+class PostListFooter extends ConsumerWidget {
+  const PostListFooter({
+    super.key,
+    required this.state,
+    required this.provider,
+  });
 
   final FeedState state;
   final AsyncNotifierProvider<PagedPostsController, FeedState> provider;

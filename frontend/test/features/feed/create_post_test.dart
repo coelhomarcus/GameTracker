@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
@@ -386,6 +388,188 @@ void main() {
         find.textContaining('Quer contar para a comunidade?'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('vínculo pela rota', () {
+    final linkChip = find.widgetWithText(InputChip, 'Jogo Fixture Um');
+    final retry = find.widgetWithText(FilledButton, 'Tentar de novo');
+    final withoutLink = find.text('Publicar sem vínculo');
+
+    testWidgets('?igdbId resolve o jogo e o post vai com o UUID', (
+      tester,
+    ) async {
+      final feed = FakeFeedRepository();
+      await openComposer(tester, path: '/posts/new?igdbId=900001', feed: feed);
+      expect(linkChip, findsOneWidget);
+      await tester.enterText(textField, 'Que jogo bom');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, publish);
+      expect(
+        feed.created.single.gameId,
+        'g-900001',
+        reason: 'UUID interno, não o igdbId',
+      );
+      expect(feed.created.single.gameEntryId, isNull);
+    });
+
+    testWidgets('com os dois, o registro válido tem precedência', (
+      tester,
+    ) async {
+      final feed = FakeFeedRepository();
+      await openComposer(
+        tester,
+        path: '/posts/new?igdbId=900002&entryId=e1',
+        feed: feed,
+        library: FakeLibraryRepository([fakeEntry(id: 'e1')]),
+      );
+      expect(
+        linkChip,
+        findsOneWidget,
+        reason: 'o jogo do registro, não o 900002',
+      );
+      await tester.enterText(textField, 'Zerei');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, publish);
+      expect(feed.created.single.gameEntryId, 'e1');
+    });
+
+    testWidgets('registro inexistente cai no jogo da rota', (tester) async {
+      final feed = FakeFeedRepository();
+      await openComposer(
+        tester,
+        path: '/posts/new?igdbId=900001&entryId=zzz',
+        feed: feed,
+        library: FakeLibraryRepository([fakeEntry(id: 'e1')]),
+      );
+      expect(linkChip, findsOneWidget);
+      await tester.enterText(textField, 'Oi');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, publish);
+      expect(feed.created.single.gameId, 'g-900001');
+      expect(feed.created.single.gameEntryId, isNull);
+    });
+
+    testWidgets('igdbId inválido é ignorado: sem vínculo', (tester) async {
+      final feed = FakeFeedRepository();
+      await openComposer(tester, path: '/posts/new?igdbId=abc', feed: feed);
+      expect(find.byType(InputChip), findsNothing);
+      expect(find.text('Vincular um jogo'), findsOneWidget);
+      await tester.enterText(textField, 'Oi');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, publish);
+      expect(feed.created.single.gameId, isNull);
+    });
+
+    testWidgets('falha ao resolver bloqueia publicar até tentar de novo', (
+      tester,
+    ) async {
+      final games = FakeGamesRepository()..gameError = const NetworkException();
+      final feed = FakeFeedRepository();
+      await openComposer(
+        tester,
+        path: '/posts/new?igdbId=900001',
+        feed: feed,
+        games: games,
+      );
+      expect(
+        find.textContaining('Não foi possível vincular ao jogo'),
+        findsOneWidget,
+      );
+      await tester.enterText(textField, 'Que jogo bom');
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<FilledButton>(publish).onPressed,
+        isNull,
+        reason: 'nunca sai um post genérico em silêncio',
+      );
+      expect(feed.created, isEmpty);
+      expect(find.text('Que jogo bom'), findsOneWidget, reason: 'o texto fica');
+
+      games.gameError = null;
+      await tapAndSettle(tester, retry);
+      expect(linkChip, findsOneWidget);
+      expect(find.textContaining('Não foi possível vincular'), findsNothing);
+      expect(tester.widget<FilledButton>(publish).onPressed, isNotNull);
+      await tapAndSettle(tester, publish);
+      expect(feed.created.single.gameId, 'g-900001');
+    });
+
+    testWidgets('remover o vínculo de propósito libera o post sem jogo', (
+      tester,
+    ) async {
+      final games = FakeGamesRepository()..gameError = const NetworkException();
+      final feed = FakeFeedRepository();
+      await openComposer(
+        tester,
+        path: '/posts/new?igdbId=900001',
+        feed: feed,
+        games: games,
+      );
+      await tester.enterText(textField, 'Só texto');
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(publish).onPressed, isNull);
+
+      await tapAndSettle(tester, withoutLink);
+      expect(find.textContaining('Não foi possível vincular'), findsNothing);
+      expect(find.text('Vincular um jogo'), findsOneWidget);
+      await tapAndSettle(tester, publish);
+      expect(feed.created.single.gameId, isNull);
+    });
+
+    testWidgets('enquanto resolve, publicar fica desabilitado', (tester) async {
+      final gate = Completer<void>();
+      final games = FakeGamesRepository()..gameGate = gate;
+      // Sem `goTo`: ele espera estabilizar, e o indicador de carregamento anima enquanto a
+      // resolução está travada.
+      final h = AppHarness(games: games);
+      await h.pump(tester);
+      GoRouter.of(tester.element(find.byType(Scaffold).first))
+          .go('/posts/new?igdbId=900001');
+      await tester.pump();
+      await tester.pump();
+      await tester.enterText(textField, 'Oi');
+      await tester.pump();
+      expect(find.text('Vinculando ao jogo…'), findsOneWidget);
+      expect(tester.widget<FilledButton>(publish).onPressed, isNull);
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilledButton>(publish).onPressed, isNotNull);
+    });
+
+    testWidgets('falha ao resolver o jogo escolhido na busca também bloqueia', (
+      tester,
+    ) async {
+      final games = FakeGamesRepository()
+        ..searchResult = const [
+          GameSummary(
+            igdbId: 900001,
+            name: 'Zelda Fixture',
+            platforms: [],
+            genres: [],
+          ),
+        ]
+        ..gameError = const NetworkException();
+      await openComposer(tester, games: games);
+      await tester.enterText(textField, 'Oi');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Vincular um jogo'));
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(SearchBar),
+          matching: find.byType(EditableText),
+        ),
+        'zelda',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Zelda Fixture'));
+
+      expect(
+        find.textContaining('Não foi possível vincular ao jogo'),
+        findsOneWidget,
+      );
+      expect(tester.widget<FilledButton>(publish).onPressed, isNull);
     });
   });
 

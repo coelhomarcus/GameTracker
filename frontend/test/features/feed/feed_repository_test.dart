@@ -40,6 +40,31 @@ void main() {
   });
 
   test(
+    'posts do jogo usam o UUID interno, 20 por página, e repassam o cursor',
+    () async {
+      final m = make({'items': <Object>[], 'nextCursor': null});
+      await m.repo.gamePosts('uuid-do-jogo');
+      await m.repo.gamePosts('uuid-do-jogo', cursor: 'opaco==');
+      final first = m.adapter.requests.first;
+      expect(first.method, 'GET');
+      expect(first.path, '/games/uuid-do-jogo/posts');
+      expect(first.queryParameters['limit'], 20);
+      expect(first.queryParameters.containsKey('cursor'), isFalse);
+      expect(m.adapter.requests.last.queryParameters['cursor'], 'opaco==');
+    },
+  );
+
+  test('posts do jogo: a página traz itens e o próximo cursor', () async {
+    final m = make({
+      'items': [_postJson()],
+      'nextCursor': 'c1',
+    });
+    final page = await m.repo.gamePosts('g');
+    expect(page.items, hasLength(1));
+    expect(page.nextCursor, 'c1');
+  });
+
+  test(
     'criar post com registro envia só o registro (o backend deriva o jogo)',
     () async {
       final m = make(_postJson());

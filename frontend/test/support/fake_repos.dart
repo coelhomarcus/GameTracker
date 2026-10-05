@@ -130,6 +130,7 @@ class FakeGamesRepository implements GamesRepository {
   Map<int, Game> games;
   Object? searchError;
   Object? gameError;
+  Completer<void>? gameGate;
   Object? favoriteError;
   Completer<void>? favoriteGate;
   GameStats statsResult = const GameStats(
@@ -165,6 +166,7 @@ class FakeGamesRepository implements GamesRepository {
 
   @override
   Future<Game> byIgdbId(int igdbId) async {
+    await gameGate?.future;
     final error = gameError;
     if (error != null) throw error;
     return games[igdbId]!;

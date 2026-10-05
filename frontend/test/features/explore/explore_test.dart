@@ -313,7 +313,7 @@ void main() {
       await tapAndSettle(tester, find.text('Na biblioteca'));
       expect(location(tester), '/games/900001');
       expect(
-        DefaultTabController.of(tester.element(find.byType(TabBar))).index,
+        tester.widget<TabBar>(find.byType(TabBar)).controller!.index,
         1,
         reason: 'Meu progresso',
       );
