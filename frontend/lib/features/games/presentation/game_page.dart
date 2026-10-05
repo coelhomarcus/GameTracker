@@ -337,8 +337,10 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
       children: [
         Text('Playthroughs deste jogo', style: text.titleMedium),
         const SizedBox(height: Space.sm),
-        SizedBox(
-          height: 56,
+        // Altura mínima (não fixa): os contadores quebram em várias linhas conforme a largura e o
+        // tamanho do texto, e uma caixa fixa fazia o conteúdo seguinte ficar por cima deles.
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
           child: AsyncContent<GameStats>(
             value: stats,
             onRetry: () => ref.invalidate(gameStatsProvider(game.id)),
@@ -358,6 +360,7 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
             ),
           ),
         ),
+        const SizedBox(height: Space.sm),
         Text(
           'Conta registros, não pessoas: quem rejoga aparece mais de uma vez.',
           style: text.bodySmall,
@@ -412,8 +415,6 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
             );
           },
         ),
-        const SizedBox(height: Space.xl),
-        const Text('Posts sobre este jogo chegam na Etapa 5.'),
       ],
     );
   }

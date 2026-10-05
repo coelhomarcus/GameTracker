@@ -1,4 +1,8 @@
+import 'package:flutter/painting.dart' show Offset, Size;
+import 'package:flutter/rendering.dart' show RenderBox;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart'
+    show Chip, Scrollable, SegmentedButton, TabBarView;
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
 import 'package:gametracker/core/models/user_summary.dart';
@@ -133,6 +137,70 @@ void main() {
     expect(find.text('Beto'), findsOneWidget);
     expect(find.text('3,5 h'), findsOneWidget);
   });
+
+  for (final (name, width, scale) in [
+    ('360 px', 360.0, 1.0),
+    ('360 px com texto 150%', 360.0, 1.5),
+    ('320 px com texto 200%', 320.0, 2.0),
+  ]) {
+    testWidgets(
+      'Comunidade: os contadores quebram de linha sem cobrir o que vem depois ($name)',
+      (tester) async {
+        final games = FakeGamesRepository()
+          ..playersResult = [
+            const GamePlayer(
+              user: UserSummary(id: 'u9', username: 'beto', name: 'Beto'),
+              status: GameStatus.playing,
+              hoursPlayed: 3.5,
+            ),
+          ];
+        final h = harness(games: games);
+        await h.pump(tester, size: Size(width, 900), textScale: scale);
+        await goTo(tester, '/games/900001');
+        await tapAndSettle(tester, find.text('Comunidade'));
+        expect(tester.takeException(), isNull);
+
+        final chips = tester.widgetList<Chip>(find.byType(Chip)).length;
+        expect(chips, GameStatus.values.length);
+        var lastChipBottom = 0.0;
+        for (final chip in find.byType(Chip).evaluate()) {
+          final box = chip.renderObject! as RenderBox;
+          final bottom = box.localToGlobal(Offset.zero).dy + box.size.height;
+          if (bottom > lastChipBottom) lastChipBottom = bottom;
+        }
+        final noteFinder = find.textContaining('registros, não pessoas');
+        final note = tester.getTopLeft(noteFinder);
+        expect(
+          note.dy,
+          greaterThanOrEqualTo(lastChipBottom),
+          reason: 'o aviso "conta registros" não pode ficar por cima dos contadores',
+        );
+
+        // A lista é preguiçosa: rola até o seletor ser construído e mede os dois no mesmo estado.
+        final scope = find.byType(SegmentedButton<PlayersScope>);
+        final list = find
+            .descendant(
+              of: find.byType(TabBarView),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        for (var i = 0; i < 20 && scope.evaluate().isEmpty; i++) {
+          await tester.drag(list, const Offset(0, -200));
+          await tester.pump();
+        }
+        expect(scope, findsOneWidget);
+        expect(noteFinder, findsOneWidget);
+        final noteBottom =
+            tester.getTopLeft(noteFinder).dy +
+            tester.getSize(noteFinder).height;
+        expect(
+          tester.getTopLeft(scope).dy,
+          greaterThanOrEqualTo(noteBottom),
+          reason: 'os botões Todos / Quem eu sigo não podem ficar por baixo do aviso',
+        );
+      },
+    );
+  }
 
   testWidgets('Comunidade: ninguém seguido jogando mostra mensagem própria', (
     tester,
