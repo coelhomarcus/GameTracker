@@ -51,19 +51,20 @@ void main() {
 
   testWidgets('Geral vazio convida a publicar', (tester) async {
     await openCommunity(tester);
-    expect(find.text('Ainda não há posts'), findsOneWidget);
+    expect(find.text('Ainda não há publicações'), findsOneWidget);
+    expect(find.text('Seja a primeira pessoa a publicar.'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Publicar'), findsWidgets);
   });
 
   testWidgets('Seguindo vazio explica e leva a Explorar', (tester) async {
     await openCommunity(tester);
     await tapAndSettle(tester, find.text('Seguindo'));
-    expect(find.text('Nada por aqui ainda'), findsOneWidget);
+    expect(find.text('Acompanhe quem joga com você'), findsOneWidget);
     await tapAndSettle(tester, find.text('Encontrar pessoas'));
     expect(
-      find.text('Busque um jogo pelo nome'),
+      find.text('Encontre pessoas'),
       findsOneWidget,
-      reason: 'abriu Explorar',
+      reason: 'abriu Explorar já na aba Pessoas',
     );
   });
 

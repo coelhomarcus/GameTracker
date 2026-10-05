@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
@@ -12,17 +13,23 @@ import '../application/post_store.dart';
 import '../data/post_models.dart';
 import 'post_tiles.dart';
 
-/// Limite do recuo visual das respostas (px por nível, até [_maxIndentLevels] níveis). Depois
-/// disso o texto continua alinhado no último recuo; nenhum comentário é escondido.
-const _maxIndentLevels = 3;
+/// Limite do recuo visual das respostas (px por nível, até [maxIndentLevels] níveis). Respostas
+/// mais fundas ficam no último recuo e dizem a quem respondem; nenhum comentário é escondido e a
+/// largura do texto nunca diminui além disso.
+const maxIndentLevels = 2;
 const _indentPerLevel = 16.0;
 const maxCommentLength = 500;
 
-/// Achata a árvore em linhas (comentário, profundidade), em ordem de leitura. Nada é cortado.
-List<(Comment, int)> flattenComments(List<Comment> tree, [int depth = 0]) => [
+/// Achata a árvore em linhas (comentário, profundidade, comentário respondido), em ordem de
+/// leitura. Nada é cortado. O terceiro item é `null` nos comentários de topo.
+List<(Comment, int, Comment?)> flattenComments(
+  List<Comment> tree, [
+  int depth = 0,
+  Comment? parent,
+]) => [
   for (final c in tree) ...[
-    (c, depth),
-    ...flattenComments(c.replies, depth + 1),
+    (c, depth, parent),
+    ...flattenComments(c.replies, depth + 1, c),
   ],
 ];
 
@@ -122,29 +129,35 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                     // O erro aparece na seção de comentários.
                   }
                 },
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    PostTile(postId: post.id),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Space.lg,
-                        Space.lg,
-                        Space.lg,
-                        Space.sm,
+                child: LayoutBuilder(
+                  builder: (context, box) => ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: PageContainer.insetsFor(
+                      box.maxWidth,
+                      PageWidth.reading,
+                    ).copyWith(top: 0, bottom: Space.lg),
+                    children: [
+                      PostTile(postId: post.id),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          Space.lg,
+                          Space.lg,
+                          Space.lg,
+                          Space.sm,
+                        ),
+                        child: Text(
+                          'Comentários (${post.commentCount})',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
-                      child: Text(
-                        'Comentários (${post.commentCount})',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      _CommentsSection(
+                        postId: post.id,
+                        comments: comments,
+                        onReply: _reply,
                       ),
-                    ),
-                    _CommentsSection(
-                      postId: post.id,
-                      comments: comments,
-                      onReply: _reply,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -201,11 +214,12 @@ class _CommentsSection extends ConsumerWidget {
         }
         return Column(
           children: [
-            for (final (comment, depth) in flattenComments(tree))
+            for (final (comment, depth, parent) in flattenComments(tree))
               CommentTile(
                 key: ValueKey(comment.id),
                 comment: comment,
                 depth: depth,
+                replyingTo: depth > maxIndentLevels ? parent : null,
                 onReply: () => onReply(comment),
                 onLike: () async {
                   final messenger = ScaffoldMessenger.of(context);
@@ -234,10 +248,14 @@ class CommentTile extends StatelessWidget {
     required this.depth,
     required this.onReply,
     required this.onLike,
+    this.replyingTo,
   });
 
   final Comment comment;
   final int depth;
+
+  /// Quem este comentário responde, mostrado só quando a resposta é funda demais para o recuo.
+  final Comment? replyingTo;
   final VoidCallback onReply;
   final VoidCallback onLike;
 
@@ -246,7 +264,7 @@ class CommentTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final indent =
-        (depth > _maxIndentLevels ? _maxIndentLevels : depth) * _indentPerLevel;
+        (depth > maxIndentLevels ? maxIndentLevels : depth) * _indentPerLevel;
     final author = comment.author;
 
     return Padding(
@@ -286,6 +304,13 @@ class CommentTile extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (replyingTo != null)
+                          Text(
+                            'Respondendo a @${replyingTo!.author.username}',
+                            style: text.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
                         Text(comment.content, style: text.bodyMedium),
                         Wrap(
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -356,20 +381,35 @@ class _Composer extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (replyTo != null)
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Respondendo a @${replyTo!.author.username}',
-                      style: Theme.of(context).textTheme.labelMedium,
+              Semantics(
+                container: true,
+                label: 'Respondendo a ${replyTo!.author.displayName}',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      replyTo!.author.name == null
+                          ? 'Respondendo a @${replyTo!.author.username}'
+                          : 'Respondendo a ${replyTo!.author.name} '
+                                '(@${replyTo!.author.username})',
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Cancelar resposta',
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: onClearReply,
-                  ),
-                ],
+                    Text(
+                      replyTo!.content,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    // Abaixo do texto: com fonte ampliada não cabe ao lado dele.
+                    Tooltip(
+                      message: 'Cancelar resposta',
+                      child: TextButton(
+                        onPressed: onClearReply,
+                        child: const Text('Cancelar resposta'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             if (error != null)
               Padding(

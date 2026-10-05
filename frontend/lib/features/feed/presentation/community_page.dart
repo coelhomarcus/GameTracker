@@ -57,13 +57,15 @@ class FeedList extends ConsumerWidget {
         final following = scope == FeedScope.following;
         return EmptyView(
           icon: following ? Icons.group_outlined : Icons.forum_outlined,
-          title: following ? 'Nada por aqui ainda' : 'Ainda não há posts',
+          title: following
+              ? 'Acompanhe quem joga com você'
+              : 'Ainda não há publicações',
           message: following
               ? 'Quando quem você segue publicar ou jogar algo, aparece aqui.'
-              : 'Seja o primeiro a publicar.',
+              : 'Seja a primeira pessoa a publicar.',
           action: following
               ? FilledButton(
-                  onPressed: () => context.go('/explore'),
+                  onPressed: () => context.go('/explore?scope=people'),
                   child: const Text('Encontrar pessoas'),
                 )
               : FilledButton.icon(

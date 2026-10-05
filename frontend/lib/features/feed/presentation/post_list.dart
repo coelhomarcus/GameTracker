@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/primary_action.dart';
 import '../application/feed_controller.dart';
@@ -74,44 +75,55 @@ class _PostListState extends ConsumerState<PostList>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _maybeLoadMore();
         });
-        return RefreshIndicator(
-          onRefresh: () async {
-            try {
-              await controller.refresh();
-            } catch (_) {
-              // O erro aparece no banner de dados desatualizados.
-            }
+        // Uma coluna de leitura (680): a rolagem ocupa a largura toda e o conteúdo fica centralizado.
+        return LayoutBuilder(
+          builder: (context, box) {
+            final insets = PageContainer.insetsFor(
+              box.maxWidth,
+              PageWidth.reading,
+            );
+            return RefreshIndicator(
+              onRefresh: () async {
+                try {
+                  await controller.refresh();
+                } catch (_) {
+                  // O erro aparece no banner de dados desatualizados.
+                }
+              },
+              child: state.ids.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: insets.copyWith(top: 0, bottom: 0),
+                      children: [
+                        const SizedBox(height: 80),
+                        widget.emptyBuilder(context),
+                      ],
+                    )
+                  : ListView.separated(
+                      controller: _controller,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: insets.copyWith(
+                        top: 0,
+                        bottom: PrimaryAction.fabClearance,
+                      ),
+                      itemCount: state.ids.length + 1,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        if (i == state.ids.length) {
+                          return PostListFooter(
+                            state: state,
+                            provider: widget.provider,
+                          );
+                        }
+                        final id = state.ids[i];
+                        return PostTile(
+                          postId: id,
+                          onTap: () => context.push('/posts/$id'),
+                        );
+                      },
+                    ),
+            );
           },
-          child: state.ids.isEmpty
-              ? ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    const SizedBox(height: 80),
-                    widget.emptyBuilder(context),
-                  ],
-                )
-              : ListView.separated(
-                  controller: _controller,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(
-                    bottom: PrimaryAction.fabClearance,
-                  ),
-                  itemCount: state.ids.length + 1,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    if (i == state.ids.length) {
-                      return PostListFooter(
-                        state: state,
-                        provider: widget.provider,
-                      );
-                    }
-                    final id = state.ids[i];
-                    return PostTile(
-                      postId: id,
-                      onTap: () => context.push('/posts/$id'),
-                    );
-                  },
-                ),
         );
       },
     );

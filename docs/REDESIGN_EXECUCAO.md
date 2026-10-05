@@ -12,7 +12,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 06 Formulário de registro | Concluída (sem inspeção no navegador) | Verificada por testes; corrige regressão da Etapa 03; ver abaixo |
 | 07 Pesquisa / Explorar | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 08 Página do jogo | Concluída (sem inspeção no navegador) | Verificada por testes e pela API de teste; ver abaixo |
-| 09 Comunidade | Pendente | |
+| 09 Comunidade | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 10 Mensagens | Pendente | |
 | 11 Perfil | Pendente | |
 | 12 Configurações / auxiliares | Pendente | |
@@ -179,3 +179,19 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Divergência:** o plano pede menu "Editar/Excluir" no registro; o menu continua dizendo "Remover" (e o diálogo "Remover registro?"), para não renomear o que já tem teste e confirmação própria.
 
 **Não verificado:** a aparência no navegador/aparelho e o comportamento do pinned `SliverPersistentHeader` das abas com um leitor de tela; a 200% de texto e 320 px o cabeçalho passa da primeira tela e as abas só aparecem depois de rolar.
+
+## Etapa 09 — Comunidade, posts e comentários
+
+**Arquivos:** `post_tiles.dart` (atividade), `post_list.dart` (coluna de leitura), `community_page.dart` (estados vazios), `post_detail_page.dart` (coluna, recuo, contexto da resposta). Nenhuma API mudou.
+
+**Feed:** Geral (inicial) e Seguindo continuam cronológicos. A lista ocupa a largura toda, mas o conteúdo fica numa coluna de 680 dp centralizada (16 dp de margem no celular, 24 a partir de 600 dp); isso vale para qualquer lista de posts (feed, perfil, e a aba Comunidade do jogo). O post escrito não mudou de estrutura (avatar de 40, nome, handle, tempo, texto, bloco compacto do jogo com capa, curtir e comentar). A **atividade** passou a ter avatar de 32, o verbo da própria atividade ("zerou X! 🎉"), o status **do momento** como `StatusChip` com texto (nunca só cor), o jogo em bloco compacto e as mesmas ações; o ícone circular antigo saiu. Perfil, jogo e detalhe já usavam os mesmos componentes (`PostTile`/`ActivityTile`); nada foi duplicado e as atividades continuam sem agrupamento.
+
+**Vazios:** Seguindo: "Acompanhe quem joga com você" com "Encontrar pessoas", que agora abre Explorar já na aba Pessoas (`/explore?scope=people`). Geral: "Ainda não há publicações" com o convite para a primeira publicação.
+
+**Detalhe:** o post original aparece inteiro, seguido dos comentários, numa coluna de leitura. O recuo das respostas vai até **dois** níveis (antes eram três); respostas mais fundas ficam alinhadas no segundo recuo e mostram "Respondendo a @…" (o autor imediato), então a largura do texto nunca encolhe além disso e nenhum comentário some. **Resposta:** o compositor mostra a pessoa (nome e @), um trecho do comentário alvo e o botão visível "Cancelar resposta" (que não apaga o que foi digitado); falha preserva texto e alvo, sucesso limpa e atualiza a lista e o contador (já era assim).
+
+**Defeito encontrado e corrigido:** a 360 px com texto a 200%, a linha do contexto da resposta (texto + "Cancelar resposta") estourava 158 px na horizontal, e a coluna da página estourava na vertical como consequência. O botão agora fica abaixo do texto.
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 993 passaram, 48 pulados, 0 falhas; integração 53 passaram. Novos (21 em `community_redesign_test.dart`): coluna de 680 centralizada e margem de 16, Geral inicial e cronológico, post com avatar de 40, atividade com avatar de 32 e status com texto, alvo de toque de 48 dp nos dois, status histórico mesmo com o registro mudado ou apagado, atividade sem jogo, curtida compartilhada com o detalhe, nomes e textos longos a 360 px/200%, vazios com destino correto, original completo antes dos comentários, recuo de 16/16 e alinhamento do terceiro nível em diante com a legenda certa, largura do texto estável em 12 níveis, contexto e cancelar da resposta, sucesso e 200%, e a lógica de `flattenComments` (profundidade e comentário respondido). Atualizados os 2 testes de vazio e os 2 de "Respondendo a".
+
+**Não verificado:** aparência no navegador/aparelho. A paginação e o erro de rodapé do feed, a revalidação com dados antigos visíveis e o composer de post não mudaram e seguem cobertos pelos testes anteriores.

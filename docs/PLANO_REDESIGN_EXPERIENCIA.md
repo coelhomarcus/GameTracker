@@ -188,14 +188,14 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Dependência:** 02–03, 08.
 **Editar:** `frontend/lib/features/feed/presentation/community_page.dart`, `post_tiles.dart`, `post_list.dart`, `post_detail_page.dart` e `create_post_page.dart`.
 
-- [ ] Geral/Seguindo permanecem cronológicos; Geral inicial. Não renomear para “Para você”.
-- [ ] Feed de largura máxima 680, uma coluna. Post escrito: avatar 40, nome+handle, tempo, texto, bloco compacto do jogo com capa e linha de ações. Atividade: avatar 32, verbo/status histórico e jogo em linha compacta, mantendo acesso a curtidas/comentários.
-- [ ] Reutilizar os mesmos componentes em feed/perfil/jogo/detalhe. Não agrupar várias atividades neste ciclo: a diferenciação compacta resolve densidade preservando paginação/ordem sem novo contrato.
-- [ ] Manter uma única ação de publicação no FAB/cabeçalho da etapa 03. Composer: texto, contador 500, jogo/registro vinculado visível e removível, enviar desabilitado para vazio/estouro/envio em andamento.
-- [ ] Estado vazio de Seguindo: “Acompanhe quem joga com você” e CTA para `/explore?scope=people`. Geral vazio: convite para primeira publicação.
-- [ ] No detalhe, post original completo seguido de comentários. Limitar recuo visual a dois níveis; respostas mais profundas mostram “Respondendo a @...” sem reduzir indefinidamente a largura.
-- [ ] Composer de resposta mostra pessoa/contexto e “Cancelar resposta”. Falha mantém texto; sucesso limpa e atualiza lista/contadores. Fonte a 200% deve preservar ações.
-- [ ] Paginação e retry de rodapé mantêm posição e conteúdo; dados antigos continuam visíveis durante erro de revalidação.
+- [x] Geral/Seguindo permanecem cronológicos; Geral inicial. Não renomear para “Para você”.
+- [x] Feed de largura máxima 680, uma coluna. Post escrito: avatar 40, nome+handle, tempo, texto, bloco compacto do jogo com capa e linha de ações. Atividade: avatar 32, verbo/status histórico e jogo em linha compacta, mantendo acesso a curtidas/comentários.
+- [x] Reutilizar os mesmos componentes em feed/perfil/jogo/detalhe. Não agrupar várias atividades neste ciclo: a diferenciação compacta resolve densidade preservando paginação/ordem sem novo contrato.
+- [x] Manter uma única ação de publicação no FAB/cabeçalho da etapa 03. Composer: texto, contador 500, jogo/registro vinculado visível e removível, enviar desabilitado para vazio/estouro/envio em andamento.
+- [x] Estado vazio de Seguindo: “Acompanhe quem joga com você” e CTA para `/explore?scope=people`. Geral vazio: convite para primeira publicação.
+- [x] No detalhe, post original completo seguido de comentários. Limitar recuo visual a dois níveis; respostas mais profundas mostram “Respondendo a @...” sem reduzir indefinidamente a largura.
+- [x] Composer de resposta mostra pessoa/contexto e “Cancelar resposta”. Falha mantém texto; sucesso limpa e atualiza lista/contadores. Fonte a 200% deve preservar ações.
+- [x] Paginação e retry de rodapé mantêm posição e conteúdo; dados antigos continuam visíveis durante erro de revalidação.
 
 **Aceite:** mesma curtida/reflexo em todas as superfícies; atividade usa status histórico, inclusive após mudança/deleção do registro; publicação e resposta preservadas em falha; nomes longos não cobrem menus. Rodar suíte de feed.
 
