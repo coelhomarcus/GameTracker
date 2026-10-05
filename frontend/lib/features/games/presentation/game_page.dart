@@ -8,6 +8,7 @@ import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/game_cover.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/pinned_tab_bar.dart';
 import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
@@ -15,8 +16,7 @@ import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
 import '../../../core/navigation/back_navigation.dart';
-import '../../feed/presentation/post_list.dart';
-import '../../feed/presentation/post_tiles.dart';
+import '../../feed/presentation/post_slivers.dart';
 import '../../library/application/library_controller.dart';
 import '../../library/data/game_entry.dart';
 import '../../library/presentation/entry_actions.dart';
@@ -97,9 +97,6 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
     initialIndex: GamePage.tabIndex(widget.tab),
   )..addListener(_syncRoute);
 
-  /// Distância do fim, em px, a partir da qual a próxima página de posts é pedida.
-  static const _prefetchExtent = 400.0;
-
   static const _communityTab = 2;
 
   /// Trocar de aba atualiza a rota, mas sem empilhar: `replace` reaproveita a página (e o estado)
@@ -165,23 +162,12 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
   /// Pede a próxima página de posts perto do fim da rolagem (só na aba Comunidade).
   bool _onScroll(Notification notification) {
     if (_tabs.index != _communityTab) return false;
-    final ScrollMetrics? metrics = switch (notification) {
-      ScrollNotification(:final metrics) => metrics,
-      ScrollMetricsNotification(:final metrics) => metrics,
-      _ => null,
-    };
-    if (metrics == null || metrics.axis != Axis.vertical) return false;
-    if (metrics.extentAfter < _prefetchExtent) {
-      // Fora do quadro atual: as notificações podem chegar durante o layout.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final provider = gamePostsControllerProvider(widget.game.id);
-        // Depois de uma falha, só o botão "Tentar de novo" repete.
-        if (ref.read(provider).value?.loadMoreError != null) return;
-        ref.read(provider.notifier).loadMore();
-      });
-    }
-    return false;
+    return loadMorePostsOnScroll(
+      notification,
+      ref,
+      gamePostsControllerProvider(widget.game.id),
+      isMounted: () => mounted,
+    );
   }
 
   @override
@@ -232,7 +218,7 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
                     ),
                     SliverPersistentHeader(
                       pinned: true,
-                      delegate: _TabsHeader(
+                      delegate: PinnedTabBarDelegate(
                         TabBar(
                           controller: _tabs,
                           tabs: const [
@@ -282,59 +268,21 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
   }
 
   List<Widget> _communitySlivers(Game game, EdgeInsets insets) {
-    final provider = gamePostsControllerProvider(game.id);
-    final posts = ref.watch(provider);
-    final padding = insets.copyWith(top: Space.lg);
     return [
       SliverPadding(
-        padding: padding,
+        padding: insets.copyWith(top: Space.lg),
         sliver: SliverToBoxAdapter(child: _CommunitySection(game: game)),
       ),
-      if (!posts.hasValue)
-        SliverPadding(
-          padding: insets.copyWith(bottom: Space.xxl),
-          sliver: SliverToBoxAdapter(
-            child: posts.isLoading
-                ? const Padding(
-                    padding: EdgeInsets.all(Space.xl),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : ErrorView(
-                    message: describeError(posts.error!),
-                    onRetry: () => ref.invalidate(provider),
-                  ),
-          ),
-        )
-      else if (posts.requireValue.ids.isEmpty)
-        SliverPadding(
-          padding: insets.copyWith(bottom: Space.xxl),
-          sliver: const SliverToBoxAdapter(
-            child: EmptyView(
-              icon: Icons.forum_outlined,
-              title: 'Ninguém publicou sobre este jogo',
-              message: 'Seja a primeira pessoa a contar o que achou.',
-            ),
-          ),
-        )
-      else
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(insets.left, 0, insets.right, Space.xxl),
-          sliver: SliverList.separated(
-            itemCount: posts.requireValue.ids.length + 1,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final state = posts.requireValue;
-              if (i == state.ids.length) {
-                return PostListFooter(state: state, provider: provider);
-              }
-              final id = state.ids[i];
-              return PostTile(
-                postId: id,
-                onTap: () => context.push('/posts/$id'),
-              );
-            },
-          ),
+      ...postSlivers(
+        ref: ref,
+        provider: gamePostsControllerProvider(game.id),
+        insets: insets,
+        empty: const EmptyView(
+          icon: Icons.forum_outlined,
+          title: 'Ninguém publicou sobre este jogo',
+          message: 'Seja a primeira pessoa a contar o que achou.',
         ),
+      ),
     ];
   }
 }
@@ -343,35 +291,6 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
 int _newestFirst(GameEntry a, GameEntry b) {
   final byDate = b.createdAt.compareTo(a.createdAt);
   return byDate != 0 ? byDate : b.id.compareTo(a.id);
-}
-
-/// Mantém as abas fixas abaixo da barra de título enquanto o conteúdo rola.
-class _TabsHeader extends SliverPersistentHeaderDelegate {
-  const _TabsHeader(this.tabBar, this.background);
-
-  final TabBar tabBar;
-  final Color background;
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) => Material(
-    color: background,
-    elevation: overlapsContent ? 1 : 0,
-    child: tabBar,
-  );
-
-  @override
-  bool shouldRebuild(_TabsHeader old) =>
-      old.tabBar != tabBar || old.background != background;
 }
 
 /// Capa, título, plataformas, gêneros, favorito e a ação principal. Sem registros a ação é

@@ -222,16 +222,16 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Dependência:** 04–05, 09.
 **Editar:** `frontend/lib/features/profiles/presentation/profile_page.dart`, `edit_profile_page.dart` e `application/profile_providers.dart`.
 
-- [ ] Banner mantém proporção 3:1 e avatar sobreposto na borda inferior esquerda; nome/handle/bio fora da área da imagem, sobre superfície legível. Avatar 88 dp no telefone e 112 dp em conteúdo largo.
-- [ ] Nome até duas linhas, handle separado e bio completa até o limite atual de 280 caracteres. Sem bio, ocultar o espaço; no próprio perfil mostrar convite discreto “Conte um pouco sobre você”.
-- [ ] Ações próprias: Editar perfil e engrenagem. Terceiros: Seguir/Seguindo e Mensagem. Contadores de seguidores/seguindo são texto, sem aparência de link.
-- [ ] Mostrar jogos únicos calculados da coleção e registros do perfil. Não mostrar zero enquanto carrega; não transformar erro da coleção em contagem zero.
-- [ ] Destacar Favoritos (até 6 inicialmente, “Ver todos” expande a seção local) e Jogando agora (até 6, sem repetição de jogo). Usar a ordem fornecida pelos dados e não oferecer drag/reordenação que a API não salva.
-- [ ] Abas fixas **Jogos, Atividade, Posts**. Jogos usa agrupamento da etapa 05, filtro de status e grade; sem busca avançada, edição inline ou coluna de notas pessoais.
-- [ ] No próprio perfil, incluir “Gerenciar biblioteca” levando à aba Biblioteca. No perfil alheio, cards abrem página do jogo, sem menus de editar registros.
-- [ ] Conteúdo ≥1000 dp: identidade/destaques em coluna 280 dp e abas/conteúdo no espaço restante, dentro de 1200; abaixo, fluxo vertical. Evitar scrolls verticais competindo.
-- [ ] Edição textual com nome, username e bio; contador 280, validação inline e botão “Salvar alterações”. Preservar todos os valores quando username conflitar ou rede falhar; confirmação de descarte só para texto alterado.
-- [ ] Manter fotos salvas separadamente conforme etapa 04. Não adicionar aba Respostas nem novos campos de conta neste ciclo.
+- [x] Banner mantém proporção 3:1 e avatar sobreposto na borda inferior esquerda; nome/handle/bio fora da área da imagem, sobre superfície legível. Avatar 88 dp no telefone e 112 dp em conteúdo largo.
+- [x] Nome até duas linhas, handle separado e bio completa até o limite atual de 280 caracteres. Sem bio, ocultar o espaço; no próprio perfil mostrar convite discreto “Conte um pouco sobre você”.
+- [x] Ações próprias: Editar perfil e engrenagem. Terceiros: Seguir/Seguindo e Mensagem. Contadores de seguidores/seguindo são texto, sem aparência de link.
+- [x] Mostrar jogos únicos calculados da coleção e registros do perfil. Não mostrar zero enquanto carrega; não transformar erro da coleção em contagem zero.
+- [x] Destacar Favoritos (até 6 inicialmente, “Ver todos” expande a seção local) e Jogando agora (até 6, sem repetição de jogo). Usar a ordem fornecida pelos dados e não oferecer drag/reordenação que a API não salva.
+- [x] Abas fixas **Jogos, Atividade, Posts**. Jogos usa agrupamento da etapa 05, filtro de status e grade; sem busca avançada, edição inline ou coluna de notas pessoais.
+- [x] No próprio perfil, incluir “Gerenciar biblioteca” levando à aba Biblioteca. No perfil alheio, cards abrem página do jogo, sem menus de editar registros.
+- [x] Conteúdo ≥1000 dp: identidade/destaques em coluna 280 dp e abas/conteúdo no espaço restante, dentro de 1200; abaixo, fluxo vertical. Evitar scrolls verticais competindo.
+- [x] Edição textual com nome, username e bio; contador 280, validação inline e botão “Salvar alterações”. Preservar todos os valores quando username conflitar ou rede falhar; confirmação de descarte só para texto alterado.
+- [x] Manter fotos salvas separadamente conforme etapa 04. Não adicionar aba Respostas nem novos campos de conta neste ciclo.
 
 **Aceite:** perfil próprio e alheio têm permissões/ações corretas, replays não duplicam destaques e crop aparece igual na edição/cabeçalho/feed. Testar conteúdo longo, sem imagens, coleção em erro e atualização de identidade em superfícies já abertas.
 

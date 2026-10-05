@@ -66,6 +66,25 @@ void main() {
     expect(find.text('Salvas no botão Salvar alterações.'), findsOneWidget);
   });
 
+  testWidgets('bio com contador de 280 e botão "Salvar alterações"', (
+    tester,
+  ) async {
+    await openEdit(tester);
+    expect(
+      find.text('9/280'),
+      findsOneWidget,
+      reason: '"Minha bio" tem 9 caracteres e o limite é 280',
+    );
+    expect(save, findsOneWidget);
+    await tester.enterText(bioField, 'x' * 300);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextFormField>(bioField).controller!.text.length,
+      280,
+      reason: 'o campo recusa o que passa do limite',
+    );
+  });
+
   group('textos', () {
     testWidgets('salva só o que mudou e volta ao perfil', (tester) async {
       final h = await openEdit(tester);

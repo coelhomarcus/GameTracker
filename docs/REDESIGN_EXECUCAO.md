@@ -14,7 +14,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 08 Página do jogo | Concluída (sem inspeção no navegador) | Verificada por testes e pela API de teste; ver abaixo |
 | 09 Comunidade | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 10 Mensagens | Concluída (sem inspeção no navegador) | Verificada por testes com transporte falso; ver abaixo |
-| 11 Perfil | Pendente | |
+| 11 Perfil | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 12 Configurações / auxiliares | Pendente | |
 | 13 Validação final | Pendente | |
 
@@ -211,3 +211,24 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 1.079 contados, 0 falhas (os 125 testes de chat anteriores passam sem alteração além do texto "Escolha uma conversa"); integração 53 passaram. Novos (37 em `messages_redesign_test.dart`): busca (nome, username, acentos, sem buscar no texto), vazio e limpar, chips e contagem, combinação, ordem, persistência por aba e descarte ao sair, preview de duas linhas, rota no celular com e sem barra, rota lado a lado com rail, trocar conversa, destaque da selecionada, redimensionar mantendo conversa e rascunho, uma conversa montada por vez, corte de 760 dp medido, link direto com login, conversa inexistente, "Nova conversa" lado a lado, botão Mensagem e voltar, largura das bolhas em três janelas, cores, atalhos Enter/Ctrl+Enter/Cmd+Enter, e as seis situações de rolagem (lendo histórico sem pular, botão some ao rolar, perto do fim acompanha, enviar leva ao fim, histórico antigo, mensagem repetida sem duplicar).
 
 **Não verificado:** o socket real e o teclado em aparelho (os testes usam o transporte falso do projeto; a integração contra a API de teste cobre o chat REST/socket como antes); Ctrl/Cmd+Enter num navegador e o comportamento de IME; aparência.
+
+## Etapa 11 — Perfil
+
+**Arquivos:** `profile_page.dart` reescrita; novos `core/design_system/pinned_tab_bar.dart` (abas fixas, agora também usadas pela página do jogo) e `feed/presentation/post_slivers.dart` (lista de posts paginada como slivers, extraída da página do jogo, que passou a usá-la). `edit_profile_page.dart` e `profile_providers.dart` não precisaram de mudança: o formulário de texto já tinha contador de 280, validação inline, "Salvar alterações" e a preservação dos valores (Etapas 04 e anteriores); só ganhou um teste do contador.
+
+**Rolagem:** o perfil antigo tinha um `NestedScrollView` com listas próprias nas abas, ou seja, duas rolagens verticais competindo. Agora é uma rolagem só (`CustomScrollView`) no telefone; em duas colunas são duas rolagens lado a lado (identidade à esquerda, conteúdo à direita), nunca aninhadas.
+
+**Cabeçalho:** banner 3:1 com o avatar sobreposto na borda inferior esquerda (88 dp no telefone, 112 dp em conteúdo largo); nome em até duas linhas, handle separado e bio inteira (até 280) sobre a superfície, fora da imagem. Sem bio, nenhum espaço reservado; no próprio perfil, o convite "Conte um pouco sobre você" leva à edição. Ações próprias: Editar perfil, **Gerenciar biblioteca** (vai à Biblioteca) e a engrenagem; de outra pessoa: Mensagem e Seguir/Seguindo. Seguidores e seguindo continuam texto, sem link. **Contadores:** jogos únicos vêm da coleção agrupada e registros vêm do perfil (no próprio perfil, da Biblioteca já carregada, para não ficar atrás depois de adicionar um jogo); enquanto a coleção carrega ou se ela falhar, o contador de jogos **some**, nunca vira zero.
+
+**Destaques:** Favoritos (até 6; "Ver todos"/"Ver menos" expande ali mesmo) e Jogando agora (até 6, um por jogo, mesmo com vários registros em andamento), na ordem dos dados, sem arrastar. "Concluídos" deixou de ser destaque. **Abas fixas:** Jogos, Atividade e Posts (antes Coleção, Atividades, Posts; sem Respostas). Jogos usa o agrupamento da Etapa 05: filtro de status com contagem de jogos distintos e grade de capas com selo de replays, sem menu, sem notas pessoais e sem dados fixos embaixo da capa; tocar abre o jogo.
+
+**Layout:** a partir de 1000 dp de espaço útil (medido na própria área, depois do rail), coluna de 280 dp com banner (3:1 na largura da coluna), identidade, ações e destaques, e as abas e o conteúdo no resto, dentro de 1200. Abaixo disso, fluxo vertical: no celular a barra de abas vem logo depois da identidade e os destaques abrem a aba Jogos.
+
+**Defeitos encontrados e corrigidos por teste:**
+- A metade de baixo do avatar ficava fora dos limites do `Stack` e **não recebia toque**. O `Stack` agora inclui a zona inferior (avatar e, no telefone, as ações).
+- Com identidade e destaques acima, a barra de abas ficava quase escondida na borda da primeira tela (a diretriz de alvo de toque falhou). Os destaques foram para dentro da aba Jogos no celular.
+- Os botões de ação podiam passar por cima do avatar com texto grande: a zona de ações agora começa depois dele.
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 1.098 contados, 0 falhas; integração 53 passaram. Novos e reescritos em `profile_page_test.dart` (39): destaques e grade, replays em um cartão com selo e sem repetir destaque, filtro com contagem, somente leitura, notas pessoais nunca visíveis, vazio e erro com nova tentativa, próprio perfil (mesma coleção da Biblioteca, contador acompanha, Gerenciar biblioteca, convite sem bio, bio inteira), contadores (jogos únicos, registros do perfil, sem zero enquanto carrega ou com erro), favoritos (6, expandir, ordem), Jogando agora (6, um por jogo), abas fixas, banner 3:1 e avatar de 88 atravessando a borda, toque na metade inferior do avatar, nome de duas linhas, duas colunas (280, avatar de 112, banner 3:1 na coluna), corte de 1000 dp medido, e 360 px a 200% sem overflow.
+
+**Não verificado:** aparência no navegador/aparelho (conferi capturas temporárias a 390 e 1440 px, fora do repositório); a atualização de identidade em superfícies abertas depois de editar continua coberta pelos testes de edição já existentes.

@@ -67,6 +67,7 @@ class FakeProfilesRepository implements ProfilesRepository {
   Object? updateError;
   Object? uploadError;
   Object? collectionError;
+  Completer<void>? collectionGate;
   Completer<void>? followGate;
   Completer<void>? uploadGate;
   String avatarUrlResult = 'http://localhost:3100/uploads/avatars/new.jpg';
@@ -99,6 +100,7 @@ class FakeProfilesRepository implements ProfilesRepository {
   @override
   Future<List<GameEntry>> collection(String userId) async {
     collectionCalls++;
+    await collectionGate?.future;
     final error = collectionError;
     if (error != null) throw error;
     return collectionByUser[userId] ?? const [];
