@@ -5,10 +5,44 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/network/error_messages.dart';
 import '../../feed/presentation/celebration.dart';
+import '../../games/data/game_models.dart';
 import '../application/library_controller.dart';
 import '../data/game_entry.dart';
 
 enum _EntryAction { status, edit, remove }
+
+enum _GameAction { records, newRecord }
+
+/// Menu de um jogo na Biblioteca: ver os registros ou começar um novo. Editar e excluir acontecem
+/// no registro específico (página do jogo, "Meu progresso"), nunca no mais recente por tabela.
+class GameMenuButton extends StatelessWidget {
+  const GameMenuButton({super.key, required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_GameAction>(
+      tooltip: 'Ações de ${game.name}',
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) => switch (action) {
+        _GameAction.records => context.push(
+          '/games/${game.igdbId}?tab=progress',
+        ),
+        _GameAction.newRecord => context.push(
+          '/games/${game.igdbId}/playthroughs/new',
+        ),
+      },
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: _GameAction.records, child: Text('Ver registros')),
+        PopupMenuItem(
+          value: _GameAction.newRecord,
+          child: Text('Novo registro'),
+        ),
+      ],
+    );
+  }
+}
 
 /// Menu do registro: alterar status, editar e remover. Cada ação mostra o resultado
 /// em um SnackBar; falhas não mudam a coleção.

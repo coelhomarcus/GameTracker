@@ -18,6 +18,7 @@ import 'package:gametracker/features/push/application/push_controller.dart';
 import 'package:gametracker/features/push/data/push_platform.dart';
 import 'package:gametracker/features/push/data/push_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
+import 'package:gametracker/core/design_system/game_card.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
 import 'package:gametracker/features/profiles/presentation/profile_image_crop_page.dart';
@@ -164,5 +165,19 @@ Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
 Future<void> goTo(WidgetTester tester, String path) async {
   final context = tester.element(find.byType(Scaffold).first);
   GoRouter.of(context).go(path);
+  await tester.pumpAndSettle();
+}
+
+/// A capa de um jogo na grade da Biblioteca. A prateleira "Jogando agora" repete as capas dos
+/// jogos em andamento, por isso a grade é sempre o último resultado.
+Finder libraryGame(String title) =>
+    find.byWidgetPredicate((w) => w is GameCard && w.title == title).last;
+
+/// Rola até a capa (a grade começa abaixo do resumo, da prateleira e dos filtros) e abre o jogo
+/// na aba "Meu progresso".
+Future<void> openLibraryGame(WidgetTester tester, String title) async {
+  await tester.ensureVisible(libraryGame(title));
+  await tester.pumpAndSettle();
+  await tester.tap(libraryGame(title));
   await tester.pumpAndSettle();
 }

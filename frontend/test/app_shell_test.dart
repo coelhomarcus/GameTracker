@@ -86,6 +86,14 @@ void main() {
   testWidgets('texto a 200% não gera overflow na Biblioteca', (tester) async {
     await signedIn().pump(tester, size: const Size(360, 800), textScale: 2.0);
     expect(tester.takeException(), isNull);
-    expect(find.text('Jogo Fixture Um'), findsWidgets);
+    // A 200% a lista assume (a grade de capas deixa de ser legível) e começa abaixo do resumo,
+    // da prateleira e dos filtros.
+    await tester.scrollUntilVisible(
+      find.text('Jogo Fixture Um'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byType(ListTile), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 }

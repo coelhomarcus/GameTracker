@@ -190,7 +190,10 @@ GoRouter buildRouter({
     GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
     GoRoute(
       path: '/games/:igdbId',
-      builder: (_, state) => GamePage(igdbId: _igdbId(state)),
+      builder: (_, state) => GamePage(
+        igdbId: _igdbId(state),
+        tab: state.uri.queryParameters['tab'],
+      ),
       routes: [
         GoRoute(
           path: 'playthroughs/new',

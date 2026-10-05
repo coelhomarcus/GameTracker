@@ -2,9 +2,11 @@
 // são preguiçosas (só constroem o que aparece), chegam ao fim e não repetem nem travam.
 // Os tempos só são impressos; o teto é largo (pega travamento). Tempo de parede em suíte paralela é instável.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gametracker/core/design_system/game_card.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
+import 'package:gametracker/features/library/application/library_groups.dart';
 import 'package:material_ui/material_ui.dart'
-    show AxisDirection, ListTile, Scrollable, Size;
+    show AxisDirection, Scrollable, Size, TextField;
 
 import '../support/fake_chat.dart';
 import '../support/fake_repos.dart';
@@ -15,66 +17,98 @@ final _vertical = find.byWidgetPredicate(
 );
 
 void main() {
-  testWidgets('biblioteca com 500 registros: lista preguiçosa, rola até o fim', (
-    tester,
-  ) async {
-    final entries = [
-      for (var i = 0; i < 500; i++)
-        fakeEntry(
-          id: 'e$i',
-          game: fakeGame(
-            igdbId: 1000 + i,
-            name: 'Jogo ${i.toString().padLeft(3, '0')}',
+  testWidgets(
+    'biblioteca com 1000 registros (800 jogos, com replays): preguiçosa, rola até o fim',
+    (tester) async {
+      // 800 jogos; os 200 primeiros têm um replay: 1000 registros.
+      final entries = [
+        for (var i = 0; i < 1000; i++)
+          () {
+            final game = i < 800 ? i : i - 800;
+            return fakeEntry(
+              id: 'e$i',
+              game: fakeGame(
+                igdbId: 1000 + game,
+                name: 'Jogo ${game.toString().padLeft(3, '0')}',
+              ),
+              status: GameStatus.values[i % GameStatus.values.length],
+              platform: i.isEven ? 'PC' : 'PlayStation 5',
+              hours: i / 2,
+              rating: 1 + i % 10,
+              // Quanto maior o número do jogo, mais antigo: o último da lista é o "Jogo 799".
+              createdAt: DateTime.utc(2026)
+                  .add(Duration(minutes: 5000 - game * 2 - (i >= 800 ? 1 : 0))),
+            );
+          }(),
+      ];
+
+      final overviewWatch = Stopwatch()..start();
+      final overview = buildLibraryOverview(entries);
+      overviewWatch.stop();
+      expect(overview.summary.games, 800);
+      expect(overview.summary.records, 1000);
+      expect(overview.groups.where((g) => g.hasReplays), hasLength(200));
+      expect(
+        overviewWatch.elapsedMilliseconds,
+        lessThan(2000),
+        reason: 'projeção de 1000 registros',
+      );
+
+      final h = AppHarness(library: FakeLibraryRepository(entries));
+      final openWatch = Stopwatch()..start();
+      await h.pump(tester, size: const Size(400, 800));
+      openWatch.stop();
+
+      expect(
+        find.byType(GameCard).evaluate().length,
+        lessThan(60),
+        reason: 'a grade precisa ser preguiçosa',
+      );
+
+      final scrollWatch = Stopwatch()..start();
+      await tester.scrollUntilVisible(
+        find.text('Jogo 799'),
+        4000,
+        scrollable: _vertical.first,
+        maxScrolls: 400,
+      );
+      scrollWatch.stop();
+      await tester.pumpAndSettle();
+
+      // ignore: avoid_print
+      print(
+        'projeção 1000: ${overviewWatch.elapsedMilliseconds} ms · abrir: ${openWatch.elapsedMilliseconds} ms · rolar até o fim: ${scrollWatch.elapsedMilliseconds} ms',
+      );
+      expect(find.text('Jogo 799'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'biblioteca com 1000 registros: busca e filtro respondem sem reconstruir tudo',
+    (tester) async {
+      final entries = [
+        for (var i = 0; i < 1000; i++)
+          fakeEntry(
+            id: 'e$i',
+            game: fakeGame(
+              igdbId: 1000 + i,
+              name: i == 777 ? 'Pokémon Ônix' : 'Jogo $i',
+            ),
+            status: GameStatus.values[i % GameStatus.values.length],
           ),
-          status: GameStatus.values[i % GameStatus.values.length],
-          hours: i / 2,
-          rating: 1 + i % 10,
-          createdAt: DateTime.utc(2026).add(Duration(minutes: 500 - i)),
-        ),
-    ];
-    final h = AppHarness(library: FakeLibraryRepository(entries));
-    final openWatch = Stopwatch()..start();
-    await h.pump(tester, size: const Size(400, 800));
-    openWatch.stop();
-
-    expect(
-      find.byType(ListTile).evaluate().length +
-          find.textContaining('Jogo ').evaluate().length,
-      lessThan(120),
-      reason: 'a lista precisa ser preguiçosa',
-    );
-
-    final scrollWatch = Stopwatch()..start();
-    var frames = 0;
-    for (var i = 0; i < 60 && find.text('Jogo 499').evaluate().isEmpty; i++) {
-      await tester.fling(_vertical.first, const Offset(0, -2500), 6000);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      frames += 2;
-    }
-    scrollWatch.stop();
-    await tester.pumpAndSettle();
-
-    // ignore: avoid_print
-    print(
-      'VISIBLE: ${find.textContaining('Jogo ').evaluate().map((e) => (e.widget as dynamic).data).toList()}',
-    );
-    // ignore: avoid_print
-    print(
-      'abrir 500: ${openWatch.elapsedMilliseconds} ms · rolar até o fim: ${scrollWatch.elapsedMilliseconds} ms ($frames quadros)',
-    );
-    expect(
-      find.text('Jogo 499'),
-      findsWidgets,
-      reason: 'o último registro precisa ser alcançável',
-    );
-    expect(tester.takeException(), isNull);
-    expect(
-      scrollWatch.elapsedMilliseconds / frames,
-      lessThan(2000),
-      reason: 'travamento: com a carga de uma suíte inteira rodando em paralelo o normal fica abaixo de 300 ms',
-    );
-  });
+      ];
+      await AppHarness(library: FakeLibraryRepository(entries))
+          .pump(tester, size: const Size(400, 800));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Buscar na biblioteca'),
+        'pokemon onix',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('1 jogo encontrado'), findsOneWidget);
+      expect(find.byType(GameCard).evaluate().length, lessThan(5));
+    },
+  );
 
   testWidgets(
     'conversa com 1000 mensagens: carrega por páginas até o começo, sem repetir',

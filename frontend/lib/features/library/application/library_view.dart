@@ -1,5 +1,6 @@
 import '../../../core/design_system/game_status.dart';
 import '../data/game_entry.dart';
+import 'library_groups.dart';
 import 'library_prefs.dart';
 
 /// Filtra por status e ordena no cliente: a coleção já está toda carregada.
@@ -27,6 +28,11 @@ List<GameEntry> applyLibraryView(
         if (hb == null) return -1;
         final byHours = hb.compareTo(ha);
         return byHours != 0 ? byHours : b.createdAt.compareTo(a.createdAt);
+      });
+    case LibrarySort.name:
+      filtered.sort((a, b) {
+        final byName = foldText(a.game.name).compareTo(foldText(b.game.name));
+        return byName != 0 ? byName : b.createdAt.compareTo(a.createdAt);
       });
   }
   return filtered;

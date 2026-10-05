@@ -18,6 +18,7 @@ class GameCard extends StatefulWidget {
     this.caption,
     this.onTap,
     this.overlay,
+    this.badge,
     this.showDetails = true,
   });
 
@@ -31,6 +32,10 @@ class GameCard extends StatefulWidget {
 
   /// Controle sobreposto ao canto da capa (menu de ações). Fica fora do alvo de toque da capa.
   final Widget? overlay;
+
+  /// Indicador no canto inferior esquerdo da capa (ex.: vários registros). Só visual: o
+  /// significado vai na [caption], que entra no rótulo de acessibilidade.
+  final Widget? badge;
   final bool showDetails;
 
   /// Colunas para [availableWidth], com cards de pelo menos [minWidth] e [spacing] entre eles.
@@ -84,6 +89,14 @@ class _GameCardState extends State<GameCard> {
               ),
             ),
           ),
+          if (widget.badge != null)
+            Positioned(
+              left: Space.xs,
+              bottom: Space.xs,
+              child: IgnorePointer(
+                child: ExcludeSemantics(child: widget.badge!),
+              ),
+            ),
           if (widget.overlay != null)
             Positioned(top: 0, right: 0, child: widget.overlay!),
         ],

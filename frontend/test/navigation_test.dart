@@ -105,8 +105,7 @@ void main() {
 
     testWidgets('com pilha, voltar desfaz o push', (tester) async {
       await harness().pump(tester);
-      await tester.tap(find.text('Jogo Fixture Um').first);
-      await tester.pumpAndSettle();
+      await openLibraryGame(tester, 'Jogo Fixture Um');
       expect(location(tester), '/games/900001');
       await tapAndSettle(tester, find.byType(BackButton));
       expect(location(tester), '/library');

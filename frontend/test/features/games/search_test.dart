@@ -119,7 +119,7 @@ void main() {
     await h.pump(tester);
     await tapAndSettle(
       tester,
-      find.widgetWithText(FilledButton, 'Adicionar jogo'),
+      find.widgetWithText(FloatingActionButton, 'Adicionar jogo'),
     );
     await typeQuery(tester, 'zelda');
     await tapAndSettle(tester, find.text('Zelda Fixture'));

@@ -260,6 +260,7 @@ void main() {
         final h = AppHarness(feed: feed, library: library);
         await h.pump(tester);
 
+        await openLibraryGame(tester, 'Jogo Fixture Um');
         await tapAndSettle(
           tester,
           find.byTooltip('Ações do registro de Jogo Fixture Um'),
@@ -296,6 +297,7 @@ void main() {
         fakeEntry(id: 'e1', status: GameStatus.backlog),
       ]);
       await AppHarness(library: library).pump(tester);
+      await openLibraryGame(tester, 'Jogo Fixture Um');
       await tapAndSettle(
         tester,
         find.byTooltip('Ações do registro de Jogo Fixture Um'),
@@ -310,6 +312,7 @@ void main() {
         fakeEntry(id: 'e1', status: GameStatus.playing),
       ])..mutationError = const NetworkException();
       await AppHarness(library: library).pump(tester);
+      await openLibraryGame(tester, 'Jogo Fixture Um');
       await tapAndSettle(
         tester,
         find.byTooltip('Ações do registro de Jogo Fixture Um'),

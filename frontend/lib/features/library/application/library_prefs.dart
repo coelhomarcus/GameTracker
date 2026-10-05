@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 
 enum LibrarySort {
-  recent('recent', 'Mais recentes'),
-  oldest('oldest', 'Mais antigos'),
-  mostPlayed('most_played', 'Mais jogados');
+  recent('recent', 'Adicionados recentemente'),
+  oldest('oldest', 'Adicionados há mais tempo'),
+  mostPlayed('most_played', 'Mais horas registradas'),
+  name('name', 'Nome A–Z');
 
   const LibrarySort(this.key, this.label);
   final String key;

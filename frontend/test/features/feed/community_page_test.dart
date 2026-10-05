@@ -308,12 +308,15 @@ void main() {
       final afterFirstLoad = feed.feedCalls.length;
 
       await tapAndSettle(tester, find.text('Biblioteca').last);
+      await openLibraryGame(tester, 'Jogo Fixture Um');
       await tapAndSettle(
         tester,
         find.byTooltip('Ações do registro de Jogo Fixture Um'),
       );
       await tapAndSettle(tester, find.text('Alterar status'));
       await tapAndSettle(tester, find.widgetWithText(ListTile, 'Concluído'));
+      // O status mudou na página do jogo; volta ao app para ir à Comunidade.
+      await tapAndSettle(tester, find.byType(BackButton));
       expect(
         feed.feedCalls.length,
         afterFirstLoad,

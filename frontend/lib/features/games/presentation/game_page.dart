@@ -21,9 +21,18 @@ import 'image_viewer.dart';
 /// Página de jogo reconstruída pelo `igdbId` da rota (funciona em deep link e recarga).
 /// Cada aba carrega a sua parte: a falha de uma não derruba a página inteira.
 class GamePage extends ConsumerWidget {
-  const GamePage({super.key, required this.igdbId});
+  const GamePage({super.key, required this.igdbId, this.tab});
 
   final int igdbId;
+
+  /// `progress` ou `community` abrem essa aba; ausente ou desconhecido abre "Sobre".
+  final String? tab;
+
+  static int tabIndex(String? tab) => switch (tab) {
+    'progress' => 1,
+    'community' => 2,
+    _ => 0,
+  };
 
   static const _back = FallbackBackButton(fallback: '/library');
 
@@ -57,15 +66,16 @@ class GamePage extends ConsumerWidget {
           onRetry: () => ref.invalidate(gameControllerProvider(igdbId)),
         ),
       ),
-      data: (game) => _GameScaffold(game: game),
+      data: (game) => _GameScaffold(game: game, initialTab: tabIndex(tab)),
     );
   }
 }
 
 class _GameScaffold extends ConsumerWidget {
-  const _GameScaffold({required this.game});
+  const _GameScaffold({required this.game, required this.initialTab});
 
   final Game game;
+  final int initialTab;
 
   Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -83,6 +93,7 @@ class _GameScaffold extends ConsumerWidget {
     final favorite = game.isFavoritedByMe;
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTab,
       child: Scaffold(
         body: NestedScrollView(
           headerSliverBuilder: (context, _) => [

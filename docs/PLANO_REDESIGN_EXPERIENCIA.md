@@ -116,19 +116,19 @@ Lista: capa pequena, título, status, plataforma, horas, nota e acesso aos regis
 Acima dos resultados: busca, filtros, ordenação e alternância entre grade/lista. Essas ferramentas não ocupam espaço nos cartões.
 No celular: começar com três capas por linha, ajustando pela largura disponível. No desktop, aumentar as colunas mantendo uma largura confortável.
 
-- [ ] Agrupar por `game.id`, preservando todos os `entry.id`. Ordenar os registros de cada grupo por `createdAt` decrescente e ID como desempate.
-- [ ] Resumo geral usa jogos únicos, total de registros e jogos com pelo menos um registro `playing`. Nunca inferir quantidade de jogos pelo `gameEntryCount` do perfil.
-- [ ] Prateleira Jogando agora ordenada pelo registro `playing` mais recente de cada jogo; no máximo 6; “Ver todos” aplica filtro Jogando e leva aos resultados. Ocultar prateleira enquanto houver busca ou filtro ativo.
-- [ ] Busca local por título, sem diferença de caixa ou acentos. Filtros: um status por vez e uma plataforma por vez; plataforma vem dos registros, comparada por texto normalizado. Opção “Todas as plataformas”.
-- [ ] O mesmo registro precisa satisfazer status **e** plataforma. Só então agrupar os correspondentes. Exemplos: concluído/PC + jogando/PS5 não pode aparecer em jogando/PC.
-- [ ] Contagens dos chips representam jogos distintos por status após busca/plataforma, antes do status selecionado. Um jogo pode participar de dois chips; a soma dos chips não é o total único.
-- [ ] No cartão, se houver um status entre os registros correspondentes, mostrar esse status; se houver vários, mostrar “Vários status” com ícone neutro. Mostrar “2 registros” quando aplicável; com filtro parcial, “1 de 2 registros”.
-- [ ] Sort: “Adicionados recentemente” = maior `createdAt` do grupo; “Adicionados há mais tempo” = menor; “Mais horas registradas” = soma de horas conhecidas dos registros; “Nome A–Z” = nome normalizado. No sort de horas, grupos sem horas vêm por último; zero vem antes de ausência. Calcular chaves sobre os registros correspondentes aos filtros; desempate por título e `game.id`.
-- [ ] Grid e sort continuam persistidos nas chaves existentes. Busca/status/plataforma ficam em memória por conta e sobrevivem à troca de aba, sendo descartados no logout.
-- [ ] Grade: duas colunas em 360 dp, crescendo pela largura disponível com cards de pelo menos 132 dp e espaçamento 12; medir conteúdo após rail/padding. Com texto a 200%, usar lista automaticamente se a grade ficar ilegível, sem sobrescrever a preferência salva.
-- [ ] Tocar no card abre o jogo em “Meu progresso”. Menu: “Ver registros” e “Novo registro”. Edição/exclusão ocorre no registro específico, nunca implicitamente no mais recente.
-- [ ] Lista mostra capa pequena, título, plataformas, status, número de registros e horas conhecidas. Não calcular média de notas nem atribuir a nota de um replay a todo o jogo.
-- [ ] Vazio total: “Sua biblioteca começa com um jogo” / “Encontrar jogo”. Vazio filtrado: “Nenhum jogo com esses filtros” / “Limpar filtros”. Limpar remove busca/status/plataforma, mantendo grid e sort.
+- [x] Agrupar por `game.id`, preservando todos os `entry.id`. Ordenar os registros de cada grupo por `createdAt` decrescente e ID como desempate.
+- [x] Resumo geral usa jogos únicos, total de registros e jogos com pelo menos um registro `playing`. Nunca inferir quantidade de jogos pelo `gameEntryCount` do perfil.
+- [x] Prateleira Jogando agora ordenada pelo registro `playing` mais recente de cada jogo; no máximo 6; “Ver todos” aplica filtro Jogando e leva aos resultados. Ocultar prateleira enquanto houver busca ou filtro ativo.
+- [x] Busca local por título, sem diferença de caixa ou acentos. Filtros: um status por vez e uma plataforma por vez; plataforma vem dos registros, comparada por texto normalizado. Opção “Todas as plataformas”.
+- [x] O mesmo registro precisa satisfazer status **e** plataforma. Só então agrupar os correspondentes. Exemplos: concluído/PC + jogando/PS5 não pode aparecer em jogando/PC.
+- [x] Contagens dos chips representam jogos distintos por status após busca/plataforma, antes do status selecionado. Um jogo pode participar de dois chips; a soma dos chips não é o total único.
+- [x] No cartão, se houver um status entre os registros correspondentes, mostrar esse status; se houver vários, mostrar “Vários status” com ícone neutro. Mostrar “2 registros” quando aplicável; com filtro parcial, “1 de 2 registros”.
+- [x] Sort: “Adicionados recentemente” = maior `createdAt` do grupo; “Adicionados há mais tempo” = menor; “Mais horas registradas” = soma de horas conhecidas dos registros; “Nome A–Z” = nome normalizado. No sort de horas, grupos sem horas vêm por último; zero vem antes de ausência. Calcular chaves sobre os registros correspondentes aos filtros; desempate por título e `game.id`.
+- [x] Grid e sort continuam persistidos nas chaves existentes. Busca/status/plataforma ficam em memória por conta e sobrevivem à troca de aba, sendo descartados no logout.
+- [x] Grade: duas colunas em 360 dp, crescendo pela largura disponível com cards de pelo menos 132 dp e espaçamento 12; medir conteúdo após rail/padding. Com texto a 200%, usar lista automaticamente se a grade ficar ilegível, sem sobrescrever a preferência salva.
+- [x] Tocar no card abre o jogo em “Meu progresso”. Menu: “Ver registros” e “Novo registro”. Edição/exclusão ocorre no registro específico, nunca implicitamente no mais recente.
+- [x] Lista mostra capa pequena, título, plataformas, status, número de registros e horas conhecidas. Não calcular média de notas nem atribuir a nota de um replay a todo o jogo.
+- [x] Vazio total: “Sua biblioteca começa com um jogo” / “Encontrar jogo”. Vazio filtrado: “Nenhum jogo com esses filtros” / “Limpar filtros”. Limpar remove busca/status/plataforma, mantendo grid e sort.
 
 **Aceite:** testar replays com status/plataformas diferentes, busca combinada, null versus zero e contadores únicos. O backend já aceita status/igdbId/sort, mas o cliente atual carrega toda a lista; manter filtragem local completa nesta entrega, sem nova paginação remota. Validar volume com 1.000 registros sintéticos e renderização lazy.
 
