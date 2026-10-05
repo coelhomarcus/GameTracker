@@ -582,10 +582,11 @@ Cada etapa encerra com uma demonstração funcional, evidências de teste e atua
 - [ ] Distribuir gradualmente; observar autenticação, falhas, chat, uploads e push.
 - [ ] Manter backend compatível e build Expo recuperável durante a janela acordada.
 - [ ] Confirmar ausência de regressões bloqueadoras e adoção do novo cliente.
-- [ ] Arquivar referência do legado em tag e remover `mobile/` da árvore ativa quando dispensável.
+- [x] Arquivar referência do legado em tag (`legacy-expo-final`, local até ser enviada).
+- [ ] Remover `mobile/` da árvore ativa quando dispensável (procedimento e critérios em `docs/06_ENCERRAMENTO_LEGADO.md`).
 - [ ] Retirar EAS, Metro, pacotes React Native/Expo e documentação obsoleta da aplicação ativa.
 - [ ] Retirar campo/endpoint/adaptador Expo apenas em uma fase posterior, após encerrar a janela de compatibilidade.
-- [ ] Atualizar README, instruções de contribuição, ambientes, CI e roadmap; preservar o histórico.
+- [x] Atualizar README (Flutter oficial, legado marcado); CI do Flutter e de release criados. Roadmap e instruções de contribuição: após a fase A.
 
 **Saída:** Flutter é o frontend oficial e único em manutenção; não há dependência operacional de React Native/Expo, com histórico e artefatos antigos preservados para consulta.
 

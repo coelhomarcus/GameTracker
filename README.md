@@ -5,7 +5,8 @@ App social pra acompanhar os jogos que você tá jogando — trackeie playthroug
 ## Stack
 
 - **Backend**: Node.js, Express, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO (chat em tempo real), JWT (auth), IGDB (dados dos jogos)
-- **Mobile**: Expo (React Native), TypeScript, React Navigation, TanStack Query, Zustand
+- **App (oficial)**: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO — em [`flutter_app/`](flutter_app/)
+- **App legado**: Expo (React Native) em [`mobile/`](mobile/), mantido só como plano de retorno até o encerramento descrito em [`docs/06_ENCERRAMENTO_LEGADO.md`](docs/06_ENCERRAMENTO_LEGADO.md); não recebe funcionalidades novas
 
 ## Rodando localmente
 
@@ -23,27 +24,39 @@ npm run dev            # sobe em http://localhost:3000
 
 Se não tiver um Postgres/Redis próprios, tem um `docker-compose.dev.yml` na raiz do projeto pra subir os dois localmente.
 
-### Mobile
+### App Flutter
+
+Pré-requisito: Flutter 3.47 (Android SDK para o APK). Veja também [`flutter_app/README.md`](flutter_app/README.md).
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run -d chrome                          # web, contra http://localhost:3100
+flutter test                                   # unidade, widget e aceite
+flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100   # backend ISOLADO
+```
+
+A URL da API entra no build (`--dart-define=API_URL=https://...`). Nunca rode os testes de integração contra um banco compartilhado ou de produção.
+
+### App legado (Expo)
 
 ```bash
 cd mobile
-cp .env.example .env   # aponte EXPO_PUBLIC_API_URL pro backend (IP da rede local se for testar em dispositivo físico)
+cp .env.example .env   # EXPO_PUBLIC_API_URL
 npm install
-npm start              # abre o Metro — escaneie o QR code com o Expo Go, ou pressione i/a pro simulador
+npm start
 ```
 
-## Build (APK Android)
-
-O projeto já tem o EAS configurado. Pra gerar um APK completo (bundle já embutido, instala direto sem precisar do Metro rodando):
+## Build (APK Android do app Flutter)
 
 ```bash
-cd mobile
-npx eas-cli login
-npx eas-cli build --platform android --profile preview
+cd flutter_app
+# precisa de android/key.properties (fora do git) com a chave de assinatura
+API_URL=https://api.seudominio.com tool/build_release.sh
 ```
 
-Ao terminar, o EAS dá um link/QR code pra baixar o `.apk` direto no celular.
+O script recusa API sem HTTPS e APK assinado com a chave de debug. O mesmo fluxo roda no GitHub Actions (`.github/workflows/flutter-release.yml`, com secrets). O EAS do app legado (`mobile/eas.json`) deixa de ser o caminho de distribuição.
 
 ## Documentação
 
-O progresso e as decisões de cada fase do projeto estão registrados em [ROADMAP.md](ROADMAP.md).
+O progresso e as decisões de cada fase do projeto estão registrados em [docs/01_ROADMAP.md](docs/01_ROADMAP.md); a migração para Flutter está em [docs/02_PLANO_MIGRACAO_FLUTTER.md](docs/02_PLANO_MIGRACAO_FLUTTER.md) e a matriz de aceite em [docs/05_MATRIZ_ACEITE.md](docs/05_MATRIZ_ACEITE.md).
