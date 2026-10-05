@@ -25,7 +25,7 @@ Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de
 
 - **App novo em Flutter** (Android e web; iOS fora de escopo) com paridade de todas as telas do app Expo: login e cadastro, busca de jogos e pessoas, biblioteca, página do jogo, formulário de playthrough, comunidade, posts e comentários, perfis, editar perfil com fotos, chat em tempo real, central de notificações e configurações. A interface foi redesenhada em Material 3, com tema claro, escuro e do sistema.
 - **Mesmo backend**: Express, PostgreSQL, Redis, IGDB e Socket.IO, com mudanças só aditivas e correções de bugs encontrados pelos testes (seção 6). Nenhum dado foi migrado, e o app Expo continua funcionando.
-- **Qualidade**: 705 testes de unidade, widget e aceite no Flutter (mais 50 de integração contra o backend real isolado) e 32 testes no backend. Todos passam, e `flutter analyze` e a formatação estão limpos.
+- **Qualidade**: 705 testes de unidade, widget e aceite no Flutter (mais 50 de integração contra o backend real) e 108 no backend (unidade e API de verdade). Todos passam, e `flutter analyze` e a formatação estão limpos.
 - **Distribuição**: APK de release assinado por script (`tool/build_release.sh`) ou pelo GitHub Actions, com a URL da API definida no build.
 - **Segurança e correções de backend achadas ao testar**: queda do servidor por id inválido no chat, corrida na renovação da sessão, duplicidade de notificações, conversas duplicadas, erros 500 em PATCH vazio e imagem corrompida, e anotações pessoais expostas na API.
 - **Legado**: nada foi removido. O `mobile/` fica como plano de retorno, e a tag local `legacy-expo-final` marca o último commit com ele ativo.
@@ -39,11 +39,11 @@ Cada decisão tem o motivo e a consequência.
 | 1 | **Stack**: Flutter 3.47.6 / Dart 3.13.5, `material_ui` 1.5.0, Riverpod 3.4.3, `go_router` 18.0.2, Dio 5.11.1, `socket_io_client` 3.1.6, `flutter_secure_storage` 11.2.0, `shared_preferences` 2.5.5, `image_picker` 1.2.3 | O conjunto resolveu sem conflitos, compilou para Android e web e interoperou com o Socket.IO 4.8 do servidor. Versões fixadas no `pubspec.lock`; atualizar o SDK exige repetir os builds. |
 | 2 | **Plataformas**: Android e web; iOS fora de escopo (03/10/2026) | Sem APNs, runner macOS nem pasta `ios/`. Se iOS voltar, é uma etapa nova. |
 | 3 | **Sessão**: refresh token no armazenamento seguro (Android) e access token só em memória; renovação serializada (várias respostas 401 esperam a mesma operação). **Web: só memória**, com novo login ao recarregar | O refresh token é de uso único: duas renovações simultâneas derrubariam a sessão. A web fica assim até existir cookie `HttpOnly` no backend (seção 11). Logout descarta o socket e todos os dados da conta. |
-| 4 | **Datas e horas**: datas de progresso são datas de calendário lidas em UTC (o backend manda `…T00:00:00.000Z`); `createdAt` é instante convertido ao horário local; horas chegam como string decimal | Evita que um dia mude por fuso. Os JSONs reais gravados em `docs/contract-fixtures/` viraram testes de contrato do cliente. |
+| 4 | **Datas e horas**: datas de progresso são datas de calendário lidas em UTC (o backend manda `…T00:00:00.000Z`); `createdAt` é instante convertido ao horário local; horas chegam como string decimal | Evita que um dia mude por fuso. Os JSONs reais gravados em `flutter_app/test/fixtures/` viraram testes de contrato do cliente. |
 | 5 | **Push**: **fora desta entrega** (04/10/2026). Backend e cliente prontos; o adaptador FCM não foi escrito porque não existe projeto Firebase | Sem Firebase, só há central de notificações em polling (60 s com o app aberto). O app mostra "Indisponível neste dispositivo" nas configurações, sem erro. O caminho para ligar está na seção 11. |
 | 6 | **Transição do app instalado**: distribuição só por APK manual (trabalho de faculdade, sem loja); novo login na troca; mesmo application ID `com.marcuscoelho.gametracker`; keystore do EAS anterior irrelevante | Sem loja, rollout gradual e AAB não se aplicam. O app novo pode entrar como instalação separada; atualizar por cima do legado não é requisito. |
 | 7 | **Design**: Material 3 com `ColorScheme.fromSeed` (violeta), temas claro, escuro e do sistema, Biblioteca como destino inicial; cores de status (backlog, jogando, concluído, abandonado) em extensão de tema, sempre com texto ou ícone | Direção visual aprovada pelo dono ("SERVE"). |
-| 8 | **Ambiente de teste isolado**: containers próprios (`gt-flutter-pg` na porta 5433, `gt-flutter-redis` na 6380, backend na 3100), nunca o banco compartilhado | Os testes de integração criam e apagam dados. O `backend/.env` do dono não é alterado; limites e portas vão pela linha de comando. |
+| 8 | **Ambiente de teste isolado**: `docker-compose.test.yml` (Postgres :5434 com o banco `gametracker_test` e Redis :6381, descartáveis) e `backend/.env.test`; uma trava (`backend/test/helpers/env.ts`) recusa rodar contra qualquer banco que não seja local e terminado em `_test` | Os testes criam e apagam dados. Os testes nunca leem o `backend/.env` do dono, e a trava impede apontar por engano para o banco de desenvolvimento ou de produção. |
 | 9 | **CI**: GitHub Actions | Um workflow de qualidade e um de release (seção 9). |
 | 10 | **Notas pessoais não são públicas** (04/10/2026) | `GET /users/:id/game-entries` só devolve `notes` ao dono. |
 
@@ -162,7 +162,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 ### Etapa 0 — baseline e provas técnicas
 - Flutter 3.47.6 instalado, SDK Android 36, Chrome. Ambiente isolado criado (decisão 8). As 9 migrations existentes aplicam em banco vazio.
-- Contratos gravados com o backend real em `docs/contract-fixtures/` (usuários e jogos sintéticos, tokens mascarados). Confirmado por execução, e não por inferência: `PATCH` com `null` dava 400; horas voltam como string; datas voltam à meia-noite UTC; refresh é de uso único; editar o registro de outro usuário devolve 404; listas de registros, conversas e comentários não são paginadas.
+- Contratos gravados com o backend real (usuários e jogos sintéticos, tokens mascarados); as respostas usadas pelos testes do app estão em `flutter_app/test/fixtures/`, e as regras viraram testes de API em `backend/test/api/`. Confirmado por execução, e não por inferência: `PATCH` com `null` dava 400; horas voltam como string; datas voltam à meia-noite UTC; refresh é de uso único; editar o registro de outro usuário devolve 404; listas de registros, conversas e comentários não são paginadas.
 - Socket.IO provado em Dart contra o servidor 4.8: sem token → `unauthorized`; ACK e `message:receive` trazem o mesmo `id`; o cliente Dart reaproveita o socket para a mesma URL.
 - O projeto descartável compilou para Android debug e web com todos os pacotes juntos.
 
@@ -211,9 +211,9 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 **Comandos**
 - `flutter test` (unidade, widget e aceite).
-- `flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100` (backend isolado, nunca produção).
-- `cd backend && npm test`.
-- Scripts de contrato em `docs/contract-fixtures/*.mjs`.
+- `flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100` (contra o backend de teste, nunca produção).
+- `cd backend && npm run test:db:up && npm test` (Postgres e Redis de teste via Docker; 108 testes: unidade e API de verdade, com Express, Socket.IO, banco e Redis reais).
+- Para a integração do Flutter: `cd backend && npm run test:seed && npm run dev:test` e depois o comando acima.
 
 **Resultado atual**: `flutter analyze` limpo; formatação limpa; 705 testes passam no Flutter (45 de integração são ignorados quando não há backend) e 50 de integração passam contra o backend real; 32 testes no backend; builds web e APK debug compilam.
 
@@ -224,7 +224,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 | Login, cadastro, sessão restaurada | `features/auth/*`, `core/session_test.dart`; integração `backend_session_test.dart` |
 | Explorar: jogos e pessoas | `games/search_test.dart`, `profiles/people_search_test.dart` |
 | Biblioteca e página do jogo | `library_page_test.dart`, `game_page_test.dart`; integração `backend_library_test.dart` |
-| Playthrough (replay, nota, zero horas, limpar campo) | `tracking_form_test.dart`; `patch_contract.mjs` |
+| Playthrough (replay, nota, zero horas, limpar campo) | `tracking_form_test.dart`; `backend/test/api/entries.test.ts` |
 | Comunidade, posts, comentários | `features/feed/*`; integração `backend_feed_test.dart` |
 | Perfis, editar perfil, uploads | `features/profiles/*`; integração `backend_profiles_test.dart` (upload real) |
 | Chat | `features/chat/*`, `core/chat_connection_test.dart`; integração `backend_chat_test.dart` (sockets reais) |
@@ -255,7 +255,9 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 ## 9. Build, distribuição e ambientes
 
-**Qualidade contínua** (`.github/workflows/flutter.yml`): formatação, `flutter analyze`, `flutter test`, build web e APK debug (publicado como artefato por 14 dias).
+**Qualidade contínua**
+- `.github/workflows/flutter.yml`: formatação, `flutter analyze`, `flutter test`, build web e APK debug (publicado como artefato por 14 dias).
+- `.github/workflows/backend.yml`: job `backend` (typecheck, build, migrations e os 108 testes, com Postgres e Redis do runner) e job `flutter-integration` (sobe a API de teste e roda os testes de integração do app contra ela).
 
 **Release** (`flutter_app/tool/build_release.sh` e `.github/workflows/flutter-release.yml`, este manual ou por tag `flutter-v*`)
 - Exige `API_URL` com HTTPS, sem `/` nem `/api` no fim (o app acrescenta `/api`).
@@ -308,7 +310,7 @@ Cada ideia diz o que é, por que importa e como começar. Estão ordenadas por p
 Só depois de: chave de assinatura real e APK instalado em aparelho; jornadas essenciais passadas; beta fechado de uma semana com poucas contas, sem perda de dados, sessão cruzada, falha de login, mensagem duplicada ou crash; retorno ensaiado (o APK Expo anterior ainda instala e conversa com o backend); avisar quem usa de que é uma nova instalação e de que tema e preferências voltam ao padrão.
 
 - **Fase A, tirar o `mobile/` da árvore**: `git push origin legacy-expo-final`; `git rm -r mobile`; remover do `.gitignore` as linhas `mobile/...` e o bloco `# Expo`; remover do README a seção "App legado" e a linha na Stack; conferir com `git grep -n "mobile/"`. Para consultar depois: `git checkout legacy-expo-final -- mobile`. Guardar o APK Expo como artefato antes, se ainda servir de retorno.
-- **Fase B, aposentar o Expo no backend** (releases separados, só com os clientes antigos fora de uso): (1) parar de gravar o token legado e remover `POST /users/me/push-token`; (2) tirar o `ExpoProvider`, a leitura de `users.expo_push_token`, a dependência `expo-server-sdk` e o campo `expoBody` do payload; (3) remover a coluna `users.expo_push_token` em uma migration própria; (4) limpar as linhas `provider = 'expo'` de `push_installations`. Ajustar `backend/src/push/push.test.ts` e `docs/contract-fixtures/push_contract.mjs`.
+- **Fase B, aposentar o Expo no backend** (releases separados, só com os clientes antigos fora de uso): (1) parar de gravar o token legado e remover `POST /users/me/push-token`; (2) tirar o `ExpoProvider`, a leitura de `users.expo_push_token`, a dependência `expo-server-sdk` e o campo `expoBody` do payload; (3) remover a coluna `users.expo_push_token` em uma migration própria; (4) limpar as linhas `provider = 'expo'` de `push_installations`. Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts`.
 - **Fase C, documentação**: marcar este documento como histórico quando A e B terminarem.
 
 ### D. Backend: confiabilidade e escala (quando o volume pedir)
@@ -347,10 +349,11 @@ Só depois de: chave de assinatura real e APK instalado em aparelho; jornadas es
 | O quê | Onde |
 | --- | --- |
 | App Flutter | `flutter_app/` (README com os comandos) |
-| Respostas reais do backend, scripts de contrato e probe de socket | `docs/contract-fixtures/` (`capture.mjs`, `patch_contract.mjs`, `notification_dedup.mjs`, `profile_contract.mjs`, `chat_contract.mjs`, `push_contract.mjs`, `entries_privacy.mjs`, `refresh_race.mjs`, `socket_probe.dart`, `responses/*.json`) |
-| Gerador do fixture de payloads de push | `backend/scripts/capturePushPayloads.ts` (recusa banco que não seja local) |
+| Testes do backend: unidade e API de verdade (Express, Socket.IO, Postgres, Redis) | `backend/src/**/*.test.ts` e `backend/test/api/*.test.ts` (`auth`, `entries`, `notifications`, `profile`, `push.routes`, `chat`); helpers e trava de banco em `backend/test/helpers/` |
+| Ambiente de teste | `docker-compose.test.yml`, `backend/.env.test.example`, scripts `test:db:up`, `test:seed`, `dev:test` em `backend/package.json` |
+| Respostas reais do backend usadas pelos testes do app | `flutter_app/test/fixtures/` (veja o README da pasta) |
 | Script de release | `flutter_app/tool/build_release.sh` |
-| CI | `.github/workflows/flutter.yml`, `.github/workflows/flutter-release.yml` |
+| CI | `.github/workflows/flutter.yml`, `.github/workflows/backend.yml` (backend e integração Flutter↔API), `.github/workflows/flutter-release.yml` |
 | Roadmap histórico do projeto (anterior à migração) | `docs/01_ROADMAP.md` |
 | Plano, baseline, ADRs, matriz de aceite e encerramento originais | histórico do git, `docs/` no commit `fd60016` |
 | App legado | `mobile/` e a tag local `legacy-expo-final` (enviar com `git push origin legacy-expo-final`) |

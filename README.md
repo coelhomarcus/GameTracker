@@ -20,8 +20,9 @@ Push com o app fechado ainda não existe (precisa de um projeto Firebase); as no
 | [`flutter_app/`](flutter_app/) | App oficial: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO |
 | [`backend/`](backend/) | API: Node.js, Express 5, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO, JWT, IGDB |
 | [`mobile/`](mobile/) | App antigo em Expo (React Native). Fica só como plano de retorno e não recebe funcionalidades novas |
-| [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md) e [`contract-fixtures/`](docs/contract-fixtures/) |
-| `.github/workflows/` | CI do Flutter e geração do APK de release |
+| [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md) |
+| `docker-compose.test.yml` | Postgres e Redis descartáveis só para os testes |
+| `.github/workflows/` | CI do Flutter, do backend (com integração Flutter↔API) e geração do APK de release |
 
 ## Rodando localmente
 
@@ -75,19 +76,32 @@ npm start
 
 ## Testes
 
+Os testes ficam junto de cada projeto:
+
+| Onde | O que cobre | Como rodar |
+| --- | --- | --- |
+| `flutter_app/test/` | Unidade e widget, suíte de aceite (layout, acessibilidade, volume) | `cd flutter_app && flutter analyze && flutter test` |
+| `flutter_app/test/integration/` | O app contra um **backend real** (sessão, biblioteca, feed, perfis, chat com sockets, volume) | veja abaixo |
+| `backend/src/**/*.test.ts` | Unidade (CORS, push, controllers) | `cd backend && npm test` |
+| `backend/test/api/` | A **API de verdade** (Express + Socket.IO + Postgres + Redis): sessão e refresh, PATCH da biblioteca, privacidade das notas, notificações, perfil e upload, push, chat | `cd backend && npm test` |
+
+Os testes criam e apagam dados, então rodam **só** em um banco local cujo nome termina em `_test` (a trava recusa qualquer outro, inclusive o de desenvolvimento). O ambiente descartável sobe com Docker:
+
 ```bash
-cd flutter_app && flutter analyze && flutter test        # unidade, widget e aceite (acessibilidade, layout e volume)
-cd backend && npm test                                   # backend
+cd backend
+cp .env.test.example .env.test   # uma vez (fica fora do git)
+npm run test:db:up               # Postgres :5434 e Redis :6381 de teste + migrations
+npm test                         # backend: unidade + API (108 testes)
 ```
 
-Há também testes de integração do Flutter contra um backend real. Eles **criam e apagam dados**, então rode só contra um backend com banco e Redis isolados, nunca contra produção ou um banco compartilhado:
+Para os testes de integração do Flutter, suba a API de teste em outro terminal:
 
 ```bash
-cd flutter_app
-flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
+cd backend && npm run test:seed && npm run dev:test        # jogos sintéticos + API em :3100
+cd flutter_app && flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 ```
 
-Os scripts de contrato (provas do que o backend realmente responde) estão em [`docs/contract-fixtures/`](docs/contract-fixtures/README.md).
+`flutter_app/test/fixtures/` guarda respostas reais do backend para os testes de modelo (veja o README da pasta). O GitHub Actions roda tudo isso em `.github/workflows/backend.yml`.
 
 ## Build do APK (Android)
 
