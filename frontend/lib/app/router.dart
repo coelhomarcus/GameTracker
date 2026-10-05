@@ -127,7 +127,11 @@ GoRouter buildRouter({
         ),
         StatefulShellBranch(
           routes: [
-            GoRoute(path: '/explore', builder: (_, _) => const ExplorePage()),
+            GoRoute(
+              path: '/explore',
+              builder: (_, state) =>
+                  ExplorePage(scope: state.uri.queryParameters['scope']),
+            ),
           ],
         ),
         StatefulShellBranch(

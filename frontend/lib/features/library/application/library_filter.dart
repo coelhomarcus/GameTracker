@@ -48,3 +48,9 @@ final libraryOverviewProvider = Provider<LibraryOverview?>((ref) {
     sort: ref.watch(libraryPrefsProvider.select((p) => p.sort)),
   );
 });
+
+/// `igdbId` dos jogos que o usuário já tem na Biblioteca (com pelo menos um registro).
+final libraryIgdbIdsProvider = Provider<Set<int>>((ref) {
+  final List<GameEntry>? entries = ref.watch(libraryProvider).value;
+  return {for (final e in entries ?? const <GameEntry>[]) e.game.igdbId};
+});

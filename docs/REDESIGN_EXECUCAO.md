@@ -10,7 +10,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 04 Crop de avatar/banner | Concluída, exceto gestos no navegador/aparelho | Verificada por testes e upload real na API de teste; ver abaixo |
 | 05 Biblioteca | Concluída (sem inspeção no navegador) | Verificada por testes, goldens e volume de 1.000 registros; ver abaixo |
 | 06 Formulário de registro | Concluída (sem inspeção no navegador) | Verificada por testes; corrige regressão da Etapa 03; ver abaixo |
-| 07 Pesquisa / Explorar | Pendente | |
+| 07 Pesquisa / Explorar | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 08 Página do jogo | Pendente | |
 | 09 Comunidade | Pendente | |
 | 10 Mensagens | Pendente | |
@@ -143,3 +143,19 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 886 passaram, 46 pulados, 0 falhas; integração 51 passaram. Novos: estrutura e ordem dos blocos, cabeçalho, aviso de replay (0/1/3), "Outra" com validação e troca de volta ao catálogo, nota 1–10 e rótulo de acessibilidade, salvar acima do teclado simulado (600 dp) e sem cobrir o campo, erro de rede junto do botão com campos preservados, erro de campo no próprio campo, toque duplo, nota como alteração a descartar, salvar visível a 360 px e 200%, volta à Biblioteca depois de "Novo registro" com o resumo atualizado, confirmação de exclusão identificando o registro.
 
 **Não verificado:** teclado real em aparelho (simulado por `viewInsets`) e aparência no navegador. Conferi uma captura temporária do formulário a 390 px (fora do repositório).
+
+## Etapa 07 — Explorar com uma barra só
+
+**Arquivos:** novo `explore/application/explore_search.dart` (escopo, consulta e pesquisas recentes); reescritos `explore_page.dart`, `game_search_view.dart` e `people_search_view.dart`; `router.dart` (parâmetro `scope`); `library_filter.dart` (`libraryIgdbIdsProvider`). Nenhuma API mudou.
+
+**Comportamento:** uma barra "Buscar jogos ou pessoas" com as abas Jogos e Pessoas **abaixo** dela. A consulta pertence a Explorar, é a mesma nas duas abas e não vai para a URL; sobrevive à troca de aba, de destino e a abrir um resultado e voltar (junto com a aba), e é descartada ao sair da conta. As visões de resultado recebem a consulta de fora (`query`); sem ela (os seletores em modal de vincular jogo e de iniciar conversa) continuam com o campo próprio e o comportamento de antes. Debounce de 400 ms, mínimo de 2 letras, cancelamento da requisição antiga e descarte da resposta atrasada, como antes, e só a aba ativa consulta o servidor (para não gastar cota da IGDB à toa). `/explore?scope=people` abre Pessoas; valor desconhecido usa Jogos; com a página aberta o link troca de aba, e voltar a `/explore` sem escopo não tira a pessoa da aba.
+
+**Recentes:** até 8 por escopo, em memória por conta, só depois de Enter ou de abrir/adicionar um resultado (nunca por tecla; termo de 1 letra não vale), sem duplicar (ignora caixa e acentos, o repetido sobe ao topo), com "Limpar histórico" por escopo; tocar numa recente refaz a busca. **Início:** Jogos mostra recentes, "Jogando agora" da Biblioteca (até 6) e "Encontrar conversas na Comunidade"; Pessoas mostra recentes e "Conhecer a comunidade"; sem dados, a orientação curta de antes. Sem "Em alta".
+
+**Resultados:** jogo com capa, nome e até duas plataformas mais "+N"; o corpo abre o jogo; sem registro o botão é "Adicionar" (abre o formulário), com registro é "Na biblioteca" (abre Meu progresso). Pessoa com avatar, nome, handle, bio em até duas linhas e Seguir/Seguindo pelo `FollowStore`; tocar abre o perfil. Falta de credenciais da IGDB, falha de rede e zero resultados continuam sendo mensagens diferentes.
+
+**Defeito latente corrigido:** o `SearchBar` do Material gera um nó de acessibilidade externo (toque e foco) sem rótulo ao lado do campo rotulado. Na versão antiga o teste de acessibilidade passava por acidente: esse nó acabava fundido ao painel da aba, que tinha o texto de ajuda como rótulo. Com o novo layout ele ficou solto, então a barra de Explorar agora está em `MergeSemantics`, que dá ao leitor de tela um único elemento. Os dois seletores em modal ainda usam o `SearchBar` sem esse ajuste (fora do alcance dos testes de diretrizes atuais).
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 921 passaram, 46 pulados, 0 falhas; integração 51 passaram. Novos: 35 testes em `test/features/explore/explore_test.dart` (barra única, consulta compartilhada, só a aba ativa consulta, preservação ao abrir resultado/trocar destino, escopo pela rota, debounce, resposta atrasada descartada com a requisição antiga cancelada, mensagens de erro, resultados de jogo e pessoa, recentes, início, 360 px a 200%, e o seletor em modal intacto). Capturas temporárias do início e dos resultados a 390 px conferidas (fora do repositório).
+
+**Não verificado:** aparência e teclado no navegador/aparelho; o ajuste de `MergeSemantics` foi validado pela diretriz do Flutter, não com leitor de tela real.

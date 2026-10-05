@@ -145,6 +145,11 @@ class FakeGamesRepository implements GamesRepository {
   int cancelledSearches = 0;
   List<GameSummary> searchResult = const [];
 
+  /// Resposta própria de um termo e, opcionalmente, uma trava que a segura (para provar que uma
+  /// resposta atrasada não substitui a de uma busca mais recente).
+  final searchByTerm = <String, List<GameSummary>>{};
+  final searchGates = <String, Completer<void>>{};
+
   @override
   Future<List<GameSummary>> search(
     String term, {
@@ -152,9 +157,10 @@ class FakeGamesRepository implements GamesRepository {
   }) async {
     searches.add(term);
     cancelToken?.whenCancel.then((_) => cancelledSearches++);
+    await searchGates[term]?.future;
     final error = searchError;
     if (error != null) throw error;
-    return searchResult;
+    return searchByTerm[term] ?? searchResult;
   }
 
   @override

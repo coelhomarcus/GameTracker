@@ -59,7 +59,8 @@ void main() {
       await typePeople(tester, 'be');
       expect(p.searches, ['be']);
       expect(find.text('Beto Silva'), findsOneWidget);
-      expect(find.text('@beto · Gosto de RPG'), findsOneWidget);
+      expect(find.text('@beto'), findsOneWidget);
+      expect(find.text('Gosto de RPG'), findsOneWidget);
       expect(
         find.text('cris'),
         findsOneWidget,
@@ -132,13 +133,17 @@ void main() {
       await typePeople(tester, 'be');
       await tapAndSettle(tester, find.text('Jogos'));
       await tapAndSettle(tester, find.text('Pessoas'));
+      await tester.pump(
+        peopleSearchDebounce + const Duration(milliseconds: 50),
+      );
+      await tester.pumpAndSettle();
       expect(
         find.text('Beto Silva'),
         findsOneWidget,
-        reason: 'resultados preservados',
+        reason: 'a consulta é a mesma nas duas abas',
       );
 
-      await tapAndSettle(tester, find.byTooltip('Limpar busca de pessoas'));
+      await tapAndSettle(tester, find.byTooltip('Limpar busca'));
       expect(find.text('Encontre pessoas'), findsOneWidget);
     },
   );

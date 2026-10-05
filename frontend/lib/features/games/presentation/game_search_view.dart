@@ -4,24 +4,41 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/game_cover.dart';
 import '../../../core/design_system/tokens.dart';
+import '../../library/application/library_filter.dart';
 import '../application/game_providers.dart';
 import '../data/game_models.dart';
 
-/// Busca de jogos: campo + resultados. Usada na aba Explorar e no seletor de jogo.
-/// Termos curtos não consultam o servidor; erro é diferente de "nenhum resultado".
+/// Busca de jogos. No seletor de jogo (modal) traz o próprio campo; em Explorar a consulta vem de
+/// fora ([query]) e só os resultados são desenhados. Termos curtos não consultam o servidor; erro é
+/// diferente de "nenhum resultado".
 class GameSearchView extends ConsumerStatefulWidget {
   const GameSearchView({
     super.key,
     required this.onOpen,
     this.onAdd,
+    this.onOpenProgress,
+    this.query,
+    this.idle,
     this.autofocus = false,
   });
 
   final void Function(GameSummary game) onOpen;
 
-  /// Quando informado, cada resultado ganha um botão "Adicionar".
+  /// Quando informado, cada resultado ganha um botão para adicionar.
   final void Function(GameSummary game)? onAdd;
+
+  /// Quando informado, jogos que já estão na Biblioteca mostram "Na biblioteca" em vez de
+  /// "Adicionar", e o botão abre os registros.
+  final void Function(GameSummary game)? onOpenProgress;
+
+  /// Consulta controlada de fora: sem ela, a visão tem o próprio campo de busca.
+  final String? query;
+
+  /// O que mostrar enquanto o termo é curto demais para buscar (só com [query]).
+  final Widget? idle;
   final bool autofocus;
+
+  bool get _controlled => query != null;
 
   @override
   ConsumerState<GameSearchView> createState() => _GameSearchViewState();
@@ -30,6 +47,7 @@ class GameSearchView extends ConsumerStatefulWidget {
 class _GameSearchViewState extends ConsumerState<GameSearchView> {
   final _controller = TextEditingController();
   String _query = '';
+  Set<int> _libraryIds = const {};
 
   @override
   void dispose() {
@@ -39,7 +57,16 @@ class _GameSearchViewState extends ConsumerState<GameSearchView> {
 
   @override
   Widget build(BuildContext context) {
-    final term = _query.trim();
+    final term = (widget._controlled ? widget.query! : _query).trim();
+    // Lido aqui (e não no itemBuilder): `ref.watch` só vale durante o build deste widget.
+    _libraryIds = widget.onOpenProgress == null
+        ? const {}
+        : ref.watch(libraryIgdbIdsProvider);
+    if (widget._controlled) {
+      return term.length < searchMinChars
+          ? (widget.idle ?? _hint(context))
+          : _results(term);
+    }
     return Column(
       children: [
         Padding(
@@ -95,44 +122,145 @@ class _GameSearchViewState extends ConsumerState<GameSearchView> {
           );
         }
         return ListView.separated(
+          key: const PageStorageKey('explore-games'),
           padding: const EdgeInsets.only(bottom: Space.xl),
           itemCount: games.length,
           separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) {
-            final game = games[i];
-            return ListTile(
-              leading: SizedBox(
-                width: 48,
-                child: GameCover(
-                  name: game.name,
-                  url: game.coverUrl,
-                  radius: 8,
+          itemBuilder: (context, i) => widget.onOpenProgress == null
+              ? _modalTile(games[i])
+              : _GameResult(
+                  game: games[i],
+                  inLibrary: _libraryIds.contains(games[i].igdbId),
+                  onOpen: widget.onOpen,
+                  onAdd: widget.onAdd,
+                  onOpenProgress: widget.onOpenProgress!,
                 ),
-              ),
-              title: Text(
-                game.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: game.platforms.isEmpty
-                  ? null
-                  : Text(
-                      game.platforms.take(4).join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-              trailing: widget.onAdd == null
-                  ? null
-                  : IconButton(
-                      tooltip: 'Adicionar ${game.name} à biblioteca',
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () => widget.onAdd!(game),
-                    ),
-              onTap: () => widget.onOpen(game),
-            );
-          },
         );
       },
+    );
+  }
+
+  /// Linha do seletor em modal: o toque ou o "+" escolhem o jogo.
+  Widget _modalTile(GameSummary game) => ListTile(
+    leading: SizedBox(
+      width: 48,
+      child: GameCover(
+        name: game.name,
+        url: game.coverUrl,
+        radius: Radii.cover,
+      ),
+    ),
+    title: Text(game.name, maxLines: 2, overflow: TextOverflow.ellipsis),
+    subtitle: game.platforms.isEmpty
+        ? null
+        : Text(
+            platformsSummary(game.platforms),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+    trailing: widget.onAdd == null
+        ? null
+        : IconButton(
+            tooltip: 'Adicionar ${game.name} à biblioteca',
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: () => widget.onAdd!(game),
+          ),
+    onTap: () => widget.onOpen(game),
+  );
+}
+
+/// Até duas plataformas e o quanto resta: "Switch · Wii U +2".
+String platformsSummary(List<String> platforms) => platforms.length > 2
+    ? '${platforms.take(2).join(' · ')} +${platforms.length - 2}'
+    : platforms.join(' · ');
+
+/// Resultado de busca em Explorar: o corpo abre o jogo; o botão adiciona ou abre os registros.
+/// O botão fica abaixo do texto, para não faltar espaço com fonte ampliada.
+class _GameResult extends StatelessWidget {
+  const _GameResult({
+    required this.game,
+    required this.inLibrary,
+    required this.onOpen,
+    required this.onAdd,
+    required this.onOpenProgress,
+  });
+
+  final GameSummary game;
+  final bool inLibrary;
+  final void Function(GameSummary game) onOpen;
+  final void Function(GameSummary game)? onAdd;
+  final void Function(GameSummary game) onOpenProgress;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: () => onOpen(game),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.lg,
+          vertical: Space.md,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Space.lg,
+          children: [
+            SizedBox(
+              width: 56,
+              child: GameCover(
+                name: game.name,
+                url: game.coverUrl,
+                radius: Radii.cover,
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    game.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.titleMedium,
+                  ),
+                  if (game.platforms.isNotEmpty)
+                    Text(
+                      platformsSummary(game.platforms),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: text.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: Space.sm),
+                  // O botão fica sob o texto: com fonte ampliada ele quebra de linha em vez de
+                  // faltar espaço. Tem alvo de toque próprio; o resto da linha abre o jogo.
+                  inLibrary
+                      ? Tooltip(
+                          message:
+                              '${game.name} já está na biblioteca. Ver registros',
+                          child: OutlinedButton.icon(
+                            onPressed: () => onOpenProgress(game),
+                            icon: const Icon(Icons.check, size: 18),
+                            label: const Text('Na biblioteca'),
+                          ),
+                        )
+                      : Tooltip(
+                          message: 'Adicionar ${game.name} à biblioteca',
+                          child: FilledButton.tonalIcon(
+                            onPressed: onAdd == null
+                                ? null
+                                : () => onAdd!(game),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Adicionar'),
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

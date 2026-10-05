@@ -153,15 +153,15 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Editar:** `frontend/lib/features/explore/presentation/explore_page.dart`, `frontend/lib/features/games/presentation/game_search_view.dart`, `application/game_providers.dart` e `frontend/lib/features/profiles/presentation/people_search_view.dart`.
 **Criar:** estado de pesquisa em `features/explore/application/`.
 
-- [ ] Uma barra principal “Buscar jogos ou pessoas”, seguida das abas Jogos/Pessoas. Campo e consulta pertencem a Explorar; resultados das features recebem consulta/controlador externo.
-- [ ] Preservar seletores `pickGame`/`pickPerson` usados em postagem/chat: eles continuam podendo mostrar busca própria no modal. Evitar duplicar barras na página Explorar.
-- [ ] Manter debounce 400 ms, mínimo 2 caracteres, cancelamento e descarte de resposta antiga. Limpar busca cancela consulta e retorna ao estado inicial.
-- [ ] Guardar até 8 pesquisas recentes em memória por conta, somente após envio explícito ou abertura de resultado; deduplicar e mostrar ação “Limpar histórico”. Não gravar cada tecla nem persistir histórico após logout.
-- [ ] Início em Jogos: pesquisas recentes, até 6 itens de “Jogando agora” da própria Biblioteca e CTA “Encontrar conversas na Comunidade”. Se não houver dados, orientação curta para buscar por nome. Início em Pessoas: recentes do escopo e CTA “Conhecer a comunidade”.
-- [ ] Resultado de jogo: capa, nome, até duas plataformas + indicador de restantes; corpo abre jogo. Sem registro: botão “Adicionar”; com registros: “Na biblioteca”, abrindo Meu progresso. Novo replay fica no detalhe.
-- [ ] Resultado de pessoa: avatar, nome, handle, bio até duas linhas, Seguir/Seguindo usando `FollowStore`; tocar na identidade abre perfil.
-- [ ] Ao voltar do resultado, preservar consulta, escopo e posição. O escopo Pessoas pode ser aberto por `/explore?scope=people`; valor desconhecido usa Jogos. Não colocar consultas em URL neste redesign.
-- [ ] Distinguir falta de credenciais IGDB, falha de rede e zero resultados; manter mensagens existentes de configuração. Não criar seção “Em alta” sem endpoint.
+- [x] Uma barra principal “Buscar jogos ou pessoas”, seguida das abas Jogos/Pessoas. Campo e consulta pertencem a Explorar; resultados das features recebem consulta/controlador externo.
+- [x] Preservar seletores `pickGame`/`pickPerson` usados em postagem/chat: eles continuam podendo mostrar busca própria no modal. Evitar duplicar barras na página Explorar.
+- [x] Manter debounce 400 ms, mínimo 2 caracteres, cancelamento e descarte de resposta antiga. Limpar busca cancela consulta e retorna ao estado inicial.
+- [x] Guardar até 8 pesquisas recentes em memória por conta, somente após envio explícito ou abertura de resultado; deduplicar e mostrar ação “Limpar histórico”. Não gravar cada tecla nem persistir histórico após logout.
+- [x] Início em Jogos: pesquisas recentes, até 6 itens de “Jogando agora” da própria Biblioteca e CTA “Encontrar conversas na Comunidade”. Se não houver dados, orientação curta para buscar por nome. Início em Pessoas: recentes do escopo e CTA “Conhecer a comunidade”.
+- [x] Resultado de jogo: capa, nome, até duas plataformas + indicador de restantes; corpo abre jogo. Sem registro: botão “Adicionar”; com registros: “Na biblioteca”, abrindo Meu progresso. Novo replay fica no detalhe.
+- [x] Resultado de pessoa: avatar, nome, handle, bio até duas linhas, Seguir/Seguindo usando `FollowStore`; tocar na identidade abre perfil.
+- [x] Ao voltar do resultado, preservar consulta, escopo e posição. O escopo Pessoas pode ser aberto por `/explore?scope=people`; valor desconhecido usa Jogos. Não colocar consultas em URL neste redesign.
+- [x] Distinguir falta de credenciais IGDB, falha de rede e zero resultados; manter mensagens existentes de configuração. Não criar seção “Em alta” sem endpoint.
 
 **Aceite:** uma barra por contexto; resultados atrasados não substituem busca recente; consulta preservada na troca de aba; modal de vincular jogo e modal de iniciar conversa continuam funcionando. Atualizar testes de pesquisa e Explorar.
 
