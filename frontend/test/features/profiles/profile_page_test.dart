@@ -134,7 +134,7 @@ void main() {
       },
     );
 
-    testWidgets('perfil inexistente mostra erro com nova tentativa', (
+    testWidgets('perfil removido: não está mais disponível, com saída', (
       tester,
     ) async {
       final profiles = FakeProfilesRepository()
@@ -144,7 +144,19 @@ void main() {
           'Usuário não encontrado',
         );
       await openProfile(tester, profiles: profiles);
-      expect(find.text('Não encontrado.'), findsOneWidget);
+      expect(find.text('Este perfil não está mais disponível'), findsOneWidget);
+      expect(find.text('Tentar de novo'), findsNothing);
+      await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Voltar'));
+      expect(find.text('Comunidade'), findsWidgets);
+    });
+
+    testWidgets('falha de rede ao abrir o perfil oferece tentar de novo', (
+      tester,
+    ) async {
+      final profiles = FakeProfilesRepository()
+        ..profileError = const NetworkException();
+      await openProfile(tester, profiles: profiles);
+      expect(find.textContaining('Sem conexão'), findsOneWidget);
       profiles
         ..profileError = null
         ..profiles['u-beto'] = fakeProfile();

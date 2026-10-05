@@ -47,9 +47,19 @@ void main() {
   testWidgets('mostra conta, versão e tema atual', (tester) async {
     await openSettings(tester);
     expect(find.text('Aparência'), findsOneWidget);
+    expect(find.text('Preferência deste aparelho.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('@ana · ana@example.test'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('@ana · ana@example.test'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Versão $appVersion'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Versão $appVersion'), findsOneWidget);
-    expect(find.text('Guardado neste aparelho.'), findsOneWidget);
   });
 
   testWidgets('trocar o tema aplica na hora e persiste', (tester) async {
@@ -75,7 +85,7 @@ void main() {
   testWidgets('sair volta ao login e chama o logout', (tester) async {
     final auth = FakeAuthRepository();
     final h = await openSettings(tester, auth: auth);
-    await tapAndSettle(tester, find.text('Sair'));
+    await tapSignOut(tester);
     expect(find.text('Entrar'), findsWidgets);
     expect(h.auth.logoutCalls, 1);
   });

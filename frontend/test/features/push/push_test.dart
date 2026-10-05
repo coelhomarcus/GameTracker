@@ -558,7 +558,10 @@ void main() {
       await h.pump(tester);
       await goTo(tester, '/settings');
       expect(
-        find.textContaining('Indisponível neste dispositivo'),
+        find.text(
+          'As notificações aparecem na central com o app aberto. '
+          'Avisos com o app fechado não estão disponíveis nesta versão.',
+        ),
         findsOneWidget,
       );
       expect(find.text('Ativar'), findsNothing);
@@ -619,7 +622,7 @@ void main() {
       final h = AppHarness(pushPlatform: FakePushPlatform());
       await h.pump(tester);
       await goTo(tester, '/settings');
-      await tapAndSettle(tester, find.text('Sair'));
+      await tapSignOut(tester);
       expect(h.push.revoked.length, 1);
       expect(h.auth.logoutCalls, 1);
     });

@@ -15,7 +15,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 09 Comunidade | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 10 Mensagens | Concluída (sem inspeção no navegador) | Verificada por testes com transporte falso; ver abaixo |
 | 11 Perfil | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
-| 12 Configurações / auxiliares | Pendente | |
+| 12 Configurações / auxiliares | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 13 Validação final | Pendente | |
 
 ## Etapa 01 — situação inicial (05/10/2026)
@@ -232,3 +232,21 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 1.098 contados, 0 falhas; integração 53 passaram. Novos e reescritos em `profile_page_test.dart` (39): destaques e grade, replays em um cartão com selo e sem repetir destaque, filtro com contagem, somente leitura, notas pessoais nunca visíveis, vazio e erro com nova tentativa, próprio perfil (mesma coleção da Biblioteca, contador acompanha, Gerenciar biblioteca, convite sem bio, bio inteira), contadores (jogos únicos, registros do perfil, sem zero enquanto carrega ou com erro), favoritos (6, expandir, ordem), Jogando agora (6, um por jogo), abas fixas, banner 3:1 e avatar de 88 atravessando a borda, toque na metade inferior do avatar, nome de duas linhas, duas colunas (280, avatar de 112, banner 3:1 na coluna), corte de 1000 dp medido, e 360 px a 200% sem overflow.
 
 **Não verificado:** aparência no navegador/aparelho (conferi capturas temporárias a 390 e 1440 px, fora do repositório); a atualização de identidade em superfícies abertas depois de editar continua coberta pelos testes de edição já existentes.
+
+## Etapa 12 — Configurações, Notificações e telas auxiliares
+
+**Arquivos:** `settings_page.dart` (reescrita), `notifications_page.dart`, `async_content.dart` (`UnavailableView`), `error_messages.dart` (`isNotFound`), `post_detail_page.dart` e `profile_page.dart` (destino removido), `router.dart` (página não encontrada), `session_pages.dart` (restauração), `auth_form_scaffold.dart`. Nenhuma regra de autenticação mudou e não há onboarding.
+
+**Configurações (680 dp, nesta ordem):** **Aparência:** Sistema, Claro e Escuro como cartões com uma amostra das cores (o "Sistema" divide a miniatura entre claro e escuro); a escolhida tem contorno, ícone e texto, e é anunciada como item de grupo exclusivo; "Preferência deste aparelho." **Biblioteca:** Grade/Lista e as quatro ordenações, nos **mesmos providers** da tela da Biblioteca (mudar numa reflete na outra; nada duplicado). **Notificações:** "Abrir central de notificações" e o estado do push; sem adaptador diz "As notificações aparecem na central com o app aberto. Avisos com o app fechado não estão disponíveis nesta versão.", sem interruptor inoperante. **Conta:** nome, handle e e-mail, Editar perfil e Sair; se houver mensagem escrita e não enviada em alguma conversa, "Sair da conta?" pergunta antes (a sessão, o socket e o estado da conta continuam sendo descartados como antes); sem rascunho, sai direto. **Sobre:** nome e versão real (`app_info.dart`, que um teste confere com o `pubspec.yaml`), sem links nem ações que a API não suporta.
+
+**Central de notificações:** coluna de leitura de 680 dp; os filtros agora quebram de linha em vez de rolar para o lado; "Marcar todas como lidas" continua global; o rodapé "Mostrando as 50 mais recentes." só aparece com 50 itens; o selo do sino segue o contador do servidor, não as linhas visíveis; nada de paginação fingida nem de marcar um item isolado.
+
+**Destino removido:** abrir, pela notificação ou por link, um post apagado ou um perfil removido (404) agora mostra "Este post/perfil não está mais disponível" com "Voltar" (que volta de onde se veio), em vez de "Não encontrado." com "Tentar de novo", que não adiantava. Falha de rede continua oferecendo nova tentativa.
+
+**Telas auxiliares:** página não encontrada com explicação e o caminho para a Biblioteca; restauração de sessão no mesmo padrão dos estados vazios (com "Tentar novamente" e "Sair da conta"); login e cadastro com título semântico, subtítulo legível e o banner de erro com o raio de controle dos tokens.
+
+**Armadilha no caminho:** um `sed` meu trocou a chamada dentro de um auxiliar de teste pela chamada ao próprio auxiliar (recursão infinita) e a suíte pareceu travar por mais de 10 minutos; achei com prints por etapa. Sem relação com o código do app.
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 1.133 contados, 0 falhas; integração 53 passaram. Novos: 17 de Configurações (ordem, 680 dp, Sobre sem links, tema com amostra/seleção/semântica/48 dp, atalhos compartilhados com a Biblioteca nos dois sentidos, quatro ordenações, notificações sem interruptor, central, conta, sair direto e com confirmação por rascunho, 360 px a 200%) e 16 de central e telas auxiliares (linhas, "Não lida" acessível, 680 dp, filtros sem rolagem lateral, marcar todas, rodapé de 50, selo do servidor, destino removido de post e de perfil com volta, não encontrada, restauração, login e cadastro a 360 px/200% e em tela larga). Atualizados os testes de sair (rolam até o botão, agora abaixo da primeira tela) e os de textos.
+
+**Não verificado:** aparência no navegador/aparelho (conferi uma captura temporária de Configurações a 390 px); o push real (só existe o adaptador "sem suporte" neste build).

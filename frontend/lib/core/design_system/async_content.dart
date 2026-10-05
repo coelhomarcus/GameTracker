@@ -194,3 +194,26 @@ class EmptyView extends StatelessWidget {
     );
   }
 }
+
+/// Destino que não existe mais (post apagado, perfil removido), aberto por um link ou por uma
+/// notificação antiga. Diz isso com clareza e oferece o caminho de volta; não há o que repetir.
+class UnavailableView extends StatelessWidget {
+  const UnavailableView({
+    super.key,
+    required this.onBack,
+    this.what = 'conteúdo',
+  });
+
+  final VoidCallback onBack;
+
+  /// "post", "perfil"…: aparece na explicação.
+  final String what;
+
+  @override
+  Widget build(BuildContext context) => EmptyView(
+    icon: Icons.link_off,
+    title: 'Este $what não está mais disponível',
+    message: 'Ele pode ter sido removido ou o endereço mudou.',
+    action: FilledButton(onPressed: onBack, child: const Text('Voltar')),
+  );
+}

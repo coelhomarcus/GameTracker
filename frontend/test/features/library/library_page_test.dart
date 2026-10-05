@@ -369,7 +369,7 @@ void main() {
       await search(tester, 'celeste');
       await tapAndSettle(tester, find.text('Perfil').last);
       await tapAndSettle(tester, find.byTooltip('Configurações'));
-      await tapAndSettle(tester, find.text('Sair'));
+      await tapSignOut(tester);
       await tester.enterText(find.byType(TextFormField).first, 'ana');
       await tester.enterText(find.byType(TextFormField).last, 'senha');
       await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Entrar'));
@@ -811,7 +811,7 @@ void main() {
     expect(find.text('Jogo Fixture Um'), findsWidgets);
     await tapAndSettle(tester, find.text('Perfil').last);
     await tapAndSettle(tester, find.byTooltip('Configurações'));
-    await tapAndSettle(tester, find.text('Sair'));
+    await tapSignOut(tester);
     expect(find.text('Jogo Fixture Um'), findsNothing);
     expect(find.text('Entrar'), findsWidgets);
   });

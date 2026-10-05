@@ -19,3 +19,6 @@ String describeError(Object error) {
   }
   return 'Algo deu errado. Tente de novo.';
 }
+
+/// O conteúdo pedido não existe (mais): um post apagado, uma conta que saiu. Repetir não ajuda.
+bool isNotFound(Object error) => error is ApiException && error.status == 404;

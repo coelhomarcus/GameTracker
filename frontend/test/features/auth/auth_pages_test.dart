@@ -143,8 +143,19 @@ void main() {
     await pumpApp(tester, repo);
     await tapText(tester, 'Perfil');
     await tapFinder(tester, find.byTooltip('Configurações'));
+    // Configurações tem várias seções: a conta e o "Sair" ficam abaixo da primeira tela.
+    await tester.scrollUntilVisible(
+      find.text('@ana · ana@example.test'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('@ana · ana@example.test'), findsOneWidget);
-    await tapText(tester, 'Sair');
+    await tester.scrollUntilVisible(
+      find.text('Sair'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tapAndSettle(tester, find.text('Sair'));
     expect(find.text('Entrar'), findsOneWidget);
     expect(repo.logoutCalls, 1);
   });

@@ -71,10 +71,15 @@ class ProfileScreen extends ConsumerWidget {
           Scaffold(appBar: _bar(context, null), body: const LoadingView()),
       error: (e, _) => Scaffold(
         appBar: _bar(context, null),
-        body: ErrorView(
-          message: describeError(e),
-          onRetry: () => ref.invalidate(profileProvider(userId)),
-        ),
+        body: isNotFound(e)
+            ? UnavailableView(
+                what: 'perfil',
+                onBack: () => goBackOr(context, '/community'),
+              )
+            : ErrorView(
+                message: describeError(e),
+                onRetry: () => ref.invalidate(profileProvider(userId)),
+              ),
       ),
       data: (data) => _Loaded(profile: data, isMe: isMe),
     );

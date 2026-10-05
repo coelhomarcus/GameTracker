@@ -98,10 +98,16 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
         ),
         body: loader.when(
           loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(
-            message: describeError(e),
-            onRetry: () => ref.invalidate(postLoaderProvider(widget.postId)),
-          ),
+          error: (e, _) => isNotFound(e)
+              ? UnavailableView(
+                  what: 'post',
+                  onBack: () => goBackOr(context, '/community'),
+                )
+              : ErrorView(
+                  message: describeError(e),
+                  onRetry: () =>
+                      ref.invalidate(postLoaderProvider(widget.postId)),
+                ),
           data: (_) => const LoadingView(),
         ),
       );

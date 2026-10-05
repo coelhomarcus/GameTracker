@@ -248,14 +248,37 @@ void main() {
     expect(find.textContaining('Seja o primeiro'), findsOneWidget);
   });
 
-  testWidgets('post inexistente mostra erro com nova tentativa', (
+  testWidgets(
+    'post removido: diz que não está mais disponível e oferece voltar',
+    (tester) async {
+      final feed = FakeFeedRepository()
+        ..postError = const ApiException(
+          404,
+          'not_found',
+          'Post não encontrado',
+        );
+      await openPost(tester, feed, id: 'zzz');
+      expect(find.text('Este post não está mais disponível'), findsOneWidget);
+      expect(
+        find.text('Tentar de novo'),
+        findsNothing,
+        reason: 'repetir não adianta',
+      );
+      await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Voltar'));
+      expect(find.text('Comunidade'), findsWidgets);
+    },
+  );
+
+  testWidgets('falha de rede ao abrir o post oferece tentar de novo', (
     tester,
   ) async {
-    final feed = FakeFeedRepository()
-      ..postError = const ApiException(404, 'not_found', 'Post não encontrado');
-    await openPost(tester, feed, id: 'zzz');
-    expect(find.text('Não encontrado.'), findsOneWidget);
-    expect(find.text('Tentar de novo'), findsOneWidget);
+    final feed = threadFeed()..postError = const NetworkException();
+    await openPost(tester, feed);
+    expect(find.textContaining('Sem conexão'), findsOneWidget);
+    expect(find.text('Este post não está mais disponível'), findsNothing);
+    feed.postError = null;
+    await tapAndSettle(tester, find.text('Tentar de novo'));
+    expect(find.text('Post principal'), findsOneWidget);
   });
 
   testWidgets('falha ao carregar os comentários não derruba o post', (

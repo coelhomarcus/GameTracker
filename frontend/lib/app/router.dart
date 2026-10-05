@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../core/design_system/async_content.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/session_pages.dart';
@@ -85,17 +86,13 @@ GoRouter buildRouter({
   redirect: (context, state) => sessionRedirect(session(), state.uri),
   errorBuilder: (context, state) => Scaffold(
     appBar: AppBar(),
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Página não encontrada.'),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => context.go('/library'),
-            child: const Text('Ir para a Biblioteca'),
-          ),
-        ],
+    body: EmptyView(
+      icon: Icons.explore_off_outlined,
+      title: 'Página não encontrada.',
+      message: 'O endereço não existe ou mudou.',
+      action: FilledButton(
+        onPressed: () => context.go('/library'),
+        child: const Text('Ir para a Biblioteca'),
       ),
     ),
   ),

@@ -34,15 +34,20 @@ class AuthFormScaffold extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: Space.lg),
-                  Text(
-                    title,
-                    style: text.headlineMedium,
-                    textAlign: TextAlign.center,
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      title,
+                      style: text.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   const SizedBox(height: Space.xs),
                   Text(
                     subtitle,
-                    style: text.bodyMedium,
+                    style: text.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: Space.xxl),
@@ -71,7 +76,7 @@ class FormErrorBanner extends StatelessWidget {
         padding: const EdgeInsets.all(Space.md),
         decoration: BoxDecoration(
           color: scheme.errorContainer,
-          borderRadius: BorderRadius.circular(Space.sm),
+          borderRadius: BorderRadius.circular(Radii.control),
         ),
         child: Row(
           spacing: Space.sm,

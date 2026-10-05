@@ -4,7 +4,7 @@ import 'package:flutter/painting.dart' show Size;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart' show Scaffold;
+import 'package:material_ui/material_ui.dart' show Scaffold, Scrollable;
 import 'package:gametracker/app/app.dart';
 import 'package:gametracker/app/providers.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
@@ -180,4 +180,14 @@ Future<void> openLibraryGame(WidgetTester tester, String title) async {
   await tester.pumpAndSettle();
   await tester.tap(libraryGame(title));
   await tester.pumpAndSettle();
+}
+
+/// Em Configurações: rola até "Sair" (a página tem várias seções e a lista é preguiçosa) e toca.
+Future<void> tapSignOut(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.text('Sair'),
+    300,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tapAndSettle(tester, find.text('Sair'));
 }

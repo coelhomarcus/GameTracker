@@ -191,7 +191,7 @@ void main() {
       );
       await tapAndSettle(tester, find.text('Perfil').last);
       await tapAndSettle(tester, find.byTooltip('Configurações'));
-      await tapAndSettle(tester, find.text('Sair'));
+      await tapSignOut(tester);
       await tester.enterText(find.byType(TextFormField).first, 'ana');
       await tester.enterText(find.byType(TextFormField).last, 'senha');
       await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Entrar'));

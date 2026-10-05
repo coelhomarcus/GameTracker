@@ -240,15 +240,15 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Dependência:** 02–04, 09–11.
 **Editar:** `frontend/lib/features/profiles/presentation/settings_page.dart`, `frontend/lib/features/notifications/presentation/notifications_page.dart`, `notifications_bell.dart`, `frontend/lib/features/auth/presentation/` e `frontend/lib/app/theme_mode.dart`.
 
-- [ ] Configurações limitada a 680 dp; seções nesta ordem: Aparência, Biblioteca, Notificações, Conta, Sobre.
-- [ ] Aparência: três opções Sistema/Claro/Escuro com pequena amostra e seleção clara, usando o provider atual; explicar “Preferência deste aparelho”.
-- [ ] Biblioteca: atalhos para modo Grade/Lista e ordenação padrão, reutilizando `libraryPrefsProvider`. Não criar preferências duplicadas que discordem da tela.
-- [ ] Notificações: “Abrir central de notificações” e estado do push. Build sem adaptador: “As notificações aparecem na central com o app aberto. Avisos com o app fechado não estão disponíveis nesta versão.” Sem switch inoperante.
-- [ ] Conta: nome/handle/email, Editar perfil e Sair. Se houver rascunho de chat, pedir confirmação antes de sair; caso contrário, logout direto. Preservar descarte de sessão, socket e estado da conta.
-- [ ] Sobre: nome e versão real via `app_info.dart`; sem links para páginas inexistentes ou ações de exportação/exclusão sem API.
-- [ ] Central: linhas consistentes com avatar, ação, contexto e tempo; não lida com indicador acessível. Manter “Marcar todas como lidas” e esclarecer no rodapé que são as últimas 50 quando a lista atingir esse limite. O contador pode incluir outras notificações; não recalculá-lo somente pelas linhas visíveis.
-- [ ] Estados de destino removido: informar que o conteúdo não está mais disponível e oferecer retorno. Não adicionar paginação fictícia nem marcar item isolado se só existe leitura global.
-- [ ] Aplicar tokens/layout/estados a login, cadastro, restauração de sessão e página não encontrada. Não alterar regras de autenticação nem criar onboarding obrigatório.
+- [x] Configurações limitada a 680 dp; seções nesta ordem: Aparência, Biblioteca, Notificações, Conta, Sobre.
+- [x] Aparência: três opções Sistema/Claro/Escuro com pequena amostra e seleção clara, usando o provider atual; explicar “Preferência deste aparelho”.
+- [x] Biblioteca: atalhos para modo Grade/Lista e ordenação padrão, reutilizando `libraryPrefsProvider`. Não criar preferências duplicadas que discordem da tela.
+- [x] Notificações: “Abrir central de notificações” e estado do push. Build sem adaptador: “As notificações aparecem na central com o app aberto. Avisos com o app fechado não estão disponíveis nesta versão.” Sem switch inoperante.
+- [x] Conta: nome/handle/email, Editar perfil e Sair. Se houver rascunho de chat, pedir confirmação antes de sair; caso contrário, logout direto. Preservar descarte de sessão, socket e estado da conta.
+- [x] Sobre: nome e versão real via `app_info.dart`; sem links para páginas inexistentes ou ações de exportação/exclusão sem API.
+- [x] Central: linhas consistentes com avatar, ação, contexto e tempo; não lida com indicador acessível. Manter “Marcar todas como lidas” e esclarecer no rodapé que são as últimas 50 quando a lista atingir esse limite. O contador pode incluir outras notificações; não recalculá-lo somente pelas linhas visíveis.
+- [x] Estados de destino removido: informar que o conteúdo não está mais disponível e oferecer retorno. Não adicionar paginação fictícia nem marcar item isolado se só existe leitura global.
+- [x] Aplicar tokens/layout/estados a login, cadastro, restauração de sessão e página não encontrada. Não alterar regras de autenticação nem criar onboarding obrigatório.
 
 **Aceite:** tema muda toda a aplicação, preferências de biblioteca são as mesmas nas duas telas, logout elimina dados de usuário, push não promete suporte inexistente e notificações conservam semântica da API.
 

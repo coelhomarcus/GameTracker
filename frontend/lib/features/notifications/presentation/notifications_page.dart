@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
@@ -84,22 +85,28 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               .toList();
           return Column(
             children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Space.lg,
-                  vertical: Space.sm,
-                ),
-                child: Row(
-                  spacing: Space.sm,
-                  children: [
-                    for (final f in NotificationFilter.values)
-                      FilterChip(
-                        label: Text(f.label),
-                        selected: _filter == f,
-                        onSelected: (_) => setState(() => _filter = f),
-                      ),
-                  ],
+              // Os filtros quebram de linha com texto grande, em vez de rolar para o lado.
+              LayoutBuilder(
+                builder: (context, box) => Padding(
+                  padding: PageContainer.insetsFor(
+                    box.maxWidth,
+                    PageWidth.reading,
+                  ).copyWith(top: Space.sm, bottom: Space.sm),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: Space.sm,
+                      runSpacing: Space.xs,
+                      children: [
+                        for (final f in NotificationFilter.values)
+                          FilterChip(
+                            label: Text(f.label),
+                            selected: _filter == f,
+                            onSelected: (_) => setState(() => _filter = f),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               Expanded(
@@ -124,27 +131,34 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                             ),
                           ],
                         )
-                      : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount:
-                              visible.length + (data.maybeTruncated ? 1 : 0),
-                          separatorBuilder: (_, _) => const Divider(height: 1),
-                          itemBuilder: (context, i) {
-                            if (i == visible.length) {
-                              return Padding(
-                                padding: const EdgeInsets.all(Space.lg),
-                                child: Center(
-                                  child: Text(
-                                    'Mostrando as 50 mais recentes.',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall,
+                      : LayoutBuilder(
+                          builder: (context, box) => ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: PageContainer.insetsFor(
+                              box.maxWidth,
+                              PageWidth.reading,
+                            ).copyWith(top: 0, bottom: Space.lg),
+                            itemCount:
+                                visible.length + (data.maybeTruncated ? 1 : 0),
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, i) {
+                              if (i == visible.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(Space.lg),
+                                  child: Center(
+                                    child: Text(
+                                      'Mostrando as 50 mais recentes.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                            return _Tile(notification: visible[i]);
-                          },
+                                );
+                              }
+                              return _Tile(notification: visible[i]);
+                            },
+                          ),
                         ),
                 ),
               ),
