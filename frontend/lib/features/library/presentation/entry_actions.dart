@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/dates/date_only.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/network/error_messages.dart';
 import '../../feed/presentation/celebration.dart';
@@ -147,7 +148,9 @@ class EntryMenuButton extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Remover registro?'),
         content: Text(
-          'Isso apaga este playthrough de ${entry.game.name} (${entry.platform}). '
+          'Isso apaga o registro de ${entry.game.name}: ${entry.platform} · '
+          '${entry.status.label} · criado em '
+          '${DateOnly.fromLocal(entry.createdAt.toLocal()).format()}. '
           'Seus outros registros do jogo continuam.',
         ),
         actions: [

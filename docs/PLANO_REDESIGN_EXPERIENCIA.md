@@ -137,13 +137,13 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Dependência:** 05.
 **Editar:** `frontend/lib/features/library/presentation/tracking_form_page.dart`, `entry_actions.dart` e `frontend/lib/features/feed/presentation/celebration.dart`.
 
-- [ ] Cabeçalho com capa/título; título da página “Novo registro” ou “Editar registro”. Se já há registro do jogo, informar “Você já tem N registros deste jogo. Este será um novo registro.”
-- [ ] Ordem dos campos: status, plataforma, datas, horas, nota e notas pessoais. Status em chips com ícone+texto; plataforma sugerida pelo catálogo, mantendo entrada manual que a API aceita.
-- [ ] Primeiro bloco mostra status/plataforma; bloco “Progresso” reúne datas/horas; bloco “Sua avaliação” reúne nota 1–10 e anotações com legenda “Só você vê”.
-- [ ] Nota com seleção inteira 1–10 e ação “Sem nota”; exibição consistente `8/10` em todas as telas. Datas/horas continuam opcionais; preservar regras de validação existentes.
-- [ ] Botão de salvar acessível acima do teclado ou no fim visível do formulário, sem ocultar campo focado. Mostrar erro no campo e resumo de erro de rede sem limpar valores.
-- [ ] Avisar antes de descartar alteração; exclusão identifica jogo e registro e exige confirmação. Após salvar, voltar ao contexto de origem e atualizar Biblioteca/Perfil/Jogo.
-- [ ] Ao concluir, manter convite opcional para publicar somente depois da confirmação do servidor. Nunca publicar automaticamente.
+- [x] Cabeçalho com capa/título; título da página “Novo registro” ou “Editar registro”. Se já há registro do jogo, informar “Você já tem N registros deste jogo. Este será um novo registro.”
+- [x] Ordem dos campos: status, plataforma, datas, horas, nota e notas pessoais. Status em chips com ícone+texto; plataforma sugerida pelo catálogo, mantendo entrada manual que a API aceita.
+- [x] Primeiro bloco mostra status/plataforma; bloco “Progresso” reúne datas/horas; bloco “Sua avaliação” reúne nota 1–10 e anotações com legenda “Só você vê”.
+- [x] Nota com seleção inteira 1–10 e ação “Sem nota”; exibição consistente `8/10` em todas as telas. Datas/horas continuam opcionais; preservar regras de validação existentes.
+- [x] Botão de salvar acessível acima do teclado ou no fim visível do formulário, sem ocultar campo focado. Mostrar erro no campo e resumo de erro de rede sem limpar valores.
+- [x] Avisar antes de descartar alteração; exclusão identifica jogo e registro e exige confirmação. Após salvar, voltar ao contexto de origem e atualizar Biblioteca/Perfil/Jogo.
+- [x] Ao concluir, manter convite opcional para publicar somente depois da confirmação do servidor. Nunca publicar automaticamente.
 
 **Aceite:** criar dois registros do mesmo jogo, editar um, limpar nota/data/horas, registrar zero e excluir somente um. Rodar `tracking_form_test.dart` e testes de corpo PATCH existentes.
 

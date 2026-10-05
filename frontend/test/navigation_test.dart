@@ -103,6 +103,41 @@ void main() {
       });
     }
 
+    for (final (name, path, enter) in [
+      ('registro', '/games/900001/playthroughs/new', 'hours'),
+      ('publicação', '/posts/new', 'text'),
+      ('edição de perfil', '/me/edit', 'bio'),
+    ]) {
+      testWidgets(
+        'com pilha, o voltar da barra também pergunta antes de descartar ($name)',
+        (tester) async {
+          await harness().pump(tester, size: const Size(400, 2000));
+          // Aberto por navegação normal: há uma tela embaixo (pilha).
+          GoRouter.of(tester.element(find.byType(Scaffold).first)).push(path);
+          await tester.pumpAndSettle();
+          expect(find.byType(NavigationBar), findsNothing);
+
+          final field = switch (enter) {
+            'hours' => find.widgetWithText(TextFormField, 'Horas jogadas'),
+            'text' => find.byType(TextField).first,
+            _ => find.widgetWithText(TextFormField, 'Bio'),
+          };
+          // Horas válidas: texto que não vira número não conta como alteração.
+          await tester.enterText(field, enter == 'hours' ? '5' : 'alteração');
+          await tester.pumpAndSettle();
+
+          await tapAndSettle(tester, find.byType(BackButton));
+          expect(
+            find.text('Descartar alterações?').evaluate().length +
+                find.text('Descartar publicação?').evaluate().length,
+            1,
+            reason: 'pediu confirmação em vez de descartar em silêncio',
+          );
+          expect(location(tester), path);
+        },
+      );
+    }
+
     testWidgets('com pilha, voltar desfaz o push', (tester) async {
       await harness().pump(tester);
       await openLibraryGame(tester, 'Jogo Fixture Um');

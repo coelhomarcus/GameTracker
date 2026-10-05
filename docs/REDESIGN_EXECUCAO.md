@@ -9,7 +9,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 03 Navegação | Concluída (sem inspeção no navegador) | Verificada por testes de widget; ver abaixo |
 | 04 Crop de avatar/banner | Concluída, exceto gestos no navegador/aparelho | Verificada por testes e upload real na API de teste; ver abaixo |
 | 05 Biblioteca | Concluída (sem inspeção no navegador) | Verificada por testes, goldens e volume de 1.000 registros; ver abaixo |
-| 06 Formulário de registro | Pendente | |
+| 06 Formulário de registro | Concluída (sem inspeção no navegador) | Verificada por testes; corrige regressão da Etapa 03; ver abaixo |
 | 07 Pesquisa / Explorar | Pendente | |
 | 08 Página do jogo | Pendente | |
 | 09 Comunidade | Pendente | |
@@ -131,3 +131,15 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 - A página do jogo lista os registros na ordem da API, não do mais novo ao mais antigo como a Biblioteca. Fica para a Etapa 08.
 
 **Não verificado:** a aparência e a rolagem no navegador e em aparelho.
+
+## Etapa 06 — formulário de registro
+
+**Arquivos:** `tracking_form_page.dart` (reescrita do corpo), `entry_actions.dart` (confirmação de exclusão), `game_page.dart` e `game_entry.dart` (vocabulário), `core/navigation/back_navigation.dart` (correção abaixo). `celebration.dart` não precisou mudar: o convite já só aparece depois da confirmação do servidor e nunca publica sozinho (cobertos por testes existentes).
+
+**Formulário:** título "Novo registro"/"Editar registro"; cabeçalho com capa e nome do jogo; aviso "Você já tem N registros deste jogo. Este será um novo registro." Ordem: **Status** (chips com ícone e texto), **Plataforma** (chips do catálogo + "Outra" para digitar; a API continua aceitando texto livre), **Progresso** (início/fim e horas), **Sua avaliação** (nota e "Notas pessoais", com a legenda "Só você vê."). Nota: chips inteiros de 1 a 10, exibida sempre como `8/10`, e ação "Sem nota" (tocar de novo na nota escolhida também limpa); sem nota nunca vira 0. Salvar ("Salvar registro") e o erro de rede ficam numa barra fixa fora da lista, então ficam acima do teclado e nunca atrás do campo em foco; os valores digitados não são limpos em falha. Validações e regras de horas/datas inalteradas. Exclusão (menu do registro na página do jogo) identifica jogo, plataforma, status e data de criação. Vocabulário: "playthrough" saiu da interface (rotas e código mantêm o nome), incluindo "Registros da comunidade" na aba da página do jogo.
+
+**Defeito da Etapa 03, encontrado e corrigido aqui:** `goBackOr` usava `context.pop()` quando havia pilha, e isso ignora o `PopScope`. O botão de voltar da barra descartava formulários sujos sem perguntar quando a tela tinha sido aberta por navegação normal (só o gesto de voltar do sistema perguntava; os testes da Etapa 03 só cobriam link direto). Agora `goBackOr` sempre passa por `Navigator.maybePop`. Testes de regressão com pilha para registro, publicação e edição de perfil em `navigation_test.dart`.
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 886 passaram, 46 pulados, 0 falhas; integração 51 passaram. Novos: estrutura e ordem dos blocos, cabeçalho, aviso de replay (0/1/3), "Outra" com validação e troca de volta ao catálogo, nota 1–10 e rótulo de acessibilidade, salvar acima do teclado simulado (600 dp) e sem cobrir o campo, erro de rede junto do botão com campos preservados, erro de campo no próprio campo, toque duplo, nota como alteração a descartar, salvar visível a 360 px e 200%, volta à Biblioteca depois de "Novo registro" com o resumo atualizado, confirmação de exclusão identificando o registro.
+
+**Não verificado:** teclado real em aparelho (simulado por `viewInsets`) e aparência no navegador. Conferi uma captura temporária do formulário a 390 px (fora do repositório).

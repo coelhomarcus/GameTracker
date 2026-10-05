@@ -5,7 +5,10 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/data/hours.dart';
 import '../../../core/dates/date_only.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/game_cover.dart';
 import '../../../core/design_system/game_status.dart';
+import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/navigation/back_navigation.dart';
@@ -28,7 +31,7 @@ class TrackingFormPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final game = ref.watch(gameControllerProvider(igdbId));
     final library = ref.watch(libraryProvider);
-    final title = entryId == null ? 'Novo playthrough' : 'Editar playthrough';
+    final title = entryId == null ? 'Novo registro' : 'Editar registro';
 
     Widget scaffold(Widget body) => Scaffold(
       appBar: AppBar(
@@ -146,6 +149,9 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
   late final TextEditingController _notes;
 
   late String _platform;
+
+  /// "Outra": a plataforma é digitada em vez de escolhida entre as do catálogo.
+  bool _customPlatform = false;
   late GameStatus _status;
   DateOnly? _start;
   DateOnly? _end;
@@ -157,6 +163,9 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
 
   bool get _editing => widget.entry != null;
   bool get _hasPlatformOptions => _platformOptions.isNotEmpty;
+
+  /// Sem plataformas no catálogo, ou com "Outra" escolhida, o campo é de texto.
+  bool get _typedPlatform => !_hasPlatformOptions || _customPlatform;
 
   /// Plataformas do jogo; no modo edição mantém a atual mesmo que o cache não a liste.
   late final List<String> _platformOptions = [
@@ -177,7 +186,10 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
     _start = e?.startedAt;
     _end = e?.finishedAt;
     _rating = e?.rating;
-    _platformText = TextEditingController(text: _platform);
+    // O campo digitado começa vazio quando há plataformas para escolher ("Outra").
+    _platformText = TextEditingController(
+      text: _hasPlatformOptions ? '' : _platform,
+    );
     _hours = TextEditingController(
       text: e?.hoursPlayed == null ? '' : hoursInputText(e!.hoursPlayed!),
     );
@@ -196,7 +208,7 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
   EntryDraft _draft() {
     final notes = _notes.text.trim();
     return EntryDraft(
-      platform: _hasPlatformOptions ? _platform : _platformText.text.trim(),
+      platform: _typedPlatform ? _platformText.text.trim() : _platform,
       status: _status,
       startedAt: _start,
       finishedAt: _end,
@@ -338,11 +350,193 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
       child: Scaffold(
         appBar: AppBar(
           leading: FallbackBackButton(fallback: '/games/${widget.game.igdbId}'),
-          title: Text(_editing ? 'Editar playthrough' : 'Novo playthrough'),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: Space.sm),
-              child: FilledButton(
+          title: Text(_editing ? 'Editar registro' : 'Novo registro'),
+        ),
+        // O salvar fica numa barra fora da lista: o corpo encolhe com o teclado, então ele nunca
+        // some atrás dele nem do campo em foco.
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: LayoutBuilder(
+                    builder: (context, box) => ListView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: PageContainer.insetsFor(
+                        box.maxWidth,
+                        PageWidth.reading,
+                      ).copyWith(top: Space.lg, bottom: Space.lg),
+                      children: [
+                        _header(text),
+                        const SizedBox(height: Space.xl),
+                        const SectionHeader(title: 'Status'),
+                        _statusChips(),
+                        const SizedBox(height: Space.xl),
+                        const SectionHeader(title: 'Plataforma'),
+                        _platformField(),
+                        const SizedBox(height: Space.xl),
+                        const SectionHeader(title: 'Progresso'),
+                        _periodRow(),
+                        if (periodError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: Space.sm),
+                            child: Text(
+                              periodError,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: Space.lg),
+                        _hoursField(),
+                        const SizedBox(height: Space.xl),
+                        const SectionHeader(title: 'Sua avaliação'),
+                        _ratingField(text),
+                        const SizedBox(height: Space.lg),
+                        TextFormField(
+                          controller: _notes,
+                          enabled: !_saving,
+                          decoration: const InputDecoration(
+                            labelText: 'Notas pessoais',
+                            helperText: 'Só você vê.',
+                            alignLabelWithHint: true,
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          maxLines: 5,
+                          minLines: 3,
+                          maxLength: 2000,
+                          keyboardType: TextInputType.multiline,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              _saveBar(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _header(TextTheme text) {
+    final existing = widget.existingForGame;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Space.lg,
+          children: [
+            SizedBox(
+              width: 72,
+              child: GameCover(
+                name: widget.game.name,
+                url: widget.game.coverUrl,
+                radius: Radii.cover,
+              ),
+            ),
+            Expanded(
+              child: Semantics(
+                header: true,
+                child: Text(widget.game.name, style: text.titleLarge),
+              ),
+            ),
+          ],
+        ),
+        if (!_editing && existing > 0) ...[
+          const SizedBox(height: Space.md),
+          Text(
+            existing == 1
+                ? 'Você já tem 1 registro deste jogo. Este será um novo registro.'
+                : 'Você já tem $existing registros deste jogo. Este será um novo registro.',
+            style: text.bodyMedium,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _statusChips() => Wrap(
+    spacing: Space.sm,
+    runSpacing: Space.sm,
+    children: [
+      for (final s in GameStatus.values)
+        ChoiceChip(
+          avatar: Icon(s.icon, size: 18),
+          label: Text(s.label),
+          selected: _status == s,
+          onSelected: _saving ? null : (_) => setState(() => _status = s),
+        ),
+    ],
+  );
+
+  Widget _periodRow() => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    spacing: Space.md,
+    children: [
+      Expanded(
+        child: _DateField(
+          label: 'Início',
+          value: _start,
+          enabled: !_saving,
+          onPick: () => _pickDate(start: true),
+          onClear: () => setState(() => _start = null),
+        ),
+      ),
+      Expanded(
+        child: _DateField(
+          label: 'Fim',
+          value: _end,
+          enabled: !_saving,
+          onPick: () => _pickDate(start: false),
+          onClear: () => setState(() => _end = null),
+        ),
+      ),
+    ],
+  );
+
+  Widget _hoursField() => TextFormField(
+    controller: _hours,
+    enabled: !_saving,
+    decoration: const InputDecoration(
+      labelText: 'Horas jogadas',
+      suffixText: 'horas',
+      helperText: 'Opcional. Aceita 12 ou 12,5.',
+    ),
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    textInputAction: TextInputAction.next,
+    autovalidateMode: AutovalidateMode.onUserInteraction,
+    validator: (v) =>
+        TrackingRules.hours(v ?? '', start: _start, end: _end, today: _today),
+  );
+
+  /// Salvar e o erro de rede ficam juntos, sempre à vista; os valores digitados não são limpos.
+  Widget _saveBar() {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, box) => Padding(
+          padding: PageContainer.insetsFor(
+            box.maxWidth,
+            PageWidth.reading,
+          ).copyWith(top: Space.sm, bottom: Space.sm),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_error != null) ...[
+                FormErrorBanner(_error!),
+                const SizedBox(height: Space.sm),
+              ],
+              FilledButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
                     ? const SizedBox(
@@ -350,131 +544,9 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Salvar'),
+                    : const Text('Salvar registro'),
               ),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(Space.lg),
-                  children: [
-                    Text(widget.game.name, style: text.titleLarge),
-                    if (!_editing && widget.existingForGame > 0) ...[
-                      const SizedBox(height: Space.sm),
-                      Text(
-                        widget.existingForGame == 1
-                            ? 'Você já tem 1 registro deste jogo. Este será um novo playthrough (replay).'
-                            : 'Você já tem ${widget.existingForGame} registros deste jogo. Este será um novo playthrough (replay).',
-                        style: text.bodyMedium,
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: Space.lg),
-                      FormErrorBanner(_error!),
-                    ],
-                    const SizedBox(height: Space.xl),
-                    Text('Plataforma', style: text.titleSmall),
-                    const SizedBox(height: Space.sm),
-                    _platformField(),
-                    const SizedBox(height: Space.xl),
-                    Text('Status', style: text.titleSmall),
-                    const SizedBox(height: Space.sm),
-                    Wrap(
-                      spacing: Space.sm,
-                      runSpacing: Space.sm,
-                      children: [
-                        for (final s in GameStatus.values)
-                          ChoiceChip(
-                            avatar: Icon(s.icon, size: 18),
-                            label: Text(s.label),
-                            selected: _status == s,
-                            onSelected: _saving
-                                ? null
-                                : (_) => setState(() => _status = s),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: Space.xl),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: Space.md,
-                      children: [
-                        Expanded(
-                          child: _DateField(
-                            label: 'Início',
-                            value: _start,
-                            enabled: !_saving,
-                            onPick: () => _pickDate(start: true),
-                            onClear: () => setState(() => _start = null),
-                          ),
-                        ),
-                        Expanded(
-                          child: _DateField(
-                            label: 'Fim',
-                            value: _end,
-                            enabled: !_saving,
-                            onPick: () => _pickDate(start: false),
-                            onClear: () => setState(() => _end = null),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (periodError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: Space.sm),
-                        child: Text(
-                          periodError,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: Space.xl),
-                    TextFormField(
-                      controller: _hours,
-                      enabled: !_saving,
-                      decoration: const InputDecoration(
-                        labelText: 'Horas jogadas',
-                        suffixText: 'horas',
-                        helperText: 'Opcional. Aceita 12 ou 12,5.',
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (v) => TrackingRules.hours(
-                        v ?? '',
-                        start: _start,
-                        end: _end,
-                        today: _today,
-                      ),
-                    ),
-                    const SizedBox(height: Space.xl),
-                    _ratingField(text),
-                    const SizedBox(height: Space.xl),
-                    TextFormField(
-                      controller: _notes,
-                      enabled: !_saving,
-                      decoration: const InputDecoration(
-                        labelText: 'Notas',
-                        alignLabelWithHint: true,
-                      ),
-                      maxLines: 5,
-                      minLines: 3,
-                      maxLength: 2000,
-                      keyboardType: TextInputType.multiline,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ),
         ),
       ),
@@ -482,59 +554,69 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
   }
 
   Widget _platformField() {
-    if (_hasPlatformOptions) {
-      return Wrap(
-        spacing: Space.sm,
-        runSpacing: Space.sm,
-        children: [
-          for (final p in _platformOptions)
-            ChoiceChip(
-              label: Text(p),
-              selected: _platform == p,
-              onSelected: _saving ? null : (_) => setState(() => _platform = p),
+    final field = _typedPlatform
+        ? TextFormField(
+            controller: _platformText,
+            enabled: !_saving,
+            decoration: const InputDecoration(
+              labelText: 'Plataforma',
+              hintText: 'Ex.: PC',
             ),
-        ],
-      );
-    }
-    return TextFormField(
-      controller: _platformText,
-      enabled: !_saving,
-      decoration: const InputDecoration(
-        labelText: 'Plataforma',
-        hintText: 'Ex.: PC',
-      ),
-      maxLength: 50,
-      validator: (v) =>
-          (v == null || v.trim().isEmpty) ? 'Informe a plataforma' : null,
+            maxLength: 50,
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Informe a plataforma' : null,
+          )
+        : null;
+    if (!_hasPlatformOptions) return field!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [
+            for (final p in _platformOptions)
+              ChoiceChip(
+                label: Text(p),
+                selected: !_customPlatform && _platform == p,
+                onSelected: _saving
+                    ? null
+                    : (_) => setState(() {
+                        _customPlatform = false;
+                        _platform = p;
+                      }),
+              ),
+            ChoiceChip(
+              avatar: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Outra'),
+              selected: _customPlatform,
+              onSelected: _saving
+                  ? null
+                  : (_) => setState(() => _customPlatform = true),
+            ),
+          ],
+        ),
+        if (field != null) ...[const SizedBox(height: Space.md), field],
+      ],
     );
   }
 
+  /// Nota inteira de 1 a 10, ou "Sem nota". Sempre exibida como `8/10`.
   Widget _ratingField(TextTheme text) {
     final rating = _rating;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: Space.md,
           children: [
-            Expanded(
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: Space.md,
-                children: [
-                  Text('Nota', style: text.titleSmall),
-                  Text(
-                    rating == null ? 'Sem nota' : '$rating/10',
-                    style: text.bodyLarge,
-                  ),
-                ],
-              ),
+            Text('Nota', style: text.titleMedium),
+            Text(
+              rating == null ? 'Sem nota' : '$rating/10',
+              style: text.bodyLarge,
             ),
-            if (rating == null)
-              TextButton(
-                onPressed: _saving ? null : () => setState(() => _rating = 7),
-                child: const Text('Dar uma nota'),
-              )
-            else
+            if (rating != null)
               TextButton(
                 onPressed: _saving
                     ? null
@@ -543,18 +625,25 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
               ),
           ],
         ),
-        if (rating != null)
-          Slider(
-            value: rating.toDouble(),
-            min: 1,
-            max: 10,
-            divisions: 9,
-            label: '$rating',
-            semanticFormatterCallback: (v) => 'Nota ${v.round()} de 10',
-            onChanged: _saving
-                ? null
-                : (v) => setState(() => _rating = v.round()),
-          ),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.xs,
+          children: [
+            for (var n = 1; n <= 10; n++)
+              ChoiceChip(
+                label: Semantics(
+                  label: 'Nota $n de 10',
+                  excludeSemantics: true,
+                  child: Text('$n'),
+                ),
+                selected: rating == n,
+                showCheckmark: false,
+                onSelected: _saving
+                    ? null
+                    : (_) => setState(() => _rating = rating == n ? null : n),
+              ),
+          ],
+        ),
       ],
     );
   }

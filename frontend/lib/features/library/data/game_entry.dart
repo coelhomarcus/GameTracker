@@ -2,7 +2,7 @@ import '../../../core/dates/date_only.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../games/data/game_models.dart';
 
-/// Um playthrough. A chave é `id`, nunca `gameId`: o mesmo jogo pode ter vários registros
+/// Um registro (playthrough). A chave é `id`, nunca `gameId`: o mesmo jogo pode ter vários registros
 /// (replay), inclusive na mesma plataforma.
 class GameEntry {
   const GameEntry({
@@ -52,7 +52,7 @@ class GameEntry {
   final Game game;
 }
 
-/// Valores do formulário de playthrough. `null` significa "sem valor".
+/// Valores do formulário de registro. `null` significa "sem valor".
 class EntryDraft {
   const EntryDraft({
     required this.platform,

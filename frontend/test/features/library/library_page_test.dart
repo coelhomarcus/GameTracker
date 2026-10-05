@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gametracker/core/dates/date_only.dart';
 import 'package:gametracker/core/design_system/game_card.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
@@ -167,6 +168,37 @@ void main() {
       expect(location(tester), '/games/900001/playthroughs/new');
     });
   });
+
+  testWidgets(
+    'novo registro pelo menu volta à Biblioteca e atualiza o resumo',
+    (tester) async {
+      final library = FakeLibraryRepository([fakeEntry(id: 'a')]);
+      await AppHarness(library: library)
+          .pump(tester, size: const Size(400, 2000));
+      await tester.ensureVisible(libraryGame('Jogo Fixture Um'));
+      await tapAndSettle(tester, find.byType(GameMenuButton));
+      await tapAndSettle(tester, find.text('Novo registro'));
+      expect(location(tester), '/games/900001/playthroughs/new');
+      expect(
+        find.text(
+          'Você já tem 1 registro deste jogo. Este será um novo registro.',
+        ),
+        findsOneWidget,
+      );
+
+      await tapAndSettle(
+        tester,
+        find.widgetWithText(FilledButton, 'Salvar registro'),
+      );
+      expect(
+        location(tester),
+        '/library',
+        reason: 'volta ao contexto de origem',
+      );
+      expect(find.text('1 jogo · 2 registros'), findsOneWidget);
+      expect(library.created, hasLength(1));
+    },
+  );
 
   group('filtros', () {
     final data = [
@@ -666,6 +698,14 @@ void main() {
 
     await openMenu(tester, 0, 'Remover');
     expect(find.text('Remover registro?'), findsOneWidget);
+    // Identifica o jogo e o registro, não só "um registro".
+    expect(find.textContaining('Jogo Fixture Um'), findsWidgets);
+    // A data é a do aparelho (o registro guarda um instante).
+    final created = DateOnly.fromLocal(DateTime.utc(2026, 1, 1).toLocal());
+    expect(
+      find.textContaining('PC · Na fila · criado em ${created.format()}'),
+      findsOneWidget,
+    );
     await tapAndSettle(tester, find.widgetWithText(TextButton, 'Cancelar'));
     expect(library.deleted, isEmpty);
 

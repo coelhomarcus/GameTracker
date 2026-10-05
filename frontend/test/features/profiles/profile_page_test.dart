@@ -319,7 +319,10 @@ void main() {
       final h = AppHarness(library: library, profiles: profiles);
       await h.pump(tester);
       await goTo(tester, '/games/900001/playthroughs/new');
-      await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Salvar'));
+      await tapAndSettle(
+        tester,
+        find.widgetWithText(FilledButton, 'Salvar registro'),
+      );
       await goTo(tester, '/me');
       expect(find.text('Todos os registros (2)'), findsOneWidget);
     });

@@ -108,14 +108,14 @@ void main() {
     expect(find.text('PlayStation 5'), findsWidgets);
     expect(find.text('20,0 h'), findsOneWidget, reason: 'vírgula decimal');
     expect(find.text('Nota 8/10'), findsOneWidget);
-    expect(find.text('Novo playthrough (replay)'), findsOneWidget);
+    expect(find.text('Novo registro (replay)'), findsOneWidget);
   });
 
   testWidgets('sem registros: convida a criar o primeiro', (tester) async {
     await openGame(tester, harness(library: FakeLibraryRepository()));
     await tapAndSettle(tester, find.text('Meu progresso'));
     expect(find.text('Você ainda não registrou este jogo'), findsOneWidget);
-    expect(find.text('Novo playthrough'), findsWidgets);
+    expect(find.text('Novo registro'), findsWidgets);
   });
 
   testWidgets('Comunidade: estatísticas de playthroughs e jogadores', (

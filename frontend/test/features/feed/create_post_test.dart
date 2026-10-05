@@ -340,7 +340,10 @@ void main() {
           tester,
           find.widgetWithText(ChoiceChip, 'Concluído'),
         );
-        await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Salvar'));
+        await tapAndSettle(
+          tester,
+          find.widgetWithText(FilledButton, 'Salvar registro'),
+        );
         expect(
           find.textContaining('Quer contar para a comunidade?'),
           findsOneWidget,
@@ -357,7 +360,10 @@ void main() {
           '9',
         );
         await tester.pumpAndSettle();
-        await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Salvar'));
+        await tapAndSettle(
+          tester,
+          find.widgetWithText(FilledButton, 'Salvar registro'),
+        );
         expect(
           find.textContaining('Quer contar'),
           findsNothing,
@@ -372,7 +378,10 @@ void main() {
       await h.pump(tester);
       await goTo(tester, '/games/900001/playthroughs/new');
       await tapAndSettle(tester, find.widgetWithText(ChoiceChip, 'Concluído'));
-      await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Salvar'));
+      await tapAndSettle(
+        tester,
+        find.widgetWithText(FilledButton, 'Salvar registro'),
+      );
       expect(
         find.textContaining('Quer contar para a comunidade?'),
         findsOneWidget,

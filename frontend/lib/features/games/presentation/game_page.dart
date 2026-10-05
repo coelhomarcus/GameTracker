@@ -172,7 +172,7 @@ class _AboutTab extends StatelessWidget {
                     onPressed: () =>
                         context.push('/games/${game.igdbId}/playthroughs/new'),
                     icon: const Icon(Icons.add),
-                    label: const Text('Novo playthrough'),
+                    label: const Text('Novo registro'),
                   ),
                 ],
               ),
@@ -265,7 +265,8 @@ class _ProgressTab extends ConsumerWidget {
                 child: EmptyView(
                   icon: Icons.bookmark_add_outlined,
                   title: 'Você ainda não registrou este jogo',
-                  message: 'Crie um playthrough para acompanhar status, horas e nota.',
+                  message:
+                      'Crie um registro para acompanhar status, horas e nota.',
                 ),
               ),
             for (final e in mine)
@@ -279,7 +280,7 @@ class _ProgressTab extends ConsumerWidget {
                   context.push('/games/${game.igdbId}/playthroughs/new'),
               icon: const Icon(Icons.add),
               label: Text(
-                mine.isEmpty ? 'Novo playthrough' : 'Novo playthrough (replay)',
+                mine.isEmpty ? 'Novo registro' : 'Novo registro (replay)',
               ),
             ),
           ],
@@ -368,7 +369,7 @@ class _CommunityTabState extends ConsumerState<_CommunityTab> {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: [
-        Text('Playthroughs deste jogo', style: text.titleMedium),
+        Text('Registros da comunidade', style: text.titleMedium),
         const SizedBox(height: Space.sm),
         // Altura mínima (não fixa): os contadores quebram em várias linhas conforme a largura e o
         // tamanho do texto, e uma caixa fixa fazia o conteúdo seguinte ficar por cima deles.

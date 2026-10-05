@@ -101,7 +101,7 @@ void main() {
       tester,
       find.byTooltip('Adicionar Zelda Fixture à biblioteca'),
     );
-    expect(find.text('Novo playthrough'), findsWidgets);
+    expect(find.text('Novo registro'), findsWidgets);
     expect(find.text('Plataforma'), findsOneWidget);
   });
 
@@ -123,6 +123,6 @@ void main() {
     );
     await typeQuery(tester, 'zelda');
     await tapAndSettle(tester, find.text('Zelda Fixture'));
-    expect(find.text('Novo playthrough'), findsWidgets);
+    expect(find.text('Novo registro'), findsWidgets);
   });
 }
