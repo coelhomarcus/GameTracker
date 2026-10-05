@@ -10,7 +10,7 @@ flutter run -d chrome          # web
 flutter build apk --debug      # Android
 ```
 
-Testes de integração contra um backend **isolado** (nunca produção):
+Testes de integração contra o backend de **teste** (nunca produção). Suba antes: `cd ../backend && npm run test:db:up && npm run test:seed && npm run dev:test` (veja o README da raiz).:
 
 ```bash
 flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100

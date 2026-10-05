@@ -2,7 +2,7 @@
 //
 //   flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 //
-// Requer os jogos sintéticos 900001/900002 no cache (criados por docs/contract-fixtures/capture.mjs),
+// Requer os jogos sintéticos 900001/900002 no cache (cd backend && npm run test:seed),
 // porque a IGDB não é acessível neste ambiente.
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';

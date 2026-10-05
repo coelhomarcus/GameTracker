@@ -2,7 +2,7 @@
 //
 //   flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 //
-// Requer o jogo sintético 900001 no cache (docs/contract-fixtures/capture.mjs).
+// Requer o jogo sintético 900001 no cache (cd backend && npm run test:seed).
 import 'dart:convert';
 
 import 'package:dio/dio.dart';

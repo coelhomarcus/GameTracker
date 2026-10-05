@@ -1,9 +1,0 @@
-{
-  "status": 409,
-  "body": {
-    "error": {
-      "code": "conflict",
-      "message": "Username ou email já cadastrado"
-    }
-  }
-}

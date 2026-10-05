@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// Lê uma resposta real gravada em `docs/contract-fixtures/responses` (só o corpo).
+/// Lê uma resposta real do backend guardada em `test/fixtures/<nome>.json` (só o corpo).
+/// Veja `test/fixtures/README.md`.
 Object? fixtureBody(String name) {
-  final file = File('../docs/contract-fixtures/responses/$name.json');
+  final file = File('test/fixtures/$name.json');
   final decoded = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
   return decoded['body'];
 }
