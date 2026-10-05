@@ -53,6 +53,7 @@ Cada passo tem teste a ajustar em `backend/src/push/push.test.ts` e em `docs/con
 
 ## Pendências de decisão
 
-- Remover `notes` (anotações pessoais) de `GET /users/:id/game-entries`, que hoje expõe o campo publicamente. Não alterei sem decisão: muda o contrato para os dois clientes.
+(A exposição pública de `notes` foi resolvida em 04/10/2026: `GET /users/:id/game-entries` só devolve as anotações ao próprio dono.)
+
 - Criar o projeto Firebase (gratuito) ou declarar que push não faz parte desta entrega.
 - Quem vai gerar e guardar a chave de assinatura real.

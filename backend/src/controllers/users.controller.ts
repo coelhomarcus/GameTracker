@@ -28,10 +28,18 @@ export async function getUserCommentsHandler(req: Request, res: Response) {
   res.json(result);
 }
 
+/** Remove as anotações pessoais de um registro antes de mostrá-lo a outra pessoa. */
+export function withoutNotes<T extends { notes?: unknown }>(entry: T): Omit<T, 'notes'> {
+  const { notes: _notes, ...publicFields } = entry;
+  return publicFields;
+}
+
 export async function getUserGameEntriesHandler(req: Request, res: Response) {
   const { status } = res.locals.query as { status?: 'backlog' | 'playing' | 'completed' | 'dropped' };
-  const entries = await gameEntriesService.listMine(req.params.id as string, { status });
-  res.json(entries);
+  const ownerId = req.params.id as string;
+  const entries = await gameEntriesService.listMine(ownerId, { status });
+  // As anotações são pessoais: só quem as escreveu as vê. A coleção de outra pessoa sai sem `notes`.
+  res.json(req.user!.id === ownerId ? entries : entries.map(withoutNotes));
 }
 
 export async function getUserFavoritesHandler(req: Request, res: Response) {
