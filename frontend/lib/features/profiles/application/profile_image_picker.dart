@@ -33,12 +33,12 @@ class GalleryImagePicker implements ProfileImagePicker {
   @override
   Future<PickedImage?> pick() async {
     try {
-      // Reduz fotos enormes antes do envio: o servidor limita o arquivo a 8 MiB e recorta de qualquer jeito.
+      // Sem `imageQuality`: o editor de recorte limita o tamanho e é o único passo com perda.
+      // O web nem sempre aplica esses parâmetros, por isso o processador valida de novo.
       final file = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 2048,
         maxHeight: 2048,
-        imageQuality: 90,
       );
       if (file == null) return null;
       final bytes = await file.readAsBytes();

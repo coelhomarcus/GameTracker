@@ -29,20 +29,21 @@ Finder get bioField => find.widgetWithText(TextFormField, 'Bio');
 /// O botão do perfil (o título da tela de edição também diz "Editar perfil").
 Finder get profileEditButton =>
     find.widgetWithText(OutlinedButton, 'Editar perfil');
-Finder get save => find.widgetWithText(FilledButton, 'Salvar');
+Finder get save => find.widgetWithText(FilledButton, 'Salvar alterações');
 
 /// Abre a edição por cima do perfil (como o usuário chega: Perfil → Editar perfil).
 Future<AppHarness> openEdit(
   WidgetTester tester, {
   FakeProfilesRepository? profiles,
   FakeImagePicker? picker,
+  FakeImageCropper? cropper,
   FakeAuthRepository? auth,
 }) async {
   final a = auth ?? FakeAuthRepository();
   a.restoreResult = Restored(_me);
   final p = profiles ?? FakeProfilesRepository();
   p.profiles['u1'] = fakeProfile(id: 'u1', username: 'ana', name: 'Ana Silva');
-  final h = AppHarness(auth: a, profiles: p, picker: picker);
+  final h = AppHarness(auth: a, profiles: p, picker: picker, cropper: cropper);
   await h.pump(tester);
   await tapAndSettle(tester, find.text('Perfil').last);
   await tapAndSettle(tester, profileEditButton);
@@ -61,10 +62,8 @@ void main() {
       tester.widget<TextFormField>(bioField).controller!.text,
       'Minha bio',
     );
-    expect(
-      find.textContaining('As fotos são salvas assim que você as escolhe'),
-      findsOneWidget,
-    );
+    expect(find.text('Salvas ao confirmar o recorte.'), findsOneWidget);
+    expect(find.text('Salvas no botão Salvar alterações.'), findsOneWidget);
   });
 
   group('textos', () {
@@ -344,15 +343,114 @@ void main() {
       final h = await openEdit(tester, picker: picker);
       await tapAndSettle(tester, find.text('Alterar foto'));
       expect(
-        find.text('A imagem passa de 8 MB. Escolha uma menor.'),
+        find.text(
+          'A imagem passa de 8 MB. Reduza o tamanho e escolha de novo.',
+        ),
         findsOneWidget,
       );
       expect(h.profiles.uploads, isEmpty, reason: 'nem tenta enviar');
+      expect(
+        h.cropper.calls,
+        isEmpty,
+        reason: 'nem abre o editor com arquivo acima do limite',
+      );
       expect(
         find.text('Tentar de novo'),
         findsNothing,
         reason: 'reenviar o mesmo arquivo não adiantaria',
       );
+    });
+
+    group('recorte', () {
+      testWidgets('o editor recebe a imagem e o tipo; o envio usa o recorte', (
+        tester,
+      ) async {
+        final original = fakeImage(name: 'original.png');
+        final cropped = fakeImage(name: 'avatar.jpg', mime: 'image/jpeg');
+        final cropper = FakeImageCropper()..result = cropped;
+        final h = await openEdit(
+          tester,
+          picker: FakeImagePicker()..next = original,
+          cropper: cropper,
+        );
+        await tapAndSettle(tester, find.text('Alterar foto'));
+
+        expect(cropper.calls.single, (original, ProfileImageKind.avatar));
+        expect(h.profiles.uploads.single.$1, ProfileImageKind.avatar);
+        expect(
+          h.profiles.uploads.single.$2,
+          same(cropped),
+          reason: 'o servidor recebe o arquivo recortado, não o original',
+        );
+      });
+
+      testWidgets('a capa abre o editor no modo capa', (tester) async {
+        final cropper = FakeImageCropper();
+        await openEdit(
+          tester,
+          picker: FakeImagePicker()..next = fakeImage(),
+          cropper: cropper,
+        );
+        await tapAndSettle(tester, find.text('Alterar capa'));
+        expect(cropper.calls.single.$2, ProfileImageKind.banner);
+      });
+
+      testWidgets('cancelar o recorte não envia nem altera a foto', (
+        tester,
+      ) async {
+        final cropper = FakeImageCropper()..cancel = true;
+        final h = await openEdit(
+          tester,
+          picker: FakeImagePicker()..next = fakeImage(),
+          cropper: cropper,
+        );
+        await tapAndSettle(tester, find.text('Alterar foto'));
+
+        expect(cropper.calls, hasLength(1));
+        expect(h.profiles.uploads, isEmpty);
+        expect(find.byType(Image), findsNothing, reason: 'sem prévia nova');
+        expect(find.textContaining('Foto atualizada'), findsNothing);
+        expect(find.byType(LinearProgressIndicator), findsNothing);
+      });
+
+      testWidgets('cancelar a galeria nem abre o editor', (tester) async {
+        final cropper = FakeImageCropper();
+        await openEdit(
+          tester,
+          picker: FakeImagePicker()..next = null,
+          cropper: cropper,
+        );
+        await tapAndSettle(tester, find.text('Alterar foto'));
+        expect(cropper.calls, isEmpty);
+      });
+
+      testWidgets('falha no envio reenvia os mesmos bytes recortados', (
+        tester,
+      ) async {
+        final cropped = fakeImage(name: 'avatar.jpg', mime: 'image/jpeg');
+        final cropper = FakeImageCropper()..result = cropped;
+        final profiles = FakeProfilesRepository()
+          ..uploadError = const NetworkException();
+        final h = await openEdit(
+          tester,
+          picker: FakeImagePicker()..next = fakeImage(),
+          cropper: cropper,
+          profiles: profiles,
+        );
+        await tapAndSettle(tester, find.text('Alterar foto'));
+
+        profiles.uploadError = null;
+        await tapAndSettle(tester, find.text('Tentar de novo'));
+        expect(cropper.calls, hasLength(1), reason: 'não reabre o editor');
+        expect(h.profiles.uploads, hasLength(2));
+        expect(h.profiles.uploads.last.$2, same(cropped));
+      });
+    });
+
+    testWidgets('fotos e informações são seções separadas', (tester) async {
+      await openEdit(tester);
+      expect(find.text('Fotos'), findsOneWidget);
+      expect(find.text('Informações'), findsOneWidget);
     });
 
     testWidgets(

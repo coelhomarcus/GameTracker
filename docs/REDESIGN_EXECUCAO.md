@@ -7,7 +7,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 01 Preparar execução | Concluída, com capturas parciais | Baseline, API de teste e build web OK. Só a captura do login; sem ferramenta para navegar nas telas autenticadas (abaixo) |
 | 02 Fundação visual | Concluída (sem inspeção no navegador) | Verificada por testes de widget/golden; ver abaixo |
 | 03 Navegação | Concluída (sem inspeção no navegador) | Verificada por testes de widget; ver abaixo |
-| 04 Crop de avatar/banner | Pendente | |
+| 04 Crop de avatar/banner | Concluída, exceto gestos no navegador/aparelho | Verificada por testes e upload real na API de teste; ver abaixo |
 | 05 Biblioteca | Pendente | |
 | 06 Formulário de registro | Pendente | |
 | 07 Pesquisa / Explorar | Pendente | |
@@ -83,3 +83,29 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Cobertura nova:** voltar em sete links diretos e com pilha; formulário sujo; post/usuário/conversa inexistentes; link direto sem sessão → login → destino → voltar; FAB/cabeçalho em 390/599/600/900 dp para as três ações; sino por destino; rail expandido em 1239 vs 1240; redimensionar mantém o destino; tocar no destino ativo preserva o filtro e volta à raiz.
 
 **Não verificado:** rolagem preservada entre destinos (vem do `IndexedStack`, sem teste dedicado) e a aparência no navegador. No web, a recarga continua exigindo novo login (política de sessão em memória), e o destino é restaurado depois do login.
+
+## Etapa 04 — recorte de avatar e banner
+
+**Dependências:** `crop_your_image ^2.0.1` (resolvida 2.0.1) e `image ^4.10.1` (resolvida 4.10.1). O build web compila; o aviso de WebAssembly vem de `socket_io_common` e já existia.
+
+**Arquivos:** novos `profiles/application/profile_image_processor.dart` (preparação, exportação, limites) e `profiles/presentation/profile_image_crop_page.dart` (editor, `ProfileImageCropper`). Alterados: `profile_image_picker.dart` (sem `imageQuality`, para o recorte ser o único passo com perda), `edit_profile_page.dart` (fluxo de recorte e seções).
+
+**Fluxo:** escolher → (arquivo > 8 MiB é recusado sem abrir o editor) → preparar (EXIF, ≤ 2048 px) → recortar → "Salvar foto"/"Salvar capa" → upload com progresso na edição. Cancelar o editor ou a galeria não faz requisição nem muda a foto. Falha de upload guarda os bytes recortados; "Tentar de novo" reenvia os mesmos, sem reabrir o editor.
+
+**Editor:** tela cheia abaixo de 600 dp, diálogo de até 720 dp acima. Imagem se move sob uma moldura fixa (pinça/arrasto/roda, do pacote). Botões e setas do teclado movem a moldura e `+`/`-` a redimensionam, pelo `CropController.cropRect`. Prévia circular (foto) ou 3:1 com o avatar sobreposto (capa), desenhada a partir do mesmo enquadramento e só na tela, nunca no arquivo. Avisos de imagem pequena e de GIF estático. Ações Restaurar/Salvar fixas no rodapé.
+
+**Saída:** JPEG qualidade 85, fundo branco, sem EXIF, 400×400 (foto) ou 1500×500 (capa), ≤ 8 MiB, nome `avatar.jpg`/`banner.jpg`, `image/jpeg`. Entrada: JPEG, PNG, WebP; GIF/WebP animado usa o primeiro quadro; HEIC e formatos fora da lista recebem "Use uma imagem JPG, PNG ou WebP."; mais de 24 milhões de pixels é recusado lendo só o cabeçalho.
+
+**Defeitos encontrados e corrigidos no caminho (todos pegos por teste):**
+- O `findDecoderForData` do pacote `image` lança `RangeError` em arquivo curto ou corrompido; agora toda falha de decodificação vira a mensagem de formato não suportado.
+- O decodificador JPEG do `image` já aplica a orientação EXIF e zera a tag; o `bakeOrientation` depois é no-op e não gira duas vezes (confirmado com JPEG de orientação 6 e 3 montado à mão, porque o codificador do pacote não grava um EXIF que ele mesmo releia).
+- "Restaurar" via `controller.image` não repunha o enquadramento inicial; agora remonta o editor.
+- O botão Salvar ficava dentro do painel rolável e podia sair da tela no celular; agora fica fixo.
+
+**Edição de perfil:** seções "Fotos — Salvas ao confirmar o recorte." e "Informações — Salvas no botão Salvar alterações."; o botão do cabeçalho virou "Salvar alterações" no fim do formulário (a Etapa 11 não precisa refazer isso).
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 814 passaram, 46 pulados (o novo teste de integração é pulado sem API), 0 falhas (+51: processador 20, editor 21 com `Crop` real, edição de perfil +9 etc.); integração 51 passaram na API de teste (porta 3101), incluindo um teste novo que prepara uma foto de 3000×2000, exporta avatar e capa e os envia ao backend real, que os serve como JPEG na proporção certa.
+
+**Cobertura relevante:** orientação EXIF 6 e 3 pelos pixels; GIF animado; WebP com e sem perdas; limite de pixels exatamente no teto (24 MP aceita, 25 MP recusa); arquivo de 8 MiB + 1; transparência sobre branco; dimensões exatas; mover/zoom/restaurar refletidos no arquivo; prévia igual ao arquivo salvo (avatar e capa); alvos de 48 dp; 360 px a 200% sem overflow.
+
+**Não verificado:** os gestos de pinça (aparelho) e roda do mouse (web) vêm do pacote e não foram exercitados num navegador ou aparelho; só botões e teclado têm teste. Android nativo (picker, HEIC convertido pelo sistema) não foi executado. No web o processamento roda na thread principal (`compute` é inline), então a interface pode congelar por cerca de 1 s ao preparar uma foto grande; medido em modo debug: preparar 4000×3000 ≈ 1,0 s, exportar a capa ≈ 0,2–1,2 s.

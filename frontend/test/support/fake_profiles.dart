@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart' show BuildContext;
 import 'package:gametracker/core/models/user_summary.dart';
 import 'package:gametracker/features/games/data/game_models.dart';
 import 'package:gametracker/features/library/data/game_entry.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
 import 'package:gametracker/features/profiles/data/profile_models.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
+import 'package:gametracker/features/profiles/presentation/profile_image_crop_page.dart';
 
 UserProfile fakeProfile({
   String id = 'u-beto',
@@ -158,6 +160,27 @@ class FakeProfilesRepository implements ProfilesRepository {
 }
 
 /// Seletor de imagem controlável pelo teste.
+/// Recortador que não abre o editor: devolve a imagem escolhida (ou [result], ou `null` se
+/// [cancel]). Registra o que recebeu.
+class FakeImageCropper implements ProfileImageCropper {
+  PickedImage? result;
+  bool cancel = false;
+  final calls = <(PickedImage, ProfileImageKind)>[];
+
+  @override
+  Future<PickedImage?> crop(
+    BuildContext context,
+    PickedImage image,
+    ProfileImageKind kind, {
+    required String name,
+    String? avatarUrl,
+  }) async {
+    calls.add((image, kind));
+    if (cancel) return null;
+    return result ?? image;
+  }
+}
+
 class FakeImagePicker implements ProfileImagePicker {
   PickedImage? next;
   Object? error;

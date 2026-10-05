@@ -45,6 +45,8 @@ dependencies:
   intl: ^0.20.3
   flutter_localizations:
     sdk: flutter
+  crop_your_image: ^2.0.1
+  image: ^4.10.1
 
 dev_dependencies:
   flutter_test:

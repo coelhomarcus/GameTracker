@@ -20,6 +20,7 @@ import 'package:gametracker/features/push/data/push_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
+import 'package:gametracker/features/profiles/presentation/profile_image_crop_page.dart';
 import 'package:gametracker/features/library/data/library_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,6 +42,7 @@ class AppHarness {
     FakeFeedRepository? feed,
     FakeProfilesRepository? profiles,
     FakeImagePicker? picker,
+    FakeImageCropper? cropper,
     FakeNotificationsRepository? notifications,
     FakePushPlatform? pushPlatform,
     FakePushRepository? push,
@@ -53,6 +55,7 @@ class AppHarness {
        feed = feed ?? FakeFeedRepository(),
        profiles = profiles ?? FakeProfilesRepository(),
        picker = picker ?? FakeImagePicker(),
+       cropper = cropper ?? FakeImageCropper(),
        notifications = notifications ?? FakeNotificationsRepository(),
        pushPlatform = pushPlatform ?? FakePushPlatform(supported: false),
        push = push ?? FakePushRepository(),
@@ -70,6 +73,7 @@ class AppHarness {
   final FakeFeedRepository feed;
   final FakeProfilesRepository profiles;
   final FakeImagePicker picker;
+  final FakeImageCropper cropper;
   final FakeNotificationsRepository notifications;
   final FakePushPlatform pushPlatform;
   final FakePushRepository push;
@@ -105,6 +109,7 @@ class AppHarness {
             profiles as ProfilesRepository,
           ),
           profileImagePickerProvider.overrideWithValue(picker),
+          profileImageCropperProvider.overrideWithValue(cropper),
           notificationsRepositoryProvider.overrideWithValue(
             notifications as NotificationsRepository,
           ),

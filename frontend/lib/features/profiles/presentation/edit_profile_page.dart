@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/app_exception.dart';
@@ -18,6 +19,7 @@ import '../../auth/presentation/session_state.dart';
 import '../application/profile_editor.dart';
 import '../application/profile_image_picker.dart';
 import '../data/profile_models.dart';
+import 'profile_image_crop_page.dart';
 
 final _usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
 
@@ -114,7 +116,29 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       return;
     }
     if (image == null || !mounted) return; // cancelou
-    await _upload(kind, image);
+    if (image.isTooLarge) {
+      setState(
+        () => _uploads[kind] = _ImageUpload(
+          local: image,
+          error: 'A imagem passa de 8 MB. Reduza o tamanho e escolha de novo.',
+        ),
+      );
+      return;
+    }
+    // Recorte antes de qualquer envio: cancelar não faz requisição nem muda a foto salva.
+    final session = ref.read(sessionControllerProvider);
+    final user = session is SessionAuthenticated ? session.user : _initial;
+    final cropped = await ref
+        .read(profileImageCropperProvider)
+        .crop(
+          context,
+          image,
+          kind,
+          name: user.displayName,
+          avatarUrl: user.avatarUrl,
+        );
+    if (cropped == null || !mounted) return;
+    await _upload(kind, cropped);
   }
 
   Future<void> _upload(ProfileImageKind kind, PickedImage image) async {
@@ -273,21 +297,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         appBar: AppBar(
           leading: const FallbackBackButton(fallback: '/me'),
           title: const Text('Editar perfil'),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: Space.sm),
-              child: FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Salvar'),
-              ),
-            ),
-          ],
         ),
         body: SafeArea(
           child: Center(
@@ -298,8 +307,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 child: ListView(
                   padding: const EdgeInsets.all(Space.lg),
                   children: [
+                    const SectionHeader(title: 'Fotos'),
                     Text(
-                      'As fotos são salvas assim que você as escolhe. Nome, username e bio só são salvos em "Salvar".',
+                      'Salvas ao confirmar o recorte.',
                       style: text.bodyMedium,
                     ),
                     if (_error != null) ...[
@@ -328,6 +338,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       ),
                     ),
                     const SizedBox(height: Space.xl),
+                    const SectionHeader(title: 'Informações'),
+                    Text(
+                      'Salvas no botão Salvar alterações.',
+                      style: text.bodyMedium,
+                    ),
+                    const SizedBox(height: Space.lg),
                     TextFormField(
                       controller: _name,
                       enabled: !_saving,
@@ -375,6 +391,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       maxLines: 5,
                       maxLength: 280,
                       keyboardType: TextInputType.multiline,
+                    ),
+                    const SizedBox(height: Space.lg),
+                    FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Salvar alterações'),
                     ),
                   ],
                 ),

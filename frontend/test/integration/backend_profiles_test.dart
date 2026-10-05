@@ -4,6 +4,7 @@
 //
 // Requer o jogo sintético 900001 no cache (cd backend && npm run test:seed).
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,8 +18,10 @@ import 'package:gametracker/features/feed/data/feed_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
 import 'package:gametracker/features/library/data/game_entry.dart';
 import 'package:gametracker/features/library/data/library_repository.dart';
+import 'package:gametracker/features/profiles/application/profile_image_processor.dart';
 import 'package:gametracker/features/profiles/data/profile_models.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
+import 'package:image/image.dart' as img;
 
 const backend = String.fromEnvironment('GT_BACKEND');
 
@@ -184,6 +187,46 @@ void main() {
 
       final p = await a.profiles.profile(a.id);
       expect((p.avatarUrl, p.bannerUrl), (avatarUrl, bannerUrl));
+    },
+  );
+
+  test(
+    'o arquivo exportado pelo editor de recorte é aceito e servido nas dimensões salvas',
+    skip: skip,
+    () async {
+      final a = await signUp('pc');
+      // Foto grande, como a de um celular: passa pela preparação e pelo recorte reais.
+      final photo = img.Image(width: 3000, height: 2000, numChannels: 3);
+      for (final p in photo) {
+        p.r = p.x * 255 ~/ 3000;
+        p.g = p.y * 255 ~/ 2000;
+        p.b = 120;
+      }
+      final prepared = prepareProfileImageSync(
+        img.encodeJpg(photo, quality: 90),
+      );
+      expect(prepared.width, 2048, reason: 'limitada a 2048 px');
+
+      const processor = ImagePackageProcessor();
+      for (final kind in ProfileImageKind.values) {
+        final file = await processor.export(prepared.bytes, kind);
+        expect(file.mimeType, 'image/jpeg');
+        expect(file.bytes.length, lessThan(PickedImage.maxBytes));
+
+        final url = await a.profiles.uploadImage(kind, file);
+        final served = await Dio().get<List<int>>(
+          url,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        expect(served.headers.value('content-type'), 'image/jpeg');
+        final decoded = img.decodeJpg(Uint8List.fromList(served.data!))!;
+        // O servidor valida e recorta de novo; com a proporção certa, nada é cortado.
+        expect(
+          decoded.width / decoded.height,
+          closeTo(kind.aspectRatio, 0.01),
+          reason: '${kind.name}: ${decoded.width}×${decoded.height}',
+        );
+      }
     },
   );
 
