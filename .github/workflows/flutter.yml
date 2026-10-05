@@ -3,9 +3,9 @@ name: Flutter
 on:
   push:
     branches: [main]
-    paths: ['flutter_app/**', '.github/workflows/flutter.yml']
+    paths: ['frontend/**', '.github/workflows/flutter.yml']
   pull_request:
-    paths: ['flutter_app/**', '.github/workflows/flutter.yml']
+    paths: ['frontend/**', '.github/workflows/flutter.yml']
 
 concurrency:
   group: flutter-${{ github.ref }}
@@ -13,7 +13,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: flutter_app
+    working-directory: frontend
 
 jobs:
   check:
@@ -38,5 +38,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: gametracker-debug-apk
-          path: flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          path: frontend/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14

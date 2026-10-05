@@ -1,6 +1,6 @@
 # GameTracker — Migração do frontend para Flutter
 
-**Estado em 04/10/2026:** o app Flutter (`flutter_app/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real e executar o CI no GitHub. O app antigo (React Native) e todo o suporte a ele no backend já foram removidos. **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
+**Estado em 04/10/2026:** o app Flutter (`frontend/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real e executar o CI no GitHub. O app antigo (React Native) e todo o suporte a ele no backend já foram removidos. **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
 
 Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de aceite e o plano de encerramento do legado, que ficavam em arquivos separados. O texto original desses arquivos está no histórico do git (commit `fd60016`, pasta `docs/`). O que ainda falta fazer está na seção 11, como ideias de implementação.
 
@@ -39,7 +39,7 @@ Cada decisão tem o motivo e a consequência.
 | 1 | **Stack**: Flutter 3.47.6 / Dart 3.13.5, `material_ui` 1.5.0, Riverpod 3.4.3, `go_router` 18.0.2, Dio 5.11.1, `socket_io_client` 3.1.6, `flutter_secure_storage` 11.2.0, `shared_preferences` 2.5.5, `image_picker` 1.2.3 | O conjunto resolveu sem conflitos, compilou para Android e web e interoperou com o Socket.IO 4.8 do servidor. Versões fixadas no `pubspec.lock`; atualizar o SDK exige repetir os builds. |
 | 2 | **Plataformas**: Android e web; iOS fora de escopo (03/10/2026) | Sem APNs, runner macOS nem pasta `ios/`. Se iOS voltar, é uma etapa nova. |
 | 3 | **Sessão**: refresh token no armazenamento seguro (Android) e access token só em memória; renovação serializada (várias respostas 401 esperam a mesma operação). **Web: só memória**, com novo login ao recarregar | O refresh token é de uso único: duas renovações simultâneas derrubariam a sessão. A web fica assim até existir cookie `HttpOnly` no backend (seção 11). Logout descarta o socket e todos os dados da conta. |
-| 4 | **Datas e horas**: datas de progresso são datas de calendário lidas em UTC (o backend manda `…T00:00:00.000Z`); `createdAt` é instante convertido ao horário local; horas chegam como string decimal | Evita que um dia mude por fuso. Os JSONs reais gravados em `flutter_app/test/fixtures/` viraram testes de contrato do cliente. |
+| 4 | **Datas e horas**: datas de progresso são datas de calendário lidas em UTC (o backend manda `…T00:00:00.000Z`); `createdAt` é instante convertido ao horário local; horas chegam como string decimal | Evita que um dia mude por fuso. Os JSONs reais gravados em `frontend/test/fixtures/` viraram testes de contrato do cliente. |
 | 5 | **Push**: **fora desta entrega** (04/10/2026). Backend e cliente prontos; o adaptador FCM não foi escrito porque não existe projeto Firebase | Sem Firebase, só há central de notificações em polling (60 s com o app aberto). O app mostra "Indisponível neste dispositivo" nas configurações, sem erro. O caminho para ligar está na seção 11. |
 | 6 | **Transição do app instalado**: distribuição só por APK manual (trabalho de faculdade, sem loja); novo login na troca; mesmo application ID `com.marcuscoelho.gametracker`; keystore anterior irrelevante | Sem loja, rollout gradual e AAB não se aplicam. O app novo pode entrar como instalação separada; atualizar por cima do app antigo não é requisito. |
 | 7 | **Design**: Material 3 com `ColorScheme.fromSeed` (violeta), temas claro, escuro e do sistema, Biblioteca como destino inicial; cores de status (backlog, jogando, concluído, abandonado) em extensão de tema, sempre com texto ou ícone | Direção visual aprovada pelo dono ("SERVE"). |
@@ -50,7 +50,7 @@ Cada decisão tem o motivo e a consequência.
 ## 3. Arquitetura do app
 
 ```text
-flutter_app/lib/
+frontend/lib/
   app/             bootstrap, router (go_router), shell adaptável, providers, tema, versão
   core/
     network/       Dio, interceptor de autenticação, SessionManager, erros de domínio
@@ -163,7 +163,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 ### Etapa 0 — baseline e provas técnicas
 - Flutter 3.47.6 instalado, SDK Android 36, Chrome. Ambiente isolado criado (decisão 8). As 9 migrations existentes aplicam em banco vazio.
-- Contratos gravados com o backend real (usuários e jogos sintéticos, tokens mascarados); as respostas usadas pelos testes do app estão em `flutter_app/test/fixtures/`, e as regras viraram testes de API em `backend/test/api/`. Confirmado por execução, e não por inferência: `PATCH` com `null` dava 400; horas voltam como string; datas voltam à meia-noite UTC; refresh é de uso único; editar o registro de outro usuário devolve 404; listas de registros, conversas e comentários não são paginadas.
+- Contratos gravados com o backend real (usuários e jogos sintéticos, tokens mascarados); as respostas usadas pelos testes do app estão em `frontend/test/fixtures/`, e as regras viraram testes de API em `backend/test/api/`. Confirmado por execução, e não por inferência: `PATCH` com `null` dava 400; horas voltam como string; datas voltam à meia-noite UTC; refresh é de uso único; editar o registro de outro usuário devolve 404; listas de registros, conversas e comentários não são paginadas.
 - Socket.IO provado em Dart contra o servidor 4.8: sem token → `unauthorized`; ACK e `message:receive` trazem o mesmo `id`; o cliente Dart reaproveita o socket para a mesma URL.
 - O projeto descartável compilou para Android debug e web com todos os pacotes juntos.
 
@@ -260,7 +260,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 - `.github/workflows/flutter.yml`: formatação, `flutter analyze`, `flutter test`, build web e APK debug (publicado como artefato por 14 dias).
 - `.github/workflows/backend.yml`: job `backend` (typecheck, build, migrations e os 108 testes, com Postgres e Redis do runner) e job `flutter-integration` (sobe a API de teste e roda os testes de integração do app contra ela).
 
-**Release** (`flutter_app/tool/build_release.sh` e `.github/workflows/flutter-release.yml`, este manual ou por tag `flutter-v*`)
+**Release** (`frontend/tool/build_release.sh` e `.github/workflows/flutter-release.yml`, este manual ou por tag `flutter-v*`)
 - Exige `API_URL` com HTTPS, sem `/` nem `/api` no fim (o app acrescenta `/api`).
 - Exige `android/key.properties` (fora do git) ou os secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` e a variável de repositório `API_URL`.
 - Recusa APK assinado com a chave de debug. Testado com uma chave descartável: o APK saiu com o certificado dela, e a URL passada está dentro do binário (o padrão `10.0.2.2` não).
@@ -301,7 +301,7 @@ Cada ideia diz o que é, por que importa e como começar. Estão ordenadas por p
 ### B. Push de notificações (retomar quando houver Firebase)
 
 - **O que é**: avisos na barra do celular com o app fechado. No Android só o Google (FCM, gratuito) entrega isso; a VPS não substitui.
-- **Passo a passo**: (1) criar um projeto no Firebase e um app Android com o id `com.marcuscoelho.gametracker`; (2) colocar o `google-services.json` em `flutter_app/android/app/` e aplicar o plugin do Gradle; (3) adicionar `firebase_core` e `firebase_messaging` e escrever um `FcmPushPlatform` que implementa a interface `PushPlatform` (permissão, token, mensagens em primeiro plano, toque, mensagem inicial) e trocar o `NoopPushPlatform` no `pushPlatformProvider`; (4) dar ao backend a credencial de serviço do projeto (variável de ambiente, nunca no repositório) para o `FcmProvider`; (5) pedir a permissão `POST_NOTIFICATIONS` no Android 13+; (6) testar com um aparelho físico: permissão negada, rotação de token, logout, troca de conta, toque com o app aberto, em segundo plano e fechado.
+- **Passo a passo**: (1) criar um projeto no Firebase e um app Android com o id `com.marcuscoelho.gametracker`; (2) colocar o `google-services.json` em `frontend/android/app/` e aplicar o plugin do Gradle; (3) adicionar `firebase_core` e `firebase_messaging` e escrever um `FcmPushPlatform` que implementa a interface `PushPlatform` (permissão, token, mensagens em primeiro plano, toque, mensagem inicial) e trocar o `NoopPushPlatform` no `pushPlatformProvider`; (4) dar ao backend a credencial de serviço do projeto (variável de ambiente, nunca no repositório) para o `FcmProvider`; (5) pedir a permissão `POST_NOTIFICATIONS` no Android 13+; (6) testar com um aparelho físico: permissão negada, rotação de token, logout, troca de conta, toque com o app aberto, em segundo plano e fechado.
 - **Já pronto**: tabela `push_installations`, registro por instalação, revogação antes do logout, payload só com ids, destino do toque validado, central de notificações para o caso de falha.
 - **Extras**: canais de notificação do Android; exibir o aviso do sistema também em primeiro plano; push na web (service worker próprio), só se a web virar canal público.
 
@@ -339,11 +339,11 @@ Cada ideia diz o que é, por que importa e como começar. Estão ordenadas por p
 
 | O quê | Onde |
 | --- | --- |
-| App Flutter | `flutter_app/` (README com os comandos) |
+| App Flutter | `frontend/` (README com os comandos) |
 | Testes do backend: unidade e API de verdade (Express, Socket.IO, Postgres, Redis) | `backend/src/**/*.test.ts` e `backend/test/api/*.test.ts` (`auth`, `entries`, `notifications`, `profile`, `push.routes`, `chat`); helpers e trava de banco em `backend/test/helpers/` |
 | Ambiente de teste | `docker-compose.test.yml`, `backend/.env.test.example`, scripts `test:db:up`, `test:seed`, `dev:test` em `backend/package.json` |
-| Respostas reais do backend usadas pelos testes do app | `flutter_app/test/fixtures/` (veja o README da pasta) |
-| Script de release | `flutter_app/tool/build_release.sh` |
+| Respostas reais do backend usadas pelos testes do app | `frontend/test/fixtures/` (veja o README da pasta) |
+| Script de release | `frontend/tool/build_release.sh` |
 | CI | `.github/workflows/flutter.yml`, `.github/workflows/backend.yml` (backend e integração Flutter↔API), `.github/workflows/flutter-release.yml` |
 | Roadmap histórico do projeto (anterior à migração) | `docs/01_ROADMAP.md` |
 | Plano, baseline, ADRs, matriz de aceite e encerramento originais | histórico do git, `docs/` no commit `fd60016` |

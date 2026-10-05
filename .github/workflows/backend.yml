@@ -6,9 +6,9 @@ name: Backend
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'flutter_app/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'frontend/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
   pull_request:
-    paths: ['backend/**', 'flutter_app/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'frontend/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -105,7 +105,7 @@ jobs:
           cat "$RUNNER_TEMP/api.log"
           exit 1
       - name: Integração Flutter contra o backend real
-        working-directory: flutter_app
+        working-directory: frontend
         run: |
           flutter pub get
           flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100

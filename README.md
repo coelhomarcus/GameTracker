@@ -17,7 +17,7 @@ Push com o app fechado ainda não existe (precisa de um projeto Firebase); as no
 
 | Pasta | O que é |
 | --- | --- |
-| [`flutter_app/`](flutter_app/) | App oficial: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO |
+| [`frontend/`](frontend/) | App oficial: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO |
 | [`backend/`](backend/) | API: Node.js, Express 5, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO, JWT, IGDB |
 | [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md) |
 | `docker-compose.test.yml` | Postgres e Redis descartáveis só para os testes |
@@ -57,12 +57,12 @@ Variáveis do `.env` que merecem atenção:
 ### 3. App Flutter
 
 ```bash
-cd flutter_app
+cd frontend
 flutter pub get
 flutter run -d chrome --dart-define=API_URL=http://localhost:3000
 ```
 
-O app procura a API em `http://localhost:3100` por padrão (`http://10.0.2.2:3100` no emulador Android); passe `--dart-define=API_URL=...` para apontar para outro endereço, sem `/api` no fim. Mais detalhes em [`flutter_app/README.md`](flutter_app/README.md).
+O app procura a API em `http://localhost:3100` por padrão (`http://10.0.2.2:3100` no emulador Android); passe `--dart-define=API_URL=...` para apontar para outro endereço, sem `/api` no fim. Mais detalhes em [`frontend/README.md`](frontend/README.md).
 
 ## Testes
 
@@ -70,8 +70,8 @@ Os testes ficam junto de cada projeto:
 
 | Onde | O que cobre | Como rodar |
 | --- | --- | --- |
-| `flutter_app/test/` | Unidade e widget, suíte de aceite (layout, acessibilidade, volume) | `cd flutter_app && flutter analyze && flutter test` |
-| `flutter_app/test/integration/` | O app contra um **backend real** (sessão, biblioteca, feed, perfis, chat com sockets, volume) | veja abaixo |
+| `frontend/test/` | Unidade e widget, suíte de aceite (layout, acessibilidade, volume) | `cd frontend && flutter analyze && flutter test` |
+| `frontend/test/integration/` | O app contra um **backend real** (sessão, biblioteca, feed, perfis, chat com sockets, volume) | veja abaixo |
 | `backend/src/**/*.test.ts` | Unidade (CORS, push, controllers) | `cd backend && npm test` |
 | `backend/test/api/` | A **API de verdade** (Express + Socket.IO + Postgres + Redis): sessão e refresh, PATCH da biblioteca, privacidade das notas, notificações, perfil e upload, push, chat | `cd backend && npm test` |
 
@@ -88,15 +88,15 @@ Para os testes de integração do Flutter, suba a API de teste em outro terminal
 
 ```bash
 cd backend && npm run test:seed && npm run dev:test        # jogos sintéticos + API em :3100
-cd flutter_app && flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
+cd frontend && flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 ```
 
-`flutter_app/test/fixtures/` guarda respostas reais do backend para os testes de modelo (veja o README da pasta). O GitHub Actions roda tudo isso em `.github/workflows/backend.yml`.
+`frontend/test/fixtures/` guarda respostas reais do backend para os testes de modelo (veja o README da pasta). O GitHub Actions roda tudo isso em `.github/workflows/backend.yml`.
 
 ## Build do APK (Android)
 
 ```bash
-cd flutter_app
+cd frontend
 # precisa de android/key.properties (fora do git) com a chave de assinatura
 API_URL=https://api.seudominio.com tool/build_release.sh
 ```

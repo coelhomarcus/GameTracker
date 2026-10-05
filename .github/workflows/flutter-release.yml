@@ -11,7 +11,7 @@ on:
 
 defaults:
   run:
-    working-directory: flutter_app
+    working-directory: frontend
 
 jobs:
   release:
@@ -60,6 +60,6 @@ jobs:
         with:
           name: gametracker-release
           path: |
-            flutter_app/build/app/outputs/flutter-apk/app-release.apk
-            flutter_app/build/gametracker-web.zip
+            frontend/build/app/outputs/flutter-apk/app-release.apk
+            frontend/build/gametracker-web.zip
           retention-days: 30
