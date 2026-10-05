@@ -1,6 +1,6 @@
 # GameTracker — Migração do frontend para Flutter
 
-**Estado em 04/10/2026:** o app Flutter (`flutter_app/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real, executar o CI no GitHub e decidir quando aposentar o app Expo legado (`mobile/`). **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
+**Estado em 04/10/2026:** o app Flutter (`flutter_app/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real e executar o CI no GitHub. O app Expo legado (`mobile/`) já foi removido da árvore. **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
 
 Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de aceite e o plano de encerramento do legado, que ficavam em arquivos separados. O texto original desses arquivos está no histórico do git (commit `fd60016`, pasta `docs/`). O que ainda falta fazer está na seção 11, como ideias de implementação.
 
@@ -28,7 +28,7 @@ Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de
 - **Qualidade**: 705 testes de unidade, widget e aceite no Flutter (mais 50 de integração contra o backend real) e 108 no backend (unidade e API de verdade). Todos passam, e `flutter analyze` e a formatação estão limpos.
 - **Distribuição**: APK de release assinado por script (`tool/build_release.sh`) ou pelo GitHub Actions, com a URL da API definida no build.
 - **Segurança e correções de backend achadas ao testar**: queda do servidor por id inválido no chat, corrida na renovação da sessão, duplicidade de notificações, conversas duplicadas, erros 500 em PATCH vazio e imagem corrompida, e anotações pessoais expostas na API.
-- **Legado**: nada foi removido. O `mobile/` fica como plano de retorno, e a tag local `legacy-expo-final` marca o último commit com ele ativo.
+- **Legado**: a pasta `mobile/` (Expo) foi removida em 04/10/2026. Continua no histórico do git, e a tag local `legacy-expo-final` marca o último commit que a tinha (`git checkout legacy-expo-final -- mobile` recupera). O backend ainda aceita o token Expo (ver ideia C, fase B).
 
 ## 2. Decisões
 
@@ -205,7 +205,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 - **Achados**: estados vazio e erro estouravam a altura em janela larga e baixa (perfil de outra pessoa a 1400 px). A solução é ajustar ao espaço, porque uma área rolável criava um nó de acessibilidade focável sem rótulo cobrindo a tela. O avatar do autor nos posts tinha alvo de toque de 40 dp, agora 48. Um teste de tempo meu era frágil sob carga e virou um teto largo.
 
 ### Etapa 10 — encerramento do legado
-- Feito só o seguro: tag `legacy-expo-final`, README com o Flutter como app oficial. O resto depende dos critérios da seção 11.
+- Tag `legacy-expo-final`, README com o Flutter como app oficial e remoção da pasta `mobile/` (04/10/2026), por decisão do dono: trabalho de faculdade, sem usuários que exijam um período de convivência. Os critérios de beta e retorno ensaiado, pensados para um lançamento real, não foram aplicados. A aposentadoria do Expo no backend (fase B) continua pendente.
 
 ## 8. Verificação e aceite
 
@@ -270,14 +270,14 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 **Ambientes**: `dev` com o backend isolado (seção 2, decisão 8). Para produção, definir `CORS_ORIGINS` com o endereço do app web. Banco e Redis da produção não foram tocados.
 
-**Retorno**: o APK Expo anterior continua instalável. No app novo, reassinar o APK anterior com versionCode maior; na web, restaurar o artefato anterior. Nenhum rollback destrutivo de banco.
+**Retorno**: o app Expo foi removido da árvore e não há mais retorno a ele; voltar a uma versão anterior do Flutter exige gerar o APK do commit anterior com versionCode maior (na web, restaurar o artefato anterior). Nenhum rollback destrutivo de banco.
 
 ## 10. Limitações conhecidas
 
 - **Nada foi executado em aparelho ou emulador.** O sandbox das ferramentas não tem aceleração para o emulador (`hvf is not enabled`). Para rodar: `~/Library/Android/sdk/emulator/emulator -avd gt_pixel` no terminal do dono. Por isso o desempenho real (3 s para a primeira tela, 100 ms de resposta, 95% dos quadros em 16,7 ms), o TalkBack, o seletor de imagem, a suspensão do app e a troca de rede nunca foram medidos.
 - **Push com o app fechado não existe** (decisão 5). A central de notificações atualiza por polling.
 - **Busca real na IGDB** não foi exercitada: o ambiente isolado não tem credenciais, e a busca foi verificada com repositório falso e, no backend real, só o caminho de erro `igdb_not_configured`. Os testes usam os jogos sintéticos 900001 e 900002.
-- **Interoperabilidade com o app Expo** (mesmo usuário nos dois clientes) não foi exercitada. O contrato do chat foi mantido compatível e o envio sem `clientMessageId` foi testado.
+- **Interoperabilidade com o app Expo** (mesmo usuário nos dois clientes) nunca foi exercitada, e agora não há mais como: o app antigo foi removido. O contrato do chat foi mantido compatível e o envio sem `clientMessageId` foi testado.
 - **Web**: sessão só em memória (novo login ao recarregar). Não foi testada em navegador real contra o backend.
 - **Presença do chat** é em memória por instância do backend; com mais de uma réplica, fica errada.
 - **Estatísticas de jogo** contam registros (replay conta como outro registro), não pessoas.
@@ -305,13 +305,16 @@ Cada ideia diz o que é, por que importa e como começar. Estão ordenadas por p
 - **Já pronto**: tabela `push_installations`, registro por instalação, revogação antes do logout, payload só com ids, destino do toque validado, central de notificações para o caso de falha.
 - **Extras**: canais de notificação do Android; exibir o aviso do sistema também em primeiro plano; push na web (service worker próprio), só se a web virar canal público.
 
-### C. Aposentar o app legado (Etapa 10)
+### C. Aposentar o Expo no backend (o que sobrou da Etapa 10)
 
-Só depois de: chave de assinatura real e APK instalado em aparelho; jornadas essenciais passadas; beta fechado de uma semana com poucas contas, sem perda de dados, sessão cruzada, falha de login, mensagem duplicada ou crash; retorno ensaiado (o APK Expo anterior ainda instala e conversa com o backend); avisar quem usa de que é uma nova instalação e de que tema e preferências voltam ao padrão.
+A pasta `mobile/` já foi removida. Falta o lado do backend, que ainda aceita o token Expo. Faça isto só quando tiver certeza de que ninguém usa mais um APK do app antigo, em releases separados e sem resetar o banco (expandir → coexistir → retirar):
 
-- **Fase A, tirar o `mobile/` da árvore**: `git push origin legacy-expo-final`; `git rm -r mobile`; remover do `.gitignore` as linhas `mobile/...` e o bloco `# Expo`; remover do README a seção "App legado" e a linha na Stack; conferir com `git grep -n "mobile/"`. Para consultar depois: `git checkout legacy-expo-final -- mobile`. Guardar o APK Expo como artefato antes, se ainda servir de retorno.
-- **Fase B, aposentar o Expo no backend** (releases separados, só com os clientes antigos fora de uso): (1) parar de gravar o token legado e remover `POST /users/me/push-token`; (2) tirar o `ExpoProvider`, a leitura de `users.expo_push_token`, a dependência `expo-server-sdk` e o campo `expoBody` do payload; (3) remover a coluna `users.expo_push_token` em uma migration própria; (4) limpar as linhas `provider = 'expo'` de `push_installations`. Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts`.
-- **Fase C, documentação**: marcar este documento como histórico quando A e B terminarem.
+1. Parar de gravar o token legado e remover `POST /users/me/push-token`.
+2. Tirar o `ExpoProvider`, a leitura de `users.expo_push_token`, a dependência `expo-server-sdk` e o campo `expoBody` do payload.
+3. Remover a coluna `users.expo_push_token` em uma migration própria.
+4. Limpar as linhas `provider = 'expo'` de `push_installations`.
+
+Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts` a cada passo. Para consultar o app antigo: `git checkout legacy-expo-final -- mobile`; enviar a tag ao remoto com `git push origin legacy-expo-final` (o histórico só está seguro depois de enviar o repositório).
 
 ### D. Backend: confiabilidade e escala (quando o volume pedir)
 
@@ -337,7 +340,6 @@ Só depois de: chave de assinatura real e APK instalado em aparelho; jornadas es
 
 ### F. Qualidade
 
-- **Teste de interoperabilidade Flutter ↔ Expo**: o mesmo usuário nos dois clientes, conversando no chat e vendo as mesmas notificações.
 - **Testes de integração no aparelho** (`integration_test`) para as jornadas principais, para não depender só de widget test.
 - **Goldens selecionados** para os padrões visuais mais usados (card de jogo, linha de post, bolha de mensagem), nos dois temas.
 - **Observabilidade**: registrar erros técnicos de API, refresh, reconexão e upload, sem tokens, senhas nem texto privado do chat, e comparar por versão do app.
@@ -356,4 +358,4 @@ Só depois de: chave de assinatura real e APK instalado em aparelho; jornadas es
 | CI | `.github/workflows/flutter.yml`, `.github/workflows/backend.yml` (backend e integração Flutter↔API), `.github/workflows/flutter-release.yml` |
 | Roadmap histórico do projeto (anterior à migração) | `docs/01_ROADMAP.md` |
 | Plano, baseline, ADRs, matriz de aceite e encerramento originais | histórico do git, `docs/` no commit `fd60016` |
-| App legado | `mobile/` e a tag local `legacy-expo-final` (enviar com `git push origin legacy-expo-final`) |
+| App legado (removido) | histórico do git e a tag local `legacy-expo-final` (enviar com `git push origin legacy-expo-final`) |

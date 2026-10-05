@@ -6,15 +6,6 @@ node_modules/
 .env.local
 .env.test
 
-# Expo
-mobile/.expo/
-mobile/dist/
-mobile/web-build/
-mobile/*.jks
-mobile/*.p8
-mobile/*.p12
-mobile/*.key
-mobile/*.mobileprovision
 
 # Backend
 backend/dist/

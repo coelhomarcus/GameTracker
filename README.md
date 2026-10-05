@@ -19,7 +19,6 @@ Push com o app fechado ainda não existe (precisa de um projeto Firebase); as no
 | --- | --- |
 | [`flutter_app/`](flutter_app/) | App oficial: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO |
 | [`backend/`](backend/) | API: Node.js, Express 5, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO, JWT, IGDB |
-| [`mobile/`](mobile/) | App antigo em Expo (React Native). Fica só como plano de retorno e não recebe funcionalidades novas |
 | [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md) |
 | `docker-compose.test.yml` | Postgres e Redis descartáveis só para os testes |
 | `.github/workflows/` | CI do Flutter, do backend (com integração Flutter↔API) e geração do APK de release |
@@ -65,15 +64,6 @@ flutter run -d chrome --dart-define=API_URL=http://localhost:3000
 
 O app procura a API em `http://localhost:3100` por padrão (`http://10.0.2.2:3100` no emulador Android); passe `--dart-define=API_URL=...` para apontar para outro endereço, sem `/api` no fim. Mais detalhes em [`flutter_app/README.md`](flutter_app/README.md).
 
-### App antigo (Expo)
-
-```bash
-cd mobile
-cp .env.example .env   # EXPO_PUBLIC_API_URL
-npm install
-npm start
-```
-
 ## Testes
 
 Os testes ficam junto de cada projeto:
@@ -112,6 +102,10 @@ API_URL=https://api.seudominio.com tool/build_release.sh
 ```
 
 O script exige API com HTTPS e recusa APK assinado com a chave de debug. O mesmo fluxo roda no GitHub Actions (`.github/workflows/flutter-release.yml`, com secrets). Para só demonstrar o app, o APK debug que o CI gera (`flutter.yml`) já basta. Detalhes e como gerar a chave em [`docs/MIGRACAO_FLUTTER.md`](docs/MIGRACAO_FLUTTER.md#9-build-distribuição-e-ambientes).
+
+## App antigo
+
+O app anterior em Expo (React Native) foi removido da árvore. Ele continua no histórico do git: `git checkout legacy-expo-final -- mobile` recupera a pasta (a tag marca o último commit que a tinha).
 
 ## Documentação
 
