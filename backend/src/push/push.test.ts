@@ -1,6 +1,7 @@
 // Testes do push: adaptadores (com clientes falsos) e do serviço (com o banco ISOLADO).
 //   npm test
-// O teste de banco se recusa a rodar se DATABASE_URL não apontar para uma máquina local.
+// Os testes de banco só rodam no banco de teste (a trava está em test/helpers/env.ts).
+import '../../test/helpers/env';
 import assert from 'node:assert/strict';
 import { after, afterEach, describe, it } from 'node:test';
 import 'dotenv/config';
@@ -15,7 +16,6 @@ import type { PushPayload, PushProvider, PushResult } from './types';
 
 const payload: PushPayload = { title: 'Nova curtida', body: 'ana curtiu seu post', expoBody: 'texto legado', data: { type: 'like', postId: 'p1' } };
 
-const localDb = /@(localhost|127\.0\.0\.1)[:/]/.test(process.env.DATABASE_URL ?? '');
 const EXPO_A = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
 const EXPO_B = 'ExponentPushToken[bbbbbbbbbbbbbbbbbbbbbb]';
 
@@ -130,7 +130,7 @@ class FakeProvider implements PushProvider {
   }
 }
 
-describe('sendPushToUser + instalações (banco isolado)', { skip: localDb ? false : 'DATABASE_URL não é local; teste de banco ignorado' }, () => {
+describe('sendPushToUser + instalações (banco de teste)', () => {
   const createdUsers: string[] = [];
   const stamp = Date.now().toString(36);
   let n = 0;

@@ -1,0 +1,114 @@
+name: Backend
+
+# Testes do backend e testes de integração do app Flutter contra um backend real, sempre em um
+# Postgres e um Redis descartáveis do próprio runner (banco `gametracker_test`; os testes recusam
+# qualquer outro). Nada aqui toca em produção.
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', 'flutter_app/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', 'flutter_app/**', 'docker-compose.test.yml', '.github/workflows/backend.yml']
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  # Mesmas portas do docker-compose.test.yml e do backend/.env.test.example.
+  DATABASE_URL: postgresql://gametracker:gt_test_dev@localhost:5434/gametracker_test
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gametracker
+          POSTGRES_PASSWORD: gt_test_dev
+          POSTGRES_DB: gametracker_test
+        ports: ['5434:5432']
+        options: >-
+          --health-cmd "pg_isready -U gametracker -d gametracker_test"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6381:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: cp .env.test.example .env.test
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run test:migrate
+      - run: npm test
+
+  flutter-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gametracker
+          POSTGRES_PASSWORD: gt_test_dev
+          POSTGRES_DB: gametracker_test
+        ports: ['5434:5432']
+        options: >-
+          --health-cmd "pg_isready -U gametracker -d gametracker_test"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6381:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+      - run: npm ci
+      - run: cp .env.test.example .env.test
+      - run: npm run test:migrate
+      - run: npm run test:seed
+      - name: Sobe a API de teste (porta 3100)
+        run: |
+          nohup npm run dev:test > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3100/api/health && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
+      - name: Integração Flutter contra o backend real
+        working-directory: flutter_app
+        run: |
+          flutter pub get
+          flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
+      - name: Log da API (se falhou)
+        if: failure()
+        run: cat "$RUNNER_TEMP/api.log"
