@@ -1,10 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../network/image_url.dart';
+import 'tokens.dart';
 
 /// Capa com proporção fixa e fallback; sem salto de layout quando falta imagem.
 class GameCover extends StatelessWidget {
-  const GameCover({super.key, required this.name, this.url, this.radius = 12});
+  const GameCover({
+    super.key,
+    required this.name,
+    this.url,
+    this.radius = Radii.cover,
+  });
 
   final String name;
   final String? url;

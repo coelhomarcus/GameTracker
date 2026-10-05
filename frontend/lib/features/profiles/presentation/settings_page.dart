@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/app_info.dart';
 import '../../../app/providers.dart';
 import '../../../app/theme_mode.dart';
+import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../auth/presentation/session_state.dart';
 import '../../push/application/push_controller.dart';
@@ -27,69 +29,65 @@ class SettingsPage extends ConsumerWidget {
         title: const Text('Configurações'),
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
-            child: ListView(
-              padding: const EdgeInsets.all(Space.lg),
-              children: [
-                Text('Aparência', style: text.titleMedium),
-                const SizedBox(height: Space.sm),
-                SegmentedButton<ThemeMode>(
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      icon: Icon(Icons.brightness_auto),
-                      label: Text('Sistema'),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      icon: Icon(Icons.light_mode),
-                      label: Text('Claro'),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      icon: Icon(Icons.dark_mode),
-                      label: Text('Escuro'),
-                    ),
-                  ],
-                  selected: {mode},
-                  onSelectionChanged: (s) =>
-                      ref.read(themeModeProvider.notifier).set(s.first),
-                ),
-                const SizedBox(height: Space.xs),
-                Text('Guardado neste aparelho.', style: text.bodySmall),
-                const SizedBox(height: Space.xl),
-                Text('Notificações', style: text.titleMedium),
-                const SizedBox(height: Space.sm),
-                const _PushTile(),
-                const SizedBox(height: Space.xl),
-                Text('Conta', style: text.titleMedium),
-                const SizedBox(height: Space.sm),
-                if (session is SessionAuthenticated) ...[
-                  Text(session.user.displayName, style: text.bodyLarge),
-                  Text(
-                    '@${session.user.username} · ${session.user.email}',
-                    style: text.bodyMedium,
+        child: LayoutBuilder(
+          builder: (context, box) => ListView(
+            padding: PageContainer.insetsFor(
+              box.maxWidth,
+              PageWidth.reading,
+            ).copyWith(top: Space.lg, bottom: Space.lg),
+            children: [
+              const SectionHeader(title: 'Aparência'),
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto),
+                    label: Text('Sistema'),
                   ),
-                  const SizedBox(height: Space.md),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode),
+                    label: Text('Claro'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode),
+                    label: Text('Escuro'),
+                  ),
                 ],
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      ref.read(sessionControllerProvider.notifier).logout(),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sair'),
+                selected: {mode},
+                onSelectionChanged: (s) =>
+                    ref.read(themeModeProvider.notifier).set(s.first),
+              ),
+              const SizedBox(height: Space.xs),
+              Text('Guardado neste aparelho.', style: text.bodySmall),
+              const SizedBox(height: Space.xl),
+              const SectionHeader(title: 'Notificações'),
+              const _PushTile(),
+              const SizedBox(height: Space.xl),
+              const SectionHeader(title: 'Conta'),
+              if (session is SessionAuthenticated) ...[
+                Text(session.user.displayName, style: text.bodyLarge),
+                Text(
+                  '@${session.user.username} · ${session.user.email}',
+                  style: text.bodyMedium,
                 ),
-                const SizedBox(height: Space.xl),
-                Text('Sobre', style: text.titleMedium),
-                const SizedBox(height: Space.sm),
-                const ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('GameTracker'),
-                  subtitle: Text('Versão $appVersion'),
-                ),
+                const SizedBox(height: Space.md),
               ],
-            ),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    ref.read(sessionControllerProvider.notifier).logout(),
+                icon: const Icon(Icons.logout),
+                label: const Text('Sair'),
+              ),
+              const SizedBox(height: Space.xl),
+              const SectionHeader(title: 'Sobre'),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('GameTracker'),
+                subtitle: Text('Versão $appVersion'),
+              ),
+            ],
           ),
         ),
       ),

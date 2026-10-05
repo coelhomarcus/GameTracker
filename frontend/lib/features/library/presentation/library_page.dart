@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/content_skeleton.dart';
+import '../../../core/design_system/filter_toolbar.dart';
+import '../../../core/design_system/game_card.dart';
 import '../../../core/design_system/game_cover.dart';
 import '../../../core/design_system/game_status.dart';
+import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/data/hours.dart';
@@ -42,28 +46,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Biblioteca'),
-        actions: [
-          const NotificationsBell(),
-          PopupMenuButton<LibrarySort>(
-            tooltip: 'Ordenar por ${prefs.sort.label}',
-            icon: const Icon(Icons.sort),
-            initialValue: prefs.sort,
-            onSelected: prefsController.setSort,
-            itemBuilder: (_) => [
-              for (final sort in LibrarySort.values)
-                CheckedPopupMenuItem(
-                  value: sort,
-                  checked: sort == prefs.sort,
-                  child: Text(sort.label),
-                ),
-            ],
-          ),
-          IconButton(
-            tooltip: prefs.grid ? 'Mostrar como lista' : 'Mostrar como grade',
-            icon: Icon(prefs.grid ? Icons.view_list : Icons.grid_view),
-            onPressed: () => prefsController.setGrid(!prefs.grid),
-          ),
-        ],
+        actions: const [NotificationsBell()],
       ),
       floatingActionButton: FloatingActionButton.extended(
         // Tag própria: os FABs de todas as abas coexistem no IndexedStack.
@@ -75,6 +58,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       body: AsyncContent<List<GameEntry>>(
         value: library,
         staleBanner: true,
+        loading: PageContainer(
+          width: PageWidth.wide,
+          child: prefs.grid
+              ? const ContentSkeleton.grid()
+              : const ContentSkeleton.list(),
+        ),
         onRetry: () => ref.invalidate(libraryProvider),
         data: (entries) {
           if (entries.isEmpty) {
@@ -104,33 +93,58 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
                 // O erro aparece no banner de dados desatualizados.
               }
             },
-            child: Column(
-              children: [
-                _Summary(
-                  total: entries.length,
-                  completed: counts[GameStatus.completed]!,
-                ),
-                _Filters(
-                  selected: _filter,
-                  counts: counts,
-                  total: entries.length,
-                  onSelected: (s) => setState(() => _filter = s),
-                ),
-                const SizedBox(height: Space.sm),
-                Expanded(
-                  child: visible.isEmpty
-                      ? const _EmptyFilter()
-                      : prefs.grid
-                      ? _EntryGrid(entries: visible)
-                      : _EntryList(entries: visible),
-                ),
-              ],
+            child: PageContainer(
+              width: PageWidth.wide,
+              child: Column(
+                children: [
+                  _Summary(
+                    total: entries.length,
+                    completed: counts[GameStatus.completed]!,
+                  ),
+                  FilterToolbar(
+                    filters: _statusChips(counts, entries.length),
+                    sort: SortMenu<LibrarySort>(
+                      values: LibrarySort.values,
+                      selected: prefs.sort,
+                      labelOf: (sort) => sort.label,
+                      onSelected: prefsController.setSort,
+                    ),
+                    viewToggle: ViewModeToggle(
+                      grid: prefs.grid,
+                      onChanged: prefsController.setGrid,
+                    ),
+                  ),
+                  const SizedBox(height: Space.sm),
+                  Expanded(
+                    child: visible.isEmpty
+                        ? const _EmptyFilter()
+                        : prefs.grid
+                        ? _EntryGrid(entries: visible)
+                        : _EntryList(entries: visible),
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
     );
   }
+
+  List<Widget> _statusChips(Map<GameStatus, int> counts, int total) => [
+    FilterChip(
+      label: Text('Todos ($total)'),
+      selected: _filter == null,
+      onSelected: (_) => setState(() => _filter = null),
+    ),
+    for (final s in GameStatus.values)
+      FilterChip(
+        avatar: Icon(s.icon, size: 18),
+        label: Text('${s.label} (${counts[s]})'),
+        selected: _filter == s,
+        onSelected: (_) => setState(() => _filter = _filter == s ? null : s),
+      ),
+  ];
 }
 
 class _Summary extends StatelessWidget {
@@ -144,52 +158,13 @@ class _Summary extends StatelessWidget {
     final records = total == 1 ? '1 registro' : '$total registros';
     final done = completed == 1 ? '1 concluído' : '$completed concluídos';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
+      padding: const EdgeInsets.only(bottom: Space.sm),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           '$records · $done',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
-      ),
-    );
-  }
-}
-
-class _Filters extends StatelessWidget {
-  const _Filters({
-    required this.selected,
-    required this.counts,
-    required this.total,
-    required this.onSelected,
-  });
-
-  final GameStatus? selected;
-  final Map<GameStatus, int> counts;
-  final int total;
-  final ValueChanged<GameStatus?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: Space.lg),
-      child: Row(
-        spacing: Space.sm,
-        children: [
-          FilterChip(
-            label: Text('Todos ($total)'),
-            selected: selected == null,
-            onSelected: (_) => onSelected(null),
-          ),
-          for (final s in GameStatus.values)
-            FilterChip(
-              avatar: Icon(s.icon, size: 18),
-              label: Text('${s.label} (${counts[s]})'),
-              selected: selected == s,
-              onSelected: (_) => onSelected(selected == s ? null : s),
-            ),
-        ],
       ),
     );
   }
@@ -224,12 +199,12 @@ class _EntryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final available = constraints.maxWidth - 2 * Space.lg;
+        final available = constraints.maxWidth;
         final columns = (available / _maxTileWidth).ceil().clamp(1, 12);
         final rows = (entries.length / columns).ceil();
         return ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, 96),
+          padding: const EdgeInsets.only(top: Space.sm, bottom: 96),
           itemCount: rows,
           itemBuilder: (context, row) {
             return Padding(
@@ -263,44 +238,17 @@ class _EntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Stack(
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => context.push('/games/${entry.game.igdbId}'),
-              child: GameCover(name: entry.game.name, url: entry.game.coverUrl),
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Material(
-                color: scheme.surface.withValues(alpha: 0.78),
-                shape: const CircleBorder(),
-                child: EntryMenuButton(entry: entry),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: Space.sm),
-        Text(
-          entry.game.name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge,
-        ),
-        const SizedBox(height: Space.xs),
-        StatusChip(entry.status),
-        const SizedBox(height: Space.xs),
-        Text(
-          entry.platform,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+    return GameCard(
+      title: entry.game.name,
+      coverUrl: entry.game.coverUrl,
+      status: entry.status,
+      caption: entry.platform,
+      onTap: () => context.push('/games/${entry.game.igdbId}'),
+      overlay: Material(
+        color: scheme.surface.withValues(alpha: 0.78),
+        shape: const CircleBorder(),
+        child: EntryMenuButton(entry: entry),
+      ),
     );
   }
 }

@@ -17,8 +17,10 @@ class UserAvatar extends StatelessWidget {
     final initial = name.trim().isEmpty
         ? '?'
         : name.trim().characters.first.toUpperCase();
+    // A inicial é decorativa e cabe no círculo: não acompanha a escala de fonte do sistema.
     final fallback = Text(
       initial,
+      textScaler: TextScaler.noScaling,
       style: TextStyle(
         color: scheme.onPrimaryContainer,
         fontSize: radius * 0.9,
