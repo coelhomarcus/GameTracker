@@ -62,21 +62,27 @@ class AppShell extends ConsumerWidget {
     final label = unread == 0 ? 'Mensagens' : 'Mensagens, $unread não lidas';
 
     if (width < Breakpoints.medium) {
+      // A conversa aberta ocupa a tela toda: sem a barra, o campo de mensagem fica logo acima
+      // do teclado e a lista de mensagens ganha altura.
+      final inConversation = GoRouterState.of(context).uri.path
+          .startsWith('/messages/');
       return Scaffold(
         body: navigationShell,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (i) => _select(ref, i),
-          destinations: [
-            for (final d in _destinations)
-              NavigationDestination(
-                icon: _icon(d, selected: false, unread: unread),
-                selectedIcon: _icon(d, selected: true, unread: unread),
-                label: d.label,
-                tooltip: d.label == 'Mensagens' ? label : d.label,
+        bottomNavigationBar: inConversation
+            ? null
+            : NavigationBar(
+                selectedIndex: navigationShell.currentIndex,
+                onDestinationSelected: (i) => _select(ref, i),
+                destinations: [
+                  for (final d in _destinations)
+                    NavigationDestination(
+                      icon: _icon(d, selected: false, unread: unread),
+                      selectedIcon: _icon(d, selected: true, unread: unread),
+                      label: d.label,
+                      tooltip: d.label == 'Mensagens' ? label : d.label,
+                    ),
+                ],
               ),
-          ],
-        ),
       );
     }
     return Scaffold(

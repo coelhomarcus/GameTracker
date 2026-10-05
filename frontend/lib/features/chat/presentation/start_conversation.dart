@@ -6,7 +6,6 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/models/user_summary.dart';
 import '../../../core/network/error_messages.dart';
 import '../../profiles/presentation/people_search_view.dart';
-import '../application/chat_drafts.dart';
 import '../application/chat_providers.dart';
 import '../application/conversations_controller.dart';
 
@@ -52,17 +51,13 @@ Future<void> startConversation(
 ) async {
   final messenger = ScaffoldMessenger.of(context);
   final router = GoRouter.of(context);
-  final wide = MediaQuery.sizeOf(context).width >= 840;
   try {
     final id = await ref.read(chatRepositoryProvider).openWith(userId);
     // A conversa pode ser nova: a lista em cache precisa conhecê-la antes de a tela abrir.
     await ref.read(conversationsControllerProvider.notifier).refresh();
-    if (wide) {
-      ref.read(selectedConversationProvider.notifier).select(id);
-      router.go('/messages');
-    } else {
-      router.push('/messages/$id');
-    }
+    // A conversa é uma rota dentro de Mensagens: de qualquer lugar, ela abre com a lista embaixo
+    // e voltar leva a ela.
+    router.go('/messages/$id');
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
   }

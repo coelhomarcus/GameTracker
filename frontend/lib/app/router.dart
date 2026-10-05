@@ -5,7 +5,6 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/session_pages.dart';
 import '../features/auth/presentation/session_state.dart';
-import '../features/chat/presentation/chat_room_page.dart';
 import '../features/chat/presentation/messages_page.dart';
 import '../features/explore/presentation/explore_page.dart';
 import '../features/feed/presentation/community_page.dart';
@@ -144,7 +143,21 @@ GoRouter buildRouter({
         ),
         StatefulShellBranch(
           routes: [
-            GoRoute(path: '/messages', builder: (_, _) => const MessagesPage()),
+            GoRoute(
+              path: '/messages',
+              builder: (_, _) => const MessagesPage(),
+              routes: [
+                // A conversa selecionada é a rota: link direto, voltar do navegador e
+                // redimensionar abrem a mesma conversa. Fica dentro do shell para o rail
+                // aparecer no layout largo; no celular o shell esconde a barra inferior.
+                GoRoute(
+                  path: ':conversationId',
+                  builder: (_, state) => MessagesPage(
+                    conversationId: state.pathParameters['conversationId'],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         StatefulShellBranch(
@@ -180,12 +193,6 @@ GoRouter buildRouter({
       },
       builder: (_, state) =>
           UserProfilePage(userId: state.pathParameters['userId'] ?? ''),
-    ),
-    GoRoute(
-      path: '/messages/:conversationId',
-      builder: (_, state) => ChatRoomPage(
-        conversationId: state.pathParameters['conversationId'] ?? '',
-      ),
     ),
     GoRoute(
       path: '/notifications',

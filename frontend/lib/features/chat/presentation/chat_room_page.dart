@@ -1,4 +1,5 @@
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -55,6 +56,12 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
 
   AppLifecycleState _lifecycle = AppLifecycleState.resumed;
 
+  /// Até esta distância do fim (px) a pessoa está "acompanhando" a conversa.
+  static const _nearBottom = 80.0;
+
+  /// Chegou mensagem enquanto a pessoa lia o histórico: oferece ir para as novas.
+  bool _newBelow = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +73,7 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
       if (!_focus.hasFocus) _controller.composerBlurred();
     });
     _scroll.addListener(_maybeLoadOlder);
+    _scroll.addListener(_clearNewBelowAtBottom);
     // A conversa só conta como lida enquanto está na tela e o app em primeiro plano.
     SchedulerBinding.instance.addPostFrameCallback((_) => _syncVisibility());
   }
@@ -96,6 +104,55 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
     }
   }
 
+  void _clearNewBelowAtBottom() {
+    if (_newBelow &&
+        _scroll.hasClients &&
+        _scroll.position.pixels <= _nearBottom) {
+      setState(() => _newBelow = false);
+    }
+  }
+
+  void _scrollToNewest() {
+    if (!_scroll.hasClients) return;
+    final duration = Motion.resolve(context, Motion.medium);
+    if (duration == Duration.zero) {
+      _scroll.jumpTo(0);
+    } else {
+      _scroll.animateTo(0, duration: duration, curve: Curves.easeOut);
+    }
+    if (_newBelow) setState(() => _newBelow = false);
+  }
+
+  /// Chegou (ou foi enviada) uma mensagem no fim da conversa. A lista é invertida: o conteúdo novo
+  /// entra do lado do índice 0, então quem está lendo mais acima seria empurrado. Para quem
+  /// acompanha o fim, segue a chegada; para quem lê o histórico, o offset é compensado para nada
+  /// pular, e um botão avisa das novas.
+  void _onMessages(ChatState? before, ChatState after) {
+    if (before == null || !_scroll.hasClients) return;
+    final grew = after.messages.length > before.messages.length;
+    final newestChanged =
+        after.messages.lastOrNull?.key != before.messages.lastOrNull?.key;
+    // Histórico antigo carregado ou só mudança de estado: não há o que compensar.
+    if (!grew || !newestChanged) return;
+    final pixels = _scroll.position.pixels;
+    final maxBefore = _scroll.position.maxScrollExtent;
+    final mine =
+        after.messages.last.sender.id == ref.read(currentUserIdProvider);
+
+    if (mine || pixels <= _nearBottom) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToNewest();
+      });
+      return;
+    }
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      final delta = _scroll.position.maxScrollExtent - maxBefore;
+      if (delta > 0) _scroll.jumpTo(pixels + delta);
+      if (!_newBelow) setState(() => _newBelow = true);
+    });
+  }
+
   void _maybeLoadOlder() {
     if (!_scroll.hasClients) return;
     final state = ref.read(chatControllerProvider(widget.conversationId)).value;
@@ -118,6 +175,10 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
   @override
   Widget build(BuildContext context) {
     final chat = ref.watch(chatControllerProvider(widget.conversationId));
+    ref.listen(chatControllerProvider(widget.conversationId), (before, after) {
+      final current = after.value;
+      if (current != null) _onMessages(before?.value, current);
+    });
 
     return chat.when(
       skipLoadingOnRefresh: true,
@@ -148,11 +209,28 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
             children: [
               const _ConnectionBanner(),
               Expanded(
-                child: _Messages(
-                  state: state,
-                  scroll: _scroll,
-                  conversationId: widget.conversationId,
-                  onChanged: _maybeLoadOlder,
+                child: Stack(
+                  children: [
+                    _Messages(
+                      state: state,
+                      scroll: _scroll,
+                      conversationId: widget.conversationId,
+                      onChanged: _maybeLoadOlder,
+                    ),
+                    if (_newBelow)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: Space.sm,
+                        child: Center(
+                          child: FilledButton.tonalIcon(
+                            onPressed: _scrollToNewest,
+                            icon: const Icon(Icons.arrow_downward, size: 18),
+                            label: const Text('Novas mensagens'),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               _Composer(
@@ -333,6 +411,27 @@ class _Messages extends ConsumerWidget {
     SchedulerBinding.instance.addPostFrameCallback((_) => onChanged());
 
     // Lista invertida: o índice 0 é a mensagem mais nova (colada no teclado) e o último é o cabeçalho de "mais antigas".
+    return LayoutBuilder(
+      builder: (context, box) => _list(
+        context,
+        ref,
+        items,
+        now,
+        controller,
+        // Bolha de no máximo 560 dp ou 80% da coluna (a conversa pode estar ao lado da lista).
+        maxBubbleWidth: (box.maxWidth * 0.8).clamp(0.0, 560.0),
+      ),
+    );
+  }
+
+  Widget _list(
+    BuildContext context,
+    WidgetRef ref,
+    List<ChatItem> items,
+    DateTime now,
+    ChatController controller, {
+    required double maxBubbleWidth,
+  }) {
     return ListView.builder(
       controller: scroll,
       reverse: true,
@@ -351,6 +450,7 @@ class _Messages extends ConsumerWidget {
             return MessageBubble(
               key: ValueKey(item.message.key),
               item: item,
+              maxWidth: maxBubbleWidth,
               onRetry: cid == null ? null : () => controller.retry(cid),
               onDiscard: cid == null ? null : () => controller.discard(cid),
             );
@@ -464,22 +564,39 @@ class _Composer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: controller,
-                      focusNode: focus,
-                      onChanged: onChanged,
-                      minLines: 1,
-                      maxLines: 5,
-                      maxLength: maxMessageLength,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      decoration: InputDecoration(
-                        hintText: 'Mensagem',
-                        // O contador só aparece perto do limite, para não poluir a tela.
-                        counterText:
-                            controller.text.length > maxMessageLength - 200
-                            ? '${controller.text.length}/$maxMessageLength'
-                            : '',
+                    // Enter insere uma linha; Ctrl/Cmd+Enter envia (no celular, o botão).
+                    child: CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(
+                          LogicalKeyboardKey.enter,
+                          control: true,
+                        ): () {
+                          if (canSend) onSend();
+                        },
+                        const SingleActivator(
+                          LogicalKeyboardKey.enter,
+                          meta: true,
+                        ): () {
+                          if (canSend) onSend();
+                        },
+                      },
+                      child: TextField(
+                        controller: controller,
+                        focusNode: focus,
+                        onChanged: onChanged,
+                        minLines: 1,
+                        maxLines: 5,
+                        maxLength: maxMessageLength,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
+                        decoration: InputDecoration(
+                          hintText: 'Mensagem',
+                          // O contador só aparece perto do limite, para não poluir a tela.
+                          counterText:
+                              controller.text.length > maxMessageLength - 200
+                              ? '${controller.text.length}/$maxMessageLength'
+                              : '',
+                        ),
                       ),
                     ),
                   ),

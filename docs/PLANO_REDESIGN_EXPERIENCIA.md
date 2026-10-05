@@ -204,16 +204,16 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 **Dependência:** 02–03.
 **Editar:** `frontend/lib/features/chat/presentation/messages_page.dart`, `chat_room_page.dart`, `message_bubble.dart`, `chat_items.dart`, `start_conversation.dart`, `application/chat_drafts.dart` e rotas necessárias.
 
-- [ ] Lista com busca local por nome/username e chips “Todas”/“Não lidas”. Consulta/status em memória por conta. Contador representa **conversas**, pois `ConversationSummary.unread` é booleano.
-- [ ] Linha: avatar, nome, até duas linhas da última mensagem, horário e ponto de não lida; prefixar envio próprio com “Você:”. Manter ordenação da lista fornecida pelo controller.
-- [ ] Tornar a conversa selecionada refletida na rota `/messages/:conversationId`, inclusive no layout largo, como fonte principal de seleção. A seleção atual só em provider deve ser sincronizada/refatorada para que deep link e redimensionamento abram a mesma conversa, sem dois sockets ou salas duplicadas.
-- [ ] Usar `LayoutBuilder` para espaço efetivo após rail. Com conteúdo disponível ≥760 dp, lista de 320 dp + conversa; abaixo, somente lista ou sala conforme rota. Não presumir que janela de 840 dp deixe 840 dp para a feature.
-- [ ] Sala: identidade do interlocutor abre perfil; presença e digitando obedecem o socket real. Mensagens próprias usam `primaryContainer`; recebidas usam superfície. Largura máxima de bolha 560 dp ou 80% da coluna.
-- [ ] Agrupar visualmente remetentes consecutivos separados por até cinco minutos; manter divisores de dia e chaves estáveis. Estado de envio visível: enviando, confirmado pelo servidor, incerto, falhou.
-- [ ] Preservar retry idempotente com `clientMessageId`. “Enviada” não significa lida. Não alterar protocolo do socket nem gerar ID novo ao repetir uma tentativa incerta.
-- [ ] Composer fixo com SafeArea e teclado; Enter insere linha, Ctrl/Cmd+Enter envia. Botão de envio permanece acessível. Manter rascunhos em memória por conversa; logout descarta.
-- [ ] Nova mensagem não arrasta quem está lendo histórico para o fim; mostrar botão “Novas mensagens”. Se já perto do fim, acompanhar chegada.
-- [ ] Vazio da lista: CTA Nova conversa. Busca sem resultado: limpar consulta. Painel sem seleção: “Escolha uma conversa”.
+- [x] Lista com busca local por nome/username e chips “Todas”/“Não lidas”. Consulta/status em memória por conta. Contador representa **conversas**, pois `ConversationSummary.unread` é booleano.
+- [x] Linha: avatar, nome, até duas linhas da última mensagem, horário e ponto de não lida; prefixar envio próprio com “Você:”. Manter ordenação da lista fornecida pelo controller.
+- [x] Tornar a conversa selecionada refletida na rota `/messages/:conversationId`, inclusive no layout largo, como fonte principal de seleção. A seleção atual só em provider deve ser sincronizada/refatorada para que deep link e redimensionamento abram a mesma conversa, sem dois sockets ou salas duplicadas.
+- [x] Usar `LayoutBuilder` para espaço efetivo após rail. Com conteúdo disponível ≥760 dp, lista de 320 dp + conversa; abaixo, somente lista ou sala conforme rota. Não presumir que janela de 840 dp deixe 840 dp para a feature.
+- [x] Sala: identidade do interlocutor abre perfil; presença e digitando obedecem o socket real. Mensagens próprias usam `primaryContainer`; recebidas usam superfície. Largura máxima de bolha 560 dp ou 80% da coluna.
+- [x] Agrupar visualmente remetentes consecutivos separados por até cinco minutos; manter divisores de dia e chaves estáveis. Estado de envio visível: enviando, confirmado pelo servidor, incerto, falhou.
+- [x] Preservar retry idempotente com `clientMessageId`. “Enviada” não significa lida. Não alterar protocolo do socket nem gerar ID novo ao repetir uma tentativa incerta.
+- [x] Composer fixo com SafeArea e teclado; Enter insere linha, Ctrl/Cmd+Enter envia. Botão de envio permanece acessível. Manter rascunhos em memória por conversa; logout descarta.
+- [x] Nova mensagem não arrasta quem está lendo histórico para o fim; mostrar botão “Novas mensagens”. Se já perto do fim, acompanhar chegada.
+- [x] Vazio da lista: CTA Nova conversa. Busca sem resultado: limpar consulta. Painel sem seleção: “Escolha uma conversa”.
 
 **Aceite:** redimensionar preserva conversa/rascunho, voltar funciona no navegador, não lidas coerentes, reconexão não duplica mensagem e histórico não salta durante leitura. Atualizar testes de chat, merge e shell.
 

@@ -27,17 +27,3 @@ class ChatDrafts extends Notifier<Map<String, String>> {
 final chatDraftsProvider = NotifierProvider<ChatDrafts, Map<String, String>>(
   ChatDrafts.new,
 );
-
-/// Conversa aberta no painel de detalhe (telas largas). Em telas estreitas a conversa é uma rota.
-class SelectedConversation extends Notifier<String?> {
-  @override
-  String? build() {
-    ref.watch(currentUserIdProvider);
-    return null;
-  }
-
-  void select(String? conversationId) => state = conversationId;
-}
-
-final selectedConversationProvider =
-    NotifierProvider<SelectedConversation, String?>(SelectedConversation.new);

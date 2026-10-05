@@ -142,11 +142,11 @@ void main() {
         final h = AppHarness();
         h.chat.history[convId] = [serverMessage('m1', text: 'olá!', minute: 1)];
         await openMessages(tester, harness: h, size: const Size(1100, 800));
-        expect(find.text('Selecione uma conversa'), findsOneWidget);
+        expect(find.text('Escolha uma conversa'), findsOneWidget);
 
         await tapAndSettle(tester, find.text('beto'));
         expect(find.text('olá!'), findsOneWidget);
-        expect(find.text('Selecione uma conversa'), findsNothing);
+        expect(find.text('Escolha uma conversa'), findsNothing);
         expect(
           find.byType(BackButton),
           findsNothing,

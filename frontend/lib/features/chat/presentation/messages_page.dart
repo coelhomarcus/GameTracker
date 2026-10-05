@@ -5,51 +5,79 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/providers.dart';
 import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/primary_action.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
-import '../../../core/design_system/primary_action.dart';
-import '../application/chat_drafts.dart';
+import '../application/conversation_filter.dart';
 import '../application/conversations_controller.dart';
 import '../data/chat_models.dart';
 import 'chat_room_page.dart';
 import 'start_conversation.dart';
 
-/// Mensagens: lista de conversas. A partir de 840 px vira lista + conversa lado a lado.
+/// Espaço mínimo (já descontado o rail de navegação) para lista e conversa lado a lado.
+const _splitMinWidth = 760.0;
+const _listPaneWidth = 320.0;
+
+/// Mensagens. A conversa aberta é a rota (`/messages/:conversationId`): com espaço, lista de 320 dp
+/// e conversa lado a lado; sem espaço, só a lista ou só a conversa, conforme a rota.
 class MessagesPage extends ConsumerWidget {
-  const MessagesPage({super.key});
+  const MessagesPage({super.key, this.conversationId});
+
+  final String? conversationId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.expanded;
-    if (!wide) return const _ConversationsScaffold();
-
-    final selected = ref.watch(selectedConversationProvider);
-    return Row(
-      children: [
-        const SizedBox(width: 360, child: _ConversationsScaffold()),
-        const VerticalDivider(width: 1),
-        Expanded(
-          child: selected == null
-              ? const Scaffold(
-                  body: EmptyView(
-                    icon: Icons.forum_outlined,
-                    title: 'Selecione uma conversa',
-                    message: 'Ou comece uma nova.',
-                  ),
-                )
-              : ChatRoomView(
-                  key: ValueKey(selected),
-                  conversationId: selected,
-                  embedded: true,
-                ),
-        ),
-      ],
+    // O espaço que importa é o da própria área, depois do rail de navegação.
+    return LayoutBuilder(
+      builder: (context, box) {
+        final split = box.maxWidth >= _splitMinWidth;
+        final id = conversationId;
+        if (!split) {
+          return id == null
+              ? const ConversationsPane()
+              : ChatRoomView(key: ValueKey(id), conversationId: id);
+        }
+        return Row(
+          children: [
+            SizedBox(
+              width: _listPaneWidth,
+              child: ConversationsPane(selectedId: id, splitLayout: true),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: id == null
+                  ? const Scaffold(
+                      body: EmptyView(
+                        icon: Icons.forum_outlined,
+                        title: 'Escolha uma conversa',
+                        message: 'Ou comece uma nova.',
+                      ),
+                    )
+                  : ChatRoomView(
+                      key: ValueKey(id),
+                      conversationId: id,
+                      embedded: true,
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _ConversationsScaffold extends ConsumerWidget {
-  const _ConversationsScaffold();
+/// Lista de conversas com busca e o filtro "Não lidas".
+class ConversationsPane extends ConsumerWidget {
+  const ConversationsPane({
+    super.key,
+    this.selectedId,
+    this.splitLayout = false,
+  });
+
+  final String? selectedId;
+
+  /// Lista ao lado da conversa: tocar troca a conversa em vez de empilhar uma tela.
+  final bool splitLayout;
 
   Future<void> _newConversation(BuildContext context, WidgetRef ref) async {
     final person = await pickPerson(context);
@@ -61,6 +89,7 @@ class _ConversationsScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conversations = ref.watch(conversationsControllerProvider);
+    final filter = ref.watch(conversationFilterProvider);
     final newConversation = PrimaryAction(
       heroTag: 'fab-messages',
       icon: Icons.edit_outlined,
@@ -69,17 +98,21 @@ class _ConversationsScaffold extends ConsumerWidget {
     );
     return Scaffold(
       appBar: AppBar(
+        // Raiz do destino: com a conversa aberta por rota (a lista fica embaixo na pilha), o
+        // Material mostraria um voltar que não pertence a este cabeçalho.
+        automaticallyImplyLeading: false,
         title: const Text('Mensagens'),
-        // A lista tem 360 dp no layout largo: só o ícone cabe com texto ampliado.
+        // A lista pode ter só 320 dp: só o ícone cabe com texto ampliado.
         actions: [?newConversation.headerButton(context, compact: true)],
       ),
-      floatingActionButton: newConversation.fab(context),
+      // Com a conversa ao lado, o botão fica no cabeçalho; o FAB cobriria a lista.
+      floatingActionButton: splitLayout ? null : newConversation.fab(context),
       body: AsyncContent<List<ConversationSummary>>(
         value: conversations,
         staleBanner: true,
         onRetry: () => ref.invalidate(conversationsControllerProvider),
-        data: (list) {
-          if (list.isEmpty) {
+        data: (all) {
+          if (all.isEmpty) {
             return RefreshIndicator(
               onRefresh: () => _refresh(ref),
               child: ListView(
@@ -100,18 +133,36 @@ class _ConversationsScaffold extends ConsumerWidget {
               ),
             );
           }
-          return RefreshIndicator(
-            onRefresh: () => _refresh(ref),
-            child: ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(
-                bottom: PrimaryAction.fabClearance,
+          final shown = filterConversations(all, filter);
+          final unread = all.where((c) => c.unread).length;
+          return Column(
+            children: [
+              _Toolbar(filter: filter, total: all.length, unread: unread),
+              Expanded(
+                child: shown.isEmpty
+                    ? _NoMatches(
+                        onClear: ref
+                            .read(conversationFilterProvider.notifier)
+                            .clear,
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () => _refresh(ref),
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(
+                            bottom: PrimaryAction.fabClearance,
+                          ),
+                          itemCount: shown.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, i) => _ConversationTile(
+                            conversation: shown[i],
+                            selected: shown[i].id == selectedId,
+                            splitLayout: splitLayout,
+                          ),
+                        ),
+                      ),
               ),
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) =>
-                  _ConversationTile(conversation: list[i]),
-            ),
+            ],
           );
         },
       ),
@@ -127,10 +178,129 @@ class _ConversationsScaffold extends ConsumerWidget {
   }
 }
 
+/// Busca por nome ou username e os chips "Todas" e "Não lidas". Os números contam conversas
+/// (a API só diz se há mensagem não lida, não quantas).
+class _Toolbar extends ConsumerStatefulWidget {
+  const _Toolbar({
+    required this.filter,
+    required this.total,
+    required this.unread,
+  });
+
+  final ConversationFilter filter;
+  final int total;
+  final int unread;
+
+  @override
+  ConsumerState<_Toolbar> createState() => _ToolbarState();
+}
+
+class _ToolbarState extends ConsumerState<_Toolbar> {
+  late final _controller = TextEditingController(text: widget.filter.query);
+
+  @override
+  void didUpdateWidget(_Toolbar old) {
+    super.didUpdateWidget(old);
+    // "Limpar" fora do campo (estado vazio de busca) também esvazia o texto.
+    if (widget.filter.query != _controller.text) {
+      _controller.value = TextEditingValue(
+        text: widget.filter.query,
+        selection: TextSelection.collapsed(offset: widget.filter.query.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ref.read(conversationFilterProvider.notifier);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Space.lg,
+        Space.sm,
+        Space.lg,
+        Space.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _controller,
+            onChanged: controller.setQuery,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Buscar conversas',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) => _controller.text.isEmpty
+                    ? const SizedBox.shrink()
+                    : IconButton(
+                        tooltip: 'Limpar busca',
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _controller.clear();
+                          controller.setQuery('');
+                        },
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Space.sm),
+          Wrap(
+            spacing: Space.sm,
+            runSpacing: Space.xs,
+            children: [
+              FilterChip(
+                label: Text('Todas (${widget.total})'),
+                selected: !widget.filter.unreadOnly,
+                onSelected: (_) => controller.setUnreadOnly(false),
+              ),
+              FilterChip(
+                label: Text('Não lidas (${widget.unread})'),
+                selected: widget.filter.unreadOnly,
+                onSelected: (_) => controller.setUnreadOnly(true),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoMatches extends StatelessWidget {
+  const _NoMatches({required this.onClear});
+
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) => EmptyView(
+    icon: Icons.search_off,
+    title: 'Nenhuma conversa encontrada',
+    message: 'Tente outro nome ou limpe a busca.',
+    action: OutlinedButton(
+      onPressed: onClear,
+      child: const Text('Limpar busca'),
+    ),
+  );
+}
+
 class _ConversationTile extends ConsumerWidget {
-  const _ConversationTile({required this.conversation});
+  const _ConversationTile({
+    required this.conversation,
+    required this.selected,
+    required this.splitLayout,
+  });
 
   final ConversationSummary conversation;
+  final bool selected;
+  final bool splitLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -139,8 +309,6 @@ class _ConversationTile extends ConsumerWidget {
     final me = ref.watch(currentUserIdProvider);
     final unread = conversation.unread;
     final text = Theme.of(context).textTheme;
-    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.expanded;
-    final selected = ref.watch(selectedConversationProvider) == conversation.id;
 
     final name = other?.displayName ?? 'Conversa';
     final preview = last == null
@@ -151,8 +319,9 @@ class _ConversationTile extends ConsumerWidget {
       label: '$name, ${unread ? 'mensagem não lida, ' : ''}$preview',
       excludeSemantics: true,
       button: true,
+      selected: selected,
       child: ListTile(
-        selected: wide && selected,
+        selected: selected,
         leading: UserAvatar(name: name, url: other?.avatarUrl),
         title: Text(
           name,
@@ -162,7 +331,7 @@ class _ConversationTile extends ConsumerWidget {
         ),
         subtitle: Text(
           preview,
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: unread
               ? text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)
@@ -187,15 +356,11 @@ class _ConversationTile extends ConsumerWidget {
             ],
           ],
         ),
-        onTap: () {
-          if (wide) {
-            ref
-                .read(selectedConversationProvider.notifier)
-                .select(conversation.id);
-          } else {
-            context.push('/messages/${conversation.id}');
-          }
-        },
+        // Lado a lado, trocar de conversa não acumula histórico; sozinha, a conversa é uma tela
+        // empilhada sobre a lista.
+        onTap: () => splitLayout
+            ? context.go('/messages/${conversation.id}')
+            : context.push('/messages/${conversation.id}'),
       ),
     );
   }

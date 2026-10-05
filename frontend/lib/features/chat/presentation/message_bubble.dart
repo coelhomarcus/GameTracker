@@ -13,9 +13,13 @@ class MessageBubble extends StatelessWidget {
     required this.item,
     this.onRetry,
     this.onDiscard,
+    this.maxWidth = 560,
   });
 
   final MessageItem item;
+
+  /// Largura máxima da bolha: 560 dp ou 80% da coluna, o que for menor (quem chama calcula).
+  final double maxWidth;
   final VoidCallback? onRetry;
   final VoidCallback? onDiscard;
 
@@ -28,9 +32,7 @@ class MessageBubble extends StatelessWidget {
     final failed = message.status == MessageStatus.failed;
 
     final bubble = ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * 0.75,
-      ),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: Space.md,
@@ -111,7 +113,8 @@ class MessageBubble extends StatelessWidget {
       MessageStatus.sending => ', enviando',
       MessageStatus.uncertain => ', confirmando o envio',
       MessageStatus.failed => ', não enviada',
-      MessageStatus.sent => '',
+      // Enviada ao servidor, não "lida": a API não informa leitura por mensagem.
+      MessageStatus.sent => mine ? ', enviada' : '',
     };
     return '$who, ${clockLabel(message.createdAt)}: ${message.content}$status';
   }
