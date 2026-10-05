@@ -85,8 +85,8 @@ class AppShell extends ConsumerWidget {
           NavigationRail(
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: (i) => _select(ref, i),
-            extended: width >= Breakpoints.expanded + 400,
-            labelType: width >= Breakpoints.expanded + 400
+            extended: width >= Breakpoints.railExtended,
+            labelType: width >= Breakpoints.railExtended
                 ? NavigationRailLabelType.none
                 : NavigationRailLabelType.all,
             destinations: [

@@ -6,7 +6,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 |---|---|---|
 | 01 Preparar execução | Concluída, com capturas parciais | Baseline, API de teste e build web OK. Só a captura do login; sem ferramenta para navegar nas telas autenticadas (abaixo) |
 | 02 Fundação visual | Concluída (sem inspeção no navegador) | Verificada por testes de widget/golden; ver abaixo |
-| 03 Navegação | Pendente | |
+| 03 Navegação | Concluída (sem inspeção no navegador) | Verificada por testes de widget; ver abaixo |
 | 04 Crop de avatar/banner | Pendente | |
 | 05 Biblioteca | Pendente | |
 | 06 Formulário de registro | Pendente | |
@@ -67,3 +67,19 @@ Qualquer falha a partir daqui é regressão.
 Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContainer`, semântica/foco/toque do `GameCard`, busca e "Limpar" do `FilterToolbar`, skeletons a 360 dp com texto a 200%, movimento reduzido e a composição em claro/escuro a 360 (200%), 390 e 1440 px, com as diretrizes de toque, rótulo e contraste. Dois goldens (`test/core/goldens/foundation_{light,dark}.png`).
 
 **Não verificado:** a aparência no navegador (sem API de teste, ver Etapa 01). A Etapa 02 foi checada só em testes de widget. Layouts a 360 px e 200% estão cobertos por teste; hover e foco por teclado no Chrome não foram vistos.
+
+## Etapa 03 — navegação, cabeçalhos e retorno
+
+**Arquivos:** novos `core/navigation/back_navigation.dart` (`FallbackBackButton`, `goBackOr`) e `core/design_system/primary_action.dart` (`PrimaryAction`). Alterados: `app/shell.dart` (usa `Breakpoints.railExtended`), Biblioteca, Comunidade, Mensagens, Explorar, Perfil, página do jogo, post, criação de post, edição de perfil, formulário de registro, conversa, notificações, configurações e `post_list.dart`.
+
+- **Ação principal adaptativa:** Biblioteca ("Adicionar jogo"), Comunidade ("Publicar") e Mensagens ("Nova conversa") mostram FAB estendido abaixo de 600 dp e botão no cabeçalho a partir daí, nunca os dois. Em Mensagens o botão largo é só ícone (a lista tem 360 dp; o texto não cabe a 200%). `heroTag` próprio por destino e `PrimaryAction.fabClearance` (96) no fim das listas.
+- **Sino** agora também em Explorar e no Perfil próprio (antes de Configurações). Mensagens mantém o cabeçalho próprio.
+- **Voltar sem pilha:** jogo → Biblioteca, post e novo post → Comunidade, edição e configurações → Perfil, conversa → Mensagens, registro → jogo. Antes, jogo, post, criação de post, edição de perfil e registro não tinham botão de voltar em link direto.
+- **Id inválido de jogo** (`/games/abc`): "Jogo não encontrado" com saída para a Biblioteca, sem consulta.
+- **Defeito evitado no caminho:** um voltar com `go()` ignoraria o `PopScope` e descartaria um formulário não salvo em silêncio. `goBackOr` consulta `Navigator.maybePop` antes; há teste do diálogo de descarte em link direto.
+
+**Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 763 passaram, 45 pulados, 0 falhas (+31 em `test/navigation_test.dart`); `flutter test test/integration` (API de teste, porta 3101) 50 passaram.
+
+**Cobertura nova:** voltar em sete links diretos e com pilha; formulário sujo; post/usuário/conversa inexistentes; link direto sem sessão → login → destino → voltar; FAB/cabeçalho em 390/599/600/900 dp para as três ações; sino por destino; rail expandido em 1239 vs 1240; redimensionar mantém o destino; tocar no destino ativo preserva o filtro e volta à raiz.
+
+**Não verificado:** rolagem preservada entre destinos (vem do `IndexedStack`, sem teste dedicado) e a aparência no navegador. No web, a recarga continua exigindo novo login (política de sessão em memória), e o destino é restaurado depois do login.

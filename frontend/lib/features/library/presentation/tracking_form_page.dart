@@ -8,6 +8,7 @@ import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/network/error_messages.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../auth/presentation/auth_form_scaffold.dart';
 import '../../feed/presentation/celebration.dart';
 import '../../games/application/game_providers.dart';
@@ -30,7 +31,10 @@ class TrackingFormPage extends ConsumerWidget {
     final title = entryId == null ? 'Novo playthrough' : 'Editar playthrough';
 
     Widget scaffold(Widget body) => Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        leading: FallbackBackButton(fallback: '/games/$igdbId'),
+        title: Text(title),
+      ),
       body: body,
     );
 
@@ -333,6 +337,7 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
       ),
       child: Scaffold(
         appBar: AppBar(
+          leading: FallbackBackButton(fallback: '/games/${widget.game.igdbId}'),
           title: Text(_editing ? 'Editar playthrough' : 'Novo playthrough'),
           actions: [
             Padding(

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/tokens.dart';
+import '../../../core/design_system/primary_action.dart';
 import '../application/feed_controller.dart';
 import 'post_tiles.dart';
 
@@ -92,7 +93,9 @@ class _PostListState extends ConsumerState<PostList>
               : ListView.separated(
                   controller: _controller,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: const EdgeInsets.only(
+                    bottom: PrimaryAction.fabClearance,
+                  ),
                   itemCount: state.ids.length + 1,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, i) {

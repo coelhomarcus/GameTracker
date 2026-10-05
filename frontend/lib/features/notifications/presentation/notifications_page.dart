@@ -7,6 +7,7 @@ import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../application/notifications_controller.dart';
 import '../data/notification_models.dart';
 
@@ -62,10 +63,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/library'),
-        ),
+        leading: const FallbackBackButton(fallback: '/library'),
         title: const Text('Notificações'),
         actions: [
           if (unread > 0)

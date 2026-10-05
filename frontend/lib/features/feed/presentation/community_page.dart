@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/primary_action.dart';
 import '../application/feed_controller.dart';
 import '../data/post_models.dart';
 import '../../notifications/presentation/notifications_bell.dart';
@@ -14,25 +15,25 @@ class CommunityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final publish = PrimaryAction(
+      heroTag: 'fab-community',
+      icon: Icons.edit_outlined,
+      label: 'Publicar',
+      onPressed: () => context.push('/posts/new'),
+    );
     return DefaultTabController(
       length: FeedScope.values.length,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Comunidade'),
-          actions: const [NotificationsBell()],
+          actions: [?publish.headerButton(context), const NotificationsBell()],
           bottom: TabBar(
             tabs: [
               for (final scope in FeedScope.values) Tab(text: scope.label),
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          // Tag própria: os FABs de todas as abas coexistem no IndexedStack.
-          heroTag: 'fab-community',
-          onPressed: () => context.push('/posts/new'),
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text('Publicar'),
-        ),
+        floatingActionButton: publish.fab(context),
         body: TabBarView(
           children: [
             for (final scope in FeedScope.values) FeedList(scope: scope),

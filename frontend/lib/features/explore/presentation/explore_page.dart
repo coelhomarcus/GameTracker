@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../games/presentation/game_search_view.dart';
+import '../../notifications/presentation/notifications_bell.dart';
 import '../../profiles/presentation/people_search_view.dart';
 
 class ExplorePage extends StatelessWidget {
@@ -14,6 +15,7 @@ class ExplorePage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Explorar'),
+          actions: const [NotificationsBell()],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Jogos'),

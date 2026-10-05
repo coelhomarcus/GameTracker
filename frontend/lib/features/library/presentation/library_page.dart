@@ -11,6 +11,7 @@ import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
+import '../../../core/design_system/primary_action.dart';
 import '../../../core/data/hours.dart';
 import '../../games/presentation/game_search_view.dart';
 import '../../notifications/presentation/notifications_bell.dart';
@@ -43,18 +44,18 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     final prefs = ref.watch(libraryPrefsProvider);
     final prefsController = ref.read(libraryPrefsProvider.notifier);
 
+    final addGame = PrimaryAction(
+      heroTag: 'fab-library',
+      icon: Icons.add,
+      label: 'Adicionar jogo',
+      onPressed: _addGame,
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Biblioteca'),
-        actions: const [NotificationsBell()],
+        actions: [?addGame.headerButton(context), const NotificationsBell()],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        // Tag própria: os FABs de todas as abas coexistem no IndexedStack.
-        heroTag: 'fab-library',
-        onPressed: _addGame,
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar jogo'),
-      ),
+      floatingActionButton: addGame.fab(context),
       body: AsyncContent<List<GameEntry>>(
         value: library,
         staleBanner: true,
@@ -204,7 +205,10 @@ class _EntryGrid extends StatelessWidget {
         final rows = (entries.length / columns).ceil();
         return ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(top: Space.sm, bottom: 96),
+          padding: const EdgeInsets.only(
+            top: Space.sm,
+            bottom: PrimaryAction.fabClearance,
+          ),
           itemCount: rows,
           itemBuilder: (context, row) {
             return Padding(
@@ -262,7 +266,7 @@ class _EntryList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.separated(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 96),
+      padding: const EdgeInsets.only(bottom: PrimaryAction.fabClearance),
       itemCount: entries.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {

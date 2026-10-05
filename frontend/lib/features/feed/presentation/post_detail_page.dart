@@ -6,6 +6,7 @@ import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../application/comments_controller.dart';
 import '../application/post_store.dart';
 import '../data/post_models.dart';
@@ -84,7 +85,10 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
 
     if (post == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Post')),
+        appBar: AppBar(
+          leading: const FallbackBackButton(fallback: '/community'),
+          title: const Text('Post'),
+        ),
         body: loader.when(
           loading: () => const LoadingView(),
           error: (e, _) => ErrorView(
@@ -98,7 +102,10 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
 
     final comments = ref.watch(commentsControllerProvider(widget.postId));
     return Scaffold(
-      appBar: AppBar(title: Text(post.isActivity ? 'Atividade' : 'Post')),
+      appBar: AppBar(
+        leading: const FallbackBackButton(fallback: '/community'),
+        title: Text(post.isActivity ? 'Atividade' : 'Post'),
+      ),
       body: SafeArea(
         child: Column(
           children: [

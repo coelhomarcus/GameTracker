@@ -10,6 +10,7 @@ import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../library/application/library_controller.dart';
 import '../../library/data/game_entry.dart';
 import '../../library/presentation/entry_actions.dart';
@@ -24,13 +25,33 @@ class GamePage extends ConsumerWidget {
 
   final int igdbId;
 
+  static const _back = FallbackBackButton(fallback: '/library');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Link com id inválido: não há o que carregar, e repetir a consulta não ajuda.
+    if (igdbId <= 0) {
+      return Scaffold(
+        appBar: AppBar(leading: _back),
+        body: EmptyView(
+          icon: Icons.search_off,
+          title: 'Jogo não encontrado',
+          message: 'O endereço deste jogo não é válido.',
+          action: FilledButton(
+            onPressed: () => context.go('/library'),
+            child: const Text('Ir para a Biblioteca'),
+          ),
+        ),
+      );
+    }
     final game = ref.watch(gameControllerProvider(igdbId));
     return game.when(
-      loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
+      loading: () => Scaffold(
+        appBar: AppBar(leading: _back),
+        body: const LoadingView(),
+      ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(leading: _back),
         body: ErrorView(
           message: describeError(error),
           onRetry: () => ref.invalidate(gameControllerProvider(igdbId)),
@@ -67,6 +88,7 @@ class _GameScaffold extends ConsumerWidget {
           headerSliverBuilder: (context, _) => [
             SliverAppBar(
               pinned: true,
+              leading: GamePage._back,
               title: Text(
                 game.name,
                 maxLines: 1,

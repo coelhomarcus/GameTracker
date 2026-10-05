@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/providers.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/network/error_messages.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../auth/presentation/auth_form_scaffold.dart';
 import '../../games/data/game_models.dart';
 import '../../games/presentation/game_search_view.dart';
@@ -181,6 +182,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
           },
           child: Scaffold(
             appBar: AppBar(
+              leading: const FallbackBackButton(fallback: '/community'),
               title: const Text('Nova publicação'),
               actions: [
                 Padding(

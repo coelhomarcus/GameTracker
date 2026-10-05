@@ -11,6 +11,7 @@ import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/app_exception.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_form_scaffold.dart';
 import '../../auth/presentation/session_state.dart';
@@ -270,6 +271,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       ),
       child: Scaffold(
         appBar: AppBar(
+          leading: const FallbackBackButton(fallback: '/me'),
           title: const Text('Editar perfil'),
           actions: [
             Padding(

@@ -9,6 +9,7 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/realtime/chat_connection.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../application/chat_controller.dart';
 import '../application/chat_drafts.dart';
 import '../application/chat_providers.dart';
@@ -139,11 +140,7 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
             automaticallyImplyLeading: false,
             leading: widget.embedded
                 ? null
-                : BackButton(
-                    onPressed: () => context.canPop()
-                        ? context.pop()
-                        : context.go('/messages'),
-                  ),
+                : const FallbackBackButton(fallback: '/messages'),
             titleSpacing: widget.embedded ? Space.lg : 0,
             title: _Title(state: state),
           ),
@@ -180,10 +177,7 @@ class _ChatRoomViewState extends ConsumerState<ChatRoomView>
     automaticallyImplyLeading: false,
     leading: widget.embedded
         ? null
-        : BackButton(
-            onPressed: () =>
-                context.canPop() ? context.pop() : context.go('/messages'),
-          ),
+        : const FallbackBackButton(fallback: '/messages'),
   );
 }
 

@@ -7,6 +7,7 @@ import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
+import '../../../core/design_system/primary_action.dart';
 import '../application/chat_drafts.dart';
 import '../application/conversations_controller.dart';
 import '../data/chat_models.dart';
@@ -60,15 +61,19 @@ class _ConversationsScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conversations = ref.watch(conversationsControllerProvider);
+    final newConversation = PrimaryAction(
+      heroTag: 'fab-messages',
+      icon: Icons.edit_outlined,
+      label: 'Nova conversa',
+      onPressed: () => _newConversation(context, ref),
+    );
     return Scaffold(
-      appBar: AppBar(title: const Text('Mensagens')),
-      floatingActionButton: FloatingActionButton.extended(
-        // Tag própria: os FABs de todas as abas coexistem no IndexedStack.
-        heroTag: 'fab-messages',
-        onPressed: () => _newConversation(context, ref),
-        icon: const Icon(Icons.edit_outlined),
-        label: const Text('Nova conversa'),
+      appBar: AppBar(
+        title: const Text('Mensagens'),
+        // A lista tem 360 dp no layout largo: só o ícone cabe com texto ampliado.
+        actions: [?newConversation.headerButton(context, compact: true)],
       ),
+      floatingActionButton: newConversation.fab(context),
       body: AsyncContent<List<ConversationSummary>>(
         value: conversations,
         staleBanner: true,
@@ -99,7 +104,9 @@ class _ConversationsScaffold extends ConsumerWidget {
             onRefresh: () => _refresh(ref),
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 96),
+              padding: const EdgeInsets.only(
+                bottom: PrimaryAction.fabClearance,
+              ),
               itemCount: list.length,
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, i) =>

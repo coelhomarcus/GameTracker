@@ -12,6 +12,7 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/network/image_url.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../chat/presentation/start_conversation.dart';
 import '../../feed/presentation/post_list.dart';
 import '../../games/presentation/image_viewer.dart';
@@ -19,6 +20,7 @@ import '../../library/application/library_controller.dart';
 import '../../library/application/library_view.dart';
 import '../../library/application/library_prefs.dart';
 import '../../library/data/game_entry.dart';
+import '../../notifications/presentation/notifications_bell.dart';
 import '../application/follow_store.dart';
 import '../application/profile_providers.dart';
 import '../data/profile_models.dart';
@@ -72,21 +74,18 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   AppBar _bar(BuildContext context, UserProfile? profile) => AppBar(
-    leading: isMe
-        ? null
-        : BackButton(
-            onPressed: () =>
-                context.canPop() ? context.pop() : context.go('/community'),
-          ),
+    leading: isMe ? null : const FallbackBackButton(fallback: '/community'),
     automaticallyImplyLeading: false,
     title: Text(isMe ? 'Perfil' : (profile?.displayName ?? 'Perfil')),
     actions: [
-      if (isMe)
+      if (isMe) ...[
+        const NotificationsBell(),
         IconButton(
           tooltip: 'Configurações',
           icon: const Icon(Icons.settings_outlined),
           onPressed: () => context.push('/settings'),
         ),
+      ],
     ],
   );
 }
@@ -105,23 +104,21 @@ class _Loaded extends ConsumerWidget {
         appBar: AppBar(
           leading: isMe
               ? null
-              : BackButton(
-                  onPressed: () => context.canPop()
-                      ? context.pop()
-                      : context.go('/community'),
-                ),
+              : const FallbackBackButton(fallback: '/community'),
           automaticallyImplyLeading: false,
           title: Text(
             isMe ? 'Perfil' : profile.displayName,
             overflow: TextOverflow.ellipsis,
           ),
           actions: [
-            if (isMe)
+            if (isMe) ...[
+              const NotificationsBell(),
               IconButton(
                 tooltip: 'Configurações',
                 icon: const Icon(Icons.settings_outlined),
                 onPressed: () => context.push('/settings'),
               ),
+            ],
           ],
         ),
         body: NestedScrollView(

@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../app/app_info.dart';
@@ -8,6 +7,7 @@ import '../../../app/theme_mode.dart';
 import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
+import '../../../core/navigation/back_navigation.dart';
 import '../../auth/presentation/session_state.dart';
 import '../../push/application/push_controller.dart';
 
@@ -23,9 +23,7 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () => context.canPop() ? context.pop() : context.go('/me'),
-        ),
+        leading: const FallbackBackButton(fallback: '/me'),
         title: const Text('Configurações'),
       ),
       body: SafeArea(

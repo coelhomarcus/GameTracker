@@ -58,14 +58,14 @@
 **Dependência:** 02.
 **Editar:** `frontend/lib/app/shell.dart`, `router.dart` e cabeçalhos dos cinco destinos.
 
-- [ ] Manter `StatefulShellRoute.indexedStack`. Janela <600 dp: `NavigationBar`; ≥600: `NavigationRail`; ≥1240: rail expandido com texto.
-- [ ] Preservar scroll, consulta e aba interna ao trocar destino. Selecionar o destino já ativo retorna à raiz daquele destino, sem apagar busca/filtros. Não adicionar um segundo comportamento de “voltar ao topo” neste redesign.
-- [ ] Biblioteca, Explorar, Comunidade e Perfil usam app bar com título e sino; Perfil inclui engrenagem. Mensagens mantém cabeçalho próprio sem sobrecarregar a sala de conversa.
-- [ ] Ação primária por tela: Biblioteca “Adicionar jogo”; Comunidade “Publicar”; Mensagens “Nova conversa”. Em telas estreitas usar FAB estendido; em telas largas usar botão no cabeçalho. Não renderizar os dois simultaneamente.
-- [ ] Dar `heroTag` exclusivo a FABs que coexistem no IndexedStack e reservar padding inferior para que não cubram o último item.
-- [ ] Preservar rotas atuais. Subtelas abertas por link sem pilha devem voltar para um destino útil: jogo → Biblioteca; post → Comunidade; edição/configurações → Perfil; conversa → Mensagens.
-- [ ] Manter autenticação e destino após login. No web, recarregar ainda requer novo login pela política atual de sessão em memória; depois do login restaurar a rota, sem alegar persistência de sessão.
-- [ ] Tratar nomes/IDs inválidos com erro e saída útil, nunca tela em branco. Rascunhos de formulário pedem confirmação apenas quando há alteração não salva.
+- [x] Manter `StatefulShellRoute.indexedStack`. Janela <600 dp: `NavigationBar`; ≥600: `NavigationRail`; ≥1240: rail expandido com texto.
+- [x] Preservar scroll, consulta e aba interna ao trocar destino. Selecionar o destino já ativo retorna à raiz daquele destino, sem apagar busca/filtros. Não adicionar um segundo comportamento de “voltar ao topo” neste redesign.
+- [x] Biblioteca, Explorar, Comunidade e Perfil usam app bar com título e sino; Perfil inclui engrenagem. Mensagens mantém cabeçalho próprio sem sobrecarregar a sala de conversa.
+- [x] Ação primária por tela: Biblioteca “Adicionar jogo”; Comunidade “Publicar”; Mensagens “Nova conversa”. Em telas estreitas usar FAB estendido; em telas largas usar botão no cabeçalho. Não renderizar os dois simultaneamente.
+- [x] Dar `heroTag` exclusivo a FABs que coexistem no IndexedStack e reservar padding inferior para que não cubram o último item.
+- [x] Preservar rotas atuais. Subtelas abertas por link sem pilha devem voltar para um destino útil: jogo → Biblioteca; post → Comunidade; edição/configurações → Perfil; conversa → Mensagens.
+- [x] Manter autenticação e destino após login. No web, recarregar ainda requer novo login pela política atual de sessão em memória; depois do login restaurar a rota, sem alegar persistência de sessão.
+- [x] Tratar nomes/IDs inválidos com erro e saída útil, nunca tela em branco. Rascunhos de formulário pedem confirmação apenas quando há alteração não salva.
 
 **Aceite:** abrir jogo/post/conversa diretamente, autenticar e retornar; trocar entre os cinco destinos sem perder contexto; redimensionar janela sem perder a área selecionada. Verificar `app_shell_test.dart` e testes de redirecionamento.
 
