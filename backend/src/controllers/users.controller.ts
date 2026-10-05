@@ -57,11 +57,6 @@ export async function unfollowHandler(req: Request, res: Response) {
   res.status(204).send();
 }
 
-export async function setPushTokenHandler(req: Request, res: Response) {
-  await usersService.setPushToken(req.user!.id, req.body.token);
-  res.status(204).send();
-}
-
 export async function updateProfileHandler(req: Request, res: Response) {
   await usersService.updateProfile(req.user!.id, req.body);
   res.status(204).send();

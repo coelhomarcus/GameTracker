@@ -73,10 +73,6 @@ export async function unfollow(followerId: string, followingId: string) {
   await db.delete(follows).where(and(eq(follows.followerId, followerId), eq(follows.followingId, followingId)));
 }
 
-export async function setPushToken(userId: string, token: string) {
-  await db.update(users).set({ expoPushToken: token }).where(eq(users.id, userId));
-}
-
 export async function updateProfile(userId: string, input: { username?: string; name?: string; bio?: string }) {
   if (input.username) {
     const existing = await db.query.users.findFirst({ where: eq(users.username, input.username) });

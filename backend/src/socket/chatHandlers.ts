@@ -149,10 +149,8 @@ export function registerChatHandlers(io: Server, socket: Socket) {
         for (const other of others) {
           void sendPushToUser(other.userId, {
             title: message!.sender.username,
-            // Clientes novos: texto genérico (o app busca a mensagem já autenticado). O cliente
-            // legado (Expo) segue recebendo o texto, como sempre recebeu.
+            // Texto genérico: o conteúdo da mensagem não vai no push (o app busca já autenticado).
             body: 'Nova mensagem',
-            expoBody: text,
             data: { type: 'message', recipientId: other.userId, conversationId, messageId: message!.id },
           });
         }

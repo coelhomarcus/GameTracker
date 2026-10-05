@@ -9,64 +9,12 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { pushInstallations, users } from '../db/schema';
 import * as installations from '../services/pushInstallations.service';
-import { ExpoProvider, type ExpoClient } from './expoProvider';
 import { createFcmProviderFromEnv, FcmProvider, type FcmMessage, type FcmMessaging } from './fcmProvider';
-import { sendPushToUser, setPushProviders } from './pushService';
+import { sendPushToUser, setPushProvider } from './pushService';
 import type { PushPayload, PushProvider, PushResult } from './types';
 
-const payload: PushPayload = { title: 'Nova curtida', body: 'ana curtiu seu post', expoBody: 'texto legado', data: { type: 'like', postId: 'p1' } };
+const payload: PushPayload = { title: 'Nova curtida', body: 'ana curtiu seu post', data: { type: 'like', postId: 'p1' } };
 
-const EXPO_A = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]';
-const EXPO_B = 'ExponentPushToken[bbbbbbbbbbbbbbbbbbbbbb]';
-
-describe('ExpoProvider', () => {
-  const make = (tickets: unknown, spy: { sent?: unknown[] } = {}) => {
-    const client: ExpoClient = {
-      async sendPushNotificationsAsync(messages) {
-        spy.sent = messages;
-        if (tickets instanceof Error) throw tickets;
-        return tickets as never;
-      },
-    };
-    return new ExpoProvider(client);
-  };
-
-  it('ok quando o ticket é ok; usa o corpo legado e leva os dados', async () => {
-    const spy: { sent?: Array<{ body?: string; data?: unknown }> } = {};
-    const results = await make([{ status: 'ok', id: '1' }], spy as never).send([EXPO_A], payload);
-    assert.deepEqual(results, [{ token: EXPO_A, outcome: 'ok' }]);
-    assert.equal(spy.sent![0]!.body, 'texto legado');
-    assert.deepEqual(spy.sent![0]!.data, payload.data);
-  });
-
-  it('DeviceNotRegistered no ticket vira "invalid"; outros erros viram "failed"', async () => {
-    const results = await make([
-      { status: 'error', message: 'x', details: { error: 'DeviceNotRegistered' } },
-      { status: 'error', message: 'y', details: { error: 'MessageRateExceeded' } },
-    ]).send([EXPO_A, EXPO_B], payload);
-    assert.deepEqual(results, [
-      { token: EXPO_A, outcome: 'invalid' },
-      { token: EXPO_B, outcome: 'failed' },
-    ]);
-  });
-
-  it('token que não tem o formato Expo é inválido e nem é enviado', async () => {
-    const spy: { sent?: unknown[] } = {};
-    const results = await make([{ status: 'ok', id: '1' }], spy).send(['nao-e-expo', EXPO_A], payload);
-    assert.equal(spy.sent!.length, 1);
-    assert.deepEqual(results.find((r) => r.token === 'nao-e-expo'), { token: 'nao-e-expo', outcome: 'invalid' });
-  });
-
-  it('falha de rede não lança: devolve "failed" (não invalida o token)', async () => {
-    const results = await make(new Error('rede')).send([EXPO_A], payload);
-    assert.deepEqual(results, [{ token: EXPO_A, outcome: 'failed' }]);
-  });
-
-  it('ticket faltando conta como falha', async () => {
-    const results = await make([]).send([EXPO_A], payload);
-    assert.deepEqual(results, [{ token: EXPO_A, outcome: 'failed' }]);
-  });
-});
 
 describe('FcmProvider', () => {
   const messaging = (responses: { success: boolean; error?: { code?: string } }[], spy: { sent?: FcmMessage[] } = {}): FcmMessaging => ({
@@ -76,7 +24,7 @@ describe('FcmProvider', () => {
     },
   });
 
-  it('envia texto genérico (sem expoBody), dados e prioridade alta', async () => {
+  it('envia o texto, os dados e prioridade alta', async () => {
     const spy: { sent?: FcmMessage[] } = {};
     const results = await new FcmProvider(messaging([{ success: true }], spy)).send(['t1'], payload);
     assert.deepEqual(results, [{ token: 't1', outcome: 'ok' }]);
@@ -122,7 +70,8 @@ class FakeProvider implements PushProvider {
   calls: string[][] = [];
   outcomes = new Map<string, PushResult['outcome']>();
   throws = false;
-  constructor(readonly name: 'expo' | 'fcm', public enabled = true) {}
+  readonly name = 'fcm' as const;
+  constructor(public enabled = true) {}
   async send(tokens: string[]): Promise<PushResult[]> {
     if (this.throws) throw new Error('boom');
     this.calls.push([...tokens].sort());
@@ -135,54 +84,36 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   const stamp = Date.now().toString(36);
   let n = 0;
 
-  async function newUser(expoPushToken?: string) {
+  async function newUser() {
     const username = `pt_${stamp}_${n++}`;
-    const [u] = await db.insert(users).values({ username, name: username, email: `${username}@example.test`, passwordHash: 'x', expoPushToken }).returning();
+    const [u] = await db.insert(users).values({ username, name: username, email: `${username}@example.test`, passwordHash: 'x' }).returning();
     createdUsers.push(u!.id);
     return u!.id;
   }
   const uuid = () => crypto.randomUUID();
 
-  afterEach(() => setPushProviders(null));
+  afterEach(() => setPushProvider(null));
   after(async () => {
     if (createdUsers.length) await db.delete(users).where(inArray(users.id, createdUsers));
   });
 
-  function fakes() {
-    const expo = new FakeProvider('expo');
-    const fcm = new FakeProvider('fcm');
-    setPushProviders({ expo, fcm });
-    return { expo, fcm };
+  function fake(enabled = true) {
+    const fcm = new FakeProvider(enabled);
+    setPushProvider(fcm);
+    return fcm;
   }
 
-  it('envia para vários aparelhos, cada um pelo seu provedor', async () => {
-    const { expo, fcm } = fakes();
+  it('envia para todos os aparelhos ativos do usuário, sem repetir token', async () => {
+    const fcm = fake();
     const user = await newUser();
     await installations.register(user, uuid(), { provider: 'fcm', platform: 'android', token: `fcm-${stamp}-1` });
     await installations.register(user, uuid(), { provider: 'fcm', platform: 'web', token: `fcm-${stamp}-2` });
-    await installations.register(user, uuid(), { provider: 'expo', platform: 'android', token: EXPO_A + stamp });
     await sendPushToUser(user, payload);
     assert.deepEqual(fcm.calls, [[`fcm-${stamp}-1`, `fcm-${stamp}-2`]]);
-    assert.deepEqual(expo.calls, [[EXPO_A + stamp]]);
-  });
-
-  it('inclui o token Expo legado e não repete se ele também está nas instalações', async () => {
-    const { expo } = fakes();
-    const legacyOnly = await newUser(EXPO_A + 'L1' + stamp);
-    await sendPushToUser(legacyOnly, payload);
-    assert.deepEqual(expo.calls, [[EXPO_A + 'L1' + stamp]]);
-
-    expo.calls = [];
-    const both = await newUser(EXPO_B + 'L2' + stamp);
-    await installations.register(both, uuid(), { provider: 'expo', platform: 'android', token: EXPO_B + 'L2' + stamp });
-    await sendPushToUser(both, payload);
-    assert.deepEqual(expo.calls, [[EXPO_B + 'L2' + stamp]], 'um envio só para o mesmo token');
   });
 
   it('provedor desligado é ignorado sem erro', async () => {
-    const expo = new FakeProvider('expo');
-    const fcm = new FakeProvider('fcm', false);
-    setPushProviders({ expo, fcm });
+    const fcm = fake(false);
     const user = await newUser();
     await installations.register(user, uuid(), { provider: 'fcm', platform: 'android', token: `fcm-off-${stamp}` });
     await sendPushToUser(user, payload);
@@ -190,7 +121,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('token que o provedor diz inválido é desativado e não é usado de novo', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const user = await newUser();
     const id = uuid();
     await installations.register(user, id, { provider: 'fcm', platform: 'android', token: `fcm-dead-${stamp}` });
@@ -207,7 +138,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('falha transitória não desativa o token', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const user = await newUser();
     const id = uuid();
     await installations.register(user, id, { provider: 'fcm', platform: 'android', token: `fcm-flaky-${stamp}` });
@@ -217,26 +148,16 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
     assert.equal(row?.active, true);
   });
 
-  it('Expo inválido limpa também o token legado', async () => {
-    const { expo } = fakes();
-    const user = await newUser(EXPO_A + 'DEAD' + stamp);
-    expo.outcomes.set(EXPO_A + 'DEAD' + stamp, 'invalid');
-    await sendPushToUser(user, payload);
-    const row = await db.query.users.findFirst({ where: eq(users.id, user), columns: { expoPushToken: true } });
-    assert.equal(row?.expoPushToken, null);
-  });
-
-  it('um provedor que lança não derruba quem chamou (nem impede o outro)', async () => {
-    const { expo, fcm } = fakes();
-    expo.throws = true;
+  it('um provedor que lança não derruba quem chamou', async () => {
+    const fcm = fake();
+    fcm.throws = true;
     const user = await newUser();
-    await installations.register(user, uuid(), { provider: 'expo', platform: 'android', token: EXPO_A + 'T' + stamp });
-    await installations.register(user, uuid(), { provider: 'fcm', platform: 'android', token: `fcm-ok-${stamp}` });
+    await installations.register(user, uuid(), { provider: 'fcm', platform: 'android', token: `fcm-boom-${stamp}` });
     await assert.doesNotReject(sendPushToUser(user, payload));
   });
 
   it('não envia para instalações inativas nem de outros usuários', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const a = await newUser();
     const b = await newUser();
     const idA = uuid();
@@ -250,7 +171,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('trocar de conta no mesmo aparelho: a instalação passa para a conta nova', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const a = await newUser();
     const b = await newUser();
     const installation = uuid();
@@ -264,7 +185,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('o mesmo token em outra instalação tira o token da antiga (um dono só)', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const a = await newUser();
     const b = await newUser();
     await installations.register(a, uuid(), { provider: 'fcm', platform: 'android', token: `fcm-moved-${stamp}` });
@@ -276,7 +197,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('registrar de novo atualiza o token (rotação) e reativa', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const user = await newUser();
     const id = uuid();
     await installations.register(user, id, { provider: 'fcm', platform: 'android', token: `fcm-old-${stamp}` });
@@ -287,7 +208,7 @@ describe('sendPushToUser + instalações (banco de teste)', () => {
   });
 
   it('revogar só vale para o dono; de outra pessoa é um no-op silencioso', async () => {
-    const { fcm } = fakes();
+    const fcm = fake();
     const a = await newUser();
     const b = await newUser();
     const id = uuid();

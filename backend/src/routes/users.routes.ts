@@ -7,7 +7,6 @@ import {
   getUserGameEntriesHandler,
   getUserPostsHandler,
   searchHandler,
-  setPushTokenHandler,
   unfollowHandler,
   updateProfileHandler,
   uploadAvatarHandler,
@@ -18,7 +17,6 @@ import { validateBody, validateQuery } from '../middlewares/validate';
 import { avatarUpload, bannerUpload } from '../lib/uploads';
 import { listGameEntriesQuerySchema } from '../schemas/gameEntry.schema';
 import {
-  pushTokenSchema,
   searchUsersQuerySchema,
   updateProfileSchema,
   userPostsQuerySchema,
@@ -29,7 +27,6 @@ export const usersRouter = Router();
 usersRouter.use(requireAuth);
 
 usersRouter.patch('/me', validateBody(updateProfileSchema), updateProfileHandler);
-usersRouter.post('/me/push-token', validateBody(pushTokenSchema), setPushTokenHandler);
 usersRouter.post('/me/avatar', avatarUpload.single('avatar'), uploadAvatarHandler);
 usersRouter.post('/me/banner', bannerUpload.single('banner'), uploadBannerHandler);
 usersRouter.get('/search', validateQuery(searchUsersQuerySchema), searchHandler);

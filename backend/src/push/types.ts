@@ -3,11 +3,6 @@ export interface PushPayload {
   title: string;
   /** Texto exibido. Sem conteúdo sensível: o app busca o detalhe depois, já autenticado. */
   body: string;
-  /**
-   * Corpo do cliente legado (Expo). Existe para não mudar o comportamento dele: o chat sempre
-   * enviou o texto da mensagem. Os clientes novos usam [body], genérico.
-   */
-  expoBody?: string;
   data: Record<string, string>;
 }
 
@@ -20,7 +15,7 @@ export interface PushResult {
 }
 
 export interface PushProvider {
-  readonly name: 'expo' | 'fcm';
+  readonly name: 'fcm';
   /** `false` quando faltam credenciais: o provedor é ignorado, sem erro. */
   readonly enabled: boolean;
   send(tokens: string[], payload: PushPayload): Promise<PushResult[]>;

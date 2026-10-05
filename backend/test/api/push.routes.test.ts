@@ -4,7 +4,7 @@ import '../helpers/env';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, afterEach, before, describe, it } from 'node:test';
-import { setPushProviders } from '../../src/push/pushService';
+import { setPushProvider } from '../../src/push/pushService';
 import type { PushPayload, PushProvider } from '../../src/push/types';
 import { registerUser, type TestUser } from '../helpers/client';
 import { startApi, type TestApi } from '../helpers/server';
@@ -26,7 +26,7 @@ describe('push: instalações', () => {
     b = await registerUser(api.http, 'pb');
   });
   after(() => api.close());
-  afterEach(() => setPushProviders(null));
+  afterEach(() => setPushProvider(null));
 
   it('registrar é idempotente (204 nas duas vezes)', async () => {
     const id = randomUUID();
@@ -76,17 +76,18 @@ describe('push: instalações', () => {
     assert.equal((await del(a.accessToken, 'xxx')).status, 400);
   });
 
-  it('o endpoint legado de token Expo segue respondendo', async () => {
-    assert.equal((await api.http('POST', '/users/me/push-token', a.accessToken, { token: 'ExponentPushToken[legado]' })).status, 204);
+  it('só o provedor fcm existe: expo (e o endpoint antigo de token) foram removidos', async () => {
+    assert.equal((await put(a.accessToken, randomUUID(), { ...valid('t'), provider: 'expo' })).status, 400);
+    assert.equal((await api.http('POST', '/users/me/push-token', a.accessToken, { token: 'x' })).status, 404);
   });
 
   describe('payload enviado ao app', () => {
     const captured: PushPayload[] = [];
-    const capture = (name: 'expo' | 'fcm'): PushProvider => ({
-      name,
+    const capture = (): PushProvider => ({
+      name: 'fcm',
       enabled: true,
       async send(tokens, payload) {
-        if (name === 'fcm') captured.push(payload);
+        captured.push(payload);
         return tokens.map((token) => ({ token, outcome: 'ok' as const }));
       },
     });
@@ -100,7 +101,7 @@ describe('push: instalações', () => {
     }
 
     it('curtida, comentário e seguidor levam só tipo e ids no `data`, e texto genérico', async () => {
-      setPushProviders({ expo: capture('expo'), fcm: capture('fcm') });
+      setPushProvider(capture());
       const recipient = await registerUser(api.http, 'pr');
       const actor = await registerUser(api.http, 'pq');
       await put(recipient.accessToken, randomUUID(), valid(`tok-${stamp}-payload`));
@@ -129,7 +130,7 @@ describe('push: instalações', () => {
     });
 
     it('o fluxo social continua funcionando com instalações FCM e FCM desligado', async () => {
-      setPushProviders(null);
+      setPushProvider(null);
       const x = await registerUser(api.http, 'sx');
       const y = await registerUser(api.http, 'sy');
       await put(x.accessToken, randomUUID(), valid(`tok-${stamp}-social`));

@@ -1,6 +1,6 @@
 # GameTracker — Migração do frontend para Flutter
 
-**Estado em 04/10/2026:** o app Flutter (`flutter_app/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real e executar o CI no GitHub. O app Expo legado (`mobile/`) já foi removido da árvore. **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
+**Estado em 04/10/2026:** o app Flutter (`flutter_app/`) está completo no que pôde ser construído e verificado sem aparelho. Falta rodá-lo em um Android físico, gerar a chave de assinatura real e executar o CI no GitHub. O app antigo (React Native) e todo o suporte a ele no backend já foram removidos. **Push de notificações com o app fechado ficou fora desta entrega**, por decisão do dono do projeto (sem Firebase).
 
 Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de aceite e o plano de encerramento do legado, que ficavam em arquivos separados. O texto original desses arquivos está no histórico do git (commit `fd60016`, pasta `docs/`). O que ainda falta fazer está na seção 11, como ideias de implementação.
 
@@ -23,12 +23,12 @@ Este documento substitui o plano de migração, o baseline, as ADRs, a matriz de
 
 ## 1. Resumo do que foi feito
 
-- **App novo em Flutter** (Android e web; iOS fora de escopo) com paridade de todas as telas do app Expo: login e cadastro, busca de jogos e pessoas, biblioteca, página do jogo, formulário de playthrough, comunidade, posts e comentários, perfis, editar perfil com fotos, chat em tempo real, central de notificações e configurações. A interface foi redesenhada em Material 3, com tema claro, escuro e do sistema.
-- **Mesmo backend**: Express, PostgreSQL, Redis, IGDB e Socket.IO, com mudanças só aditivas e correções de bugs encontrados pelos testes (seção 6). Nenhum dado foi migrado, e o app Expo continua funcionando.
+- **App novo em Flutter** (Android e web; iOS fora de escopo) com paridade de todas as telas do app antigo: login e cadastro, busca de jogos e pessoas, biblioteca, página do jogo, formulário de playthrough, comunidade, posts e comentários, perfis, editar perfil com fotos, chat em tempo real, central de notificações e configurações. A interface foi redesenhada em Material 3, com tema claro, escuro e do sistema.
+- **Mesmo backend**: Express, PostgreSQL, Redis, IGDB e Socket.IO, com mudanças só aditivas e correções de bugs encontrados pelos testes (seção 6). Nenhum dado de usuário foi migrado. A única migration destrutiva é a `0011`, que apaga o campo do token do app antigo (`users.expo_push_token`) e as instalações de push desse provedor.
 - **Qualidade**: 705 testes de unidade, widget e aceite no Flutter (mais 50 de integração contra o backend real) e 108 no backend (unidade e API de verdade). Todos passam, e `flutter analyze` e a formatação estão limpos.
 - **Distribuição**: APK de release assinado por script (`tool/build_release.sh`) ou pelo GitHub Actions, com a URL da API definida no build.
 - **Segurança e correções de backend achadas ao testar**: queda do servidor por id inválido no chat, corrida na renovação da sessão, duplicidade de notificações, conversas duplicadas, erros 500 em PATCH vazio e imagem corrompida, e anotações pessoais expostas na API.
-- **Legado**: a pasta `mobile/` (Expo) foi removida em 04/10/2026. Continua no histórico do git, e a tag local `legacy-expo-final` marca o último commit que a tinha (`git checkout legacy-expo-final -- mobile` recupera). O backend ainda aceita o token Expo (ver ideia C, fase B).
+- **App antigo removido** (04/10/2026): a pasta `mobile/` saiu da árvore e o backend não tem mais nada dele (provedor, token, rota, coluna e dependência). O que existiu continua só no histórico do git.
 
 ## 2. Decisões
 
@@ -41,7 +41,7 @@ Cada decisão tem o motivo e a consequência.
 | 3 | **Sessão**: refresh token no armazenamento seguro (Android) e access token só em memória; renovação serializada (várias respostas 401 esperam a mesma operação). **Web: só memória**, com novo login ao recarregar | O refresh token é de uso único: duas renovações simultâneas derrubariam a sessão. A web fica assim até existir cookie `HttpOnly` no backend (seção 11). Logout descarta o socket e todos os dados da conta. |
 | 4 | **Datas e horas**: datas de progresso são datas de calendário lidas em UTC (o backend manda `…T00:00:00.000Z`); `createdAt` é instante convertido ao horário local; horas chegam como string decimal | Evita que um dia mude por fuso. Os JSONs reais gravados em `flutter_app/test/fixtures/` viraram testes de contrato do cliente. |
 | 5 | **Push**: **fora desta entrega** (04/10/2026). Backend e cliente prontos; o adaptador FCM não foi escrito porque não existe projeto Firebase | Sem Firebase, só há central de notificações em polling (60 s com o app aberto). O app mostra "Indisponível neste dispositivo" nas configurações, sem erro. O caminho para ligar está na seção 11. |
-| 6 | **Transição do app instalado**: distribuição só por APK manual (trabalho de faculdade, sem loja); novo login na troca; mesmo application ID `com.marcuscoelho.gametracker`; keystore do EAS anterior irrelevante | Sem loja, rollout gradual e AAB não se aplicam. O app novo pode entrar como instalação separada; atualizar por cima do legado não é requisito. |
+| 6 | **Transição do app instalado**: distribuição só por APK manual (trabalho de faculdade, sem loja); novo login na troca; mesmo application ID `com.marcuscoelho.gametracker`; keystore anterior irrelevante | Sem loja, rollout gradual e AAB não se aplicam. O app novo pode entrar como instalação separada; atualizar por cima do app antigo não é requisito. |
 | 7 | **Design**: Material 3 com `ColorScheme.fromSeed` (violeta), temas claro, escuro e do sistema, Biblioteca como destino inicial; cores de status (backlog, jogando, concluído, abandonado) em extensão de tema, sempre com texto ou ícone | Direção visual aprovada pelo dono ("SERVE"). |
 | 8 | **Ambiente de teste isolado**: `docker-compose.test.yml` (Postgres :5434 com o banco `gametracker_test` e Redis :6381, descartáveis) e `backend/.env.test`; uma trava (`backend/test/helpers/env.ts`) recusa rodar contra qualquer banco que não seja local e terminado em `_test` | Os testes criam e apagam dados. Os testes nunca leem o `backend/.env` do dono, e a trava impede apontar por engano para o banco de desenvolvimento ou de produção. |
 | 9 | **CI**: GitHub Actions | Um workflow de qualidade e um de release (seção 9). |
@@ -90,7 +90,7 @@ Todas as rotas de negócio exigem Bearer JWT, inclusive os perfis "públicos" (v
 | Pessoas | `GET /users/search`, `/users/:id`; seguir e deixar de seguir | Busca exclui o próprio usuário, limite 20 |
 | Conteúdo de perfil | `GET /users/:id/posts`, `/comments`, `/game-entries` | `notes` só para o dono |
 | Editar perfil | `PATCH /users/me`; `POST /users/me/avatar`, `/banner` | Multipart; fotos salvam na hora; teto de 8 MiB |
-| Push | `PUT`/`DELETE /push/installations/:id`; legado `POST /users/me/push-token` | Ver seção 6 |
+| Push | `PUT`/`DELETE /push/installations/:id` | Só o provedor `fcm`; ver seção 6 |
 | Notificações | `GET /notifications`; `POST /notifications/read-all` | Últimas 50 e leitura global |
 | Conversas | `GET`/`POST /conversations`; `GET /conversations/:id/messages`; `POST /conversations/:id/read` | Envio só por socket |
 | Imagens | `GET /images/cover?url=`; `/uploads/*` | Proxy IGDB; URLs públicas |
@@ -145,7 +145,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 | Mudança | Por quê |
 | --- | --- |
-| `PATCH /game-entries/:id` aceita três estados por campo (omitido = manter, `null` = limpar, valor = substituir); `PATCH {}` é válido | Antes `null` dava 400 e limpar data ou nota não funcionava. O cliente legado, que omite campos, continua funcionando. |
+| `PATCH /game-entries/:id` aceita três estados por campo (omitido = manter, `null` = limpar, valor = substituir); `PATCH {}` é válido | Antes `null` dava 400 e limpar data ou nota não funcionava. Um cliente que omite campos continua funcionando. |
 | Renovação de sessão atômica (`UPDATE` condicional) | Com 8 requisições simultâneas e o mesmo refresh token, as 25 rodadas emitiram mais de uma sessão válida. Depois da correção, 0 de 25. |
 | Curtir e seguir só notificam quando a relação é criada de verdade | Repetir gerava notificações duplicadas. |
 | `AUTH_RATE_LIMIT_MAX` | Permite suítes de integração repetidas. |
@@ -154,7 +154,8 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 | Chat: `clientMessageId` com índice único parcial | Repetir o envio devolve a mesma mensagem, sem nova linha, evento ou push. |
 | Chat: `typing` só na sala; `presence:get` restrito a participantes; contagem de conexões síncrona | Antes qualquer usuário podia emitir digitação para conversas alheias, e não havia snapshot de presença. |
 | Conversas: lock consultivo por par de usuários | Criar uma conversa ao mesmo tempo gerava 2 ou 3. |
-| Push: tabela `push_installations`, provedores Expo e FCM (`firebase-admin`), serviço único `sendPushToUser`, tokens inválidos desativados, FCM desligado sem credenciais | Base para o push do app novo, mantendo o Expo legado. O `data` leva só `type` e ids; o texto do chat é genérico para clientes novos. |
+| Push: tabela `push_installations`, provedor FCM (`firebase-admin`), serviço único `sendPushToUser`, tokens inválidos desativados, FCM desligado sem credenciais | Base para o push do app novo. O `data` leva só `type` e ids, e o texto do chat é genérico (o conteúdo da mensagem nunca vai no push). |
+| Remoção do Expo: sem `expo-server-sdk`, `ExpoProvider`, `POST /users/me/push-token`, `expoBody` e `users.expo_push_token`; o enum `push_provider` ficou só com `fcm` (migration `0011`, que também apaga as instalações `expo`) | O app antigo foi removido e não há mais quem use. Testado com uma cópia do banco contendo dados do Expo: as instalações `expo` somem, as `fcm` ficam. **A migration apaga dados: no banco de produção ela roda no próximo deploy.** |
 | `CORS_ORIGINS` (lista de origens) no Express e no Socket.IO | Restringe a web. Sem a variável, tudo é aceito, como antes. |
 | `notes` só para o dono em `GET /users/:id/game-entries` | Anotações pessoais não são públicas. Quem consultou a API antes pode ter visto anotações alheias; não há como saber. |
 
@@ -205,7 +206,7 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 - **Achados**: estados vazio e erro estouravam a altura em janela larga e baixa (perfil de outra pessoa a 1400 px). A solução é ajustar ao espaço, porque uma área rolável criava um nó de acessibilidade focável sem rótulo cobrindo a tela. O avatar do autor nos posts tinha alvo de toque de 40 dp, agora 48. Um teste de tempo meu era frágil sob carga e virou um teto largo.
 
 ### Etapa 10 — encerramento do legado
-- Tag `legacy-expo-final`, README com o Flutter como app oficial e remoção da pasta `mobile/` (04/10/2026), por decisão do dono: trabalho de faculdade, sem usuários que exijam um período de convivência. Os critérios de beta e retorno ensaiado, pensados para um lançamento real, não foram aplicados. A aposentadoria do Expo no backend (fase B) continua pendente.
+- README com o Flutter como app oficial, remoção da pasta `mobile/` e depois de todo o suporte ao app antigo no backend (04/10/2026), por decisão do dono: trabalho de faculdade, sem usuários que exijam um período de convivência. Os critérios de beta e retorno ensaiado, pensados para um lançamento real, não foram aplicados.
 
 ## 8. Verificação e aceite
 
@@ -270,14 +271,13 @@ Todas aditivas, sem reset de banco. Migrations `0009` e `0010`.
 
 **Ambientes**: `dev` com o backend isolado (seção 2, decisão 8). Para produção, definir `CORS_ORIGINS` com o endereço do app web. Banco e Redis da produção não foram tocados.
 
-**Retorno**: o app Expo foi removido da árvore e não há mais retorno a ele; voltar a uma versão anterior do Flutter exige gerar o APK do commit anterior com versionCode maior (na web, restaurar o artefato anterior). Nenhum rollback destrutivo de banco.
+**Retorno**: não há mais app anterior para onde voltar. Voltar a uma versão anterior do Flutter exige gerar o APK do commit anterior com versionCode maior (na web, restaurar o artefato anterior). A migration `0011` apaga dados e não tem volta: faça backup do banco antes de aplicá-la em produção.
 
 ## 10. Limitações conhecidas
 
 - **Nada foi executado em aparelho ou emulador.** O sandbox das ferramentas não tem aceleração para o emulador (`hvf is not enabled`). Para rodar: `~/Library/Android/sdk/emulator/emulator -avd gt_pixel` no terminal do dono. Por isso o desempenho real (3 s para a primeira tela, 100 ms de resposta, 95% dos quadros em 16,7 ms), o TalkBack, o seletor de imagem, a suspensão do app e a troca de rede nunca foram medidos.
 - **Push com o app fechado não existe** (decisão 5). A central de notificações atualiza por polling.
 - **Busca real na IGDB** não foi exercitada: o ambiente isolado não tem credenciais, e a busca foi verificada com repositório falso e, no backend real, só o caminho de erro `igdb_not_configured`. Os testes usam os jogos sintéticos 900001 e 900002.
-- **Interoperabilidade com o app Expo** (mesmo usuário nos dois clientes) nunca foi exercitada, e agora não há mais como: o app antigo foi removido. O contrato do chat foi mantido compatível e o envio sem `clientMessageId` foi testado.
 - **Web**: sessão só em memória (novo login ao recarregar). Não foi testada em navegador real contra o backend.
 - **Presença do chat** é em memória por instância do backend; com mais de uma réplica, fica errada.
 - **Estatísticas de jogo** contam registros (replay conta como outro registro), não pessoas.
@@ -305,18 +305,7 @@ Cada ideia diz o que é, por que importa e como começar. Estão ordenadas por p
 - **Já pronto**: tabela `push_installations`, registro por instalação, revogação antes do logout, payload só com ids, destino do toque validado, central de notificações para o caso de falha.
 - **Extras**: canais de notificação do Android; exibir o aviso do sistema também em primeiro plano; push na web (service worker próprio), só se a web virar canal público.
 
-### C. Aposentar o Expo no backend (o que sobrou da Etapa 10)
-
-A pasta `mobile/` já foi removida. Falta o lado do backend, que ainda aceita o token Expo. Faça isto só quando tiver certeza de que ninguém usa mais um APK do app antigo, em releases separados e sem resetar o banco (expandir → coexistir → retirar):
-
-1. Parar de gravar o token legado e remover `POST /users/me/push-token`.
-2. Tirar o `ExpoProvider`, a leitura de `users.expo_push_token`, a dependência `expo-server-sdk` e o campo `expoBody` do payload.
-3. Remover a coluna `users.expo_push_token` em uma migration própria.
-4. Limpar as linhas `provider = 'expo'` de `push_installations`.
-
-Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts` a cada passo. Para consultar o app antigo: `git checkout legacy-expo-final -- mobile`; enviar a tag ao remoto com `git push origin legacy-expo-final` (o histórico só está seguro depois de enviar o repositório).
-
-### D. Backend: confiabilidade e escala (quando o volume pedir)
+### C. Backend: confiabilidade e escala (quando o volume pedir)
 
 - **Sessão web persistente**: refresh em cookie `HttpOnly`, `Secure` e `SameSite` apropriado, endpoint próprio para a web, proteção CSRF, CORS por origem e bootstrap que obtém o access token em memória. Necessário antes de a web virar canal público; hoje o recarregar pede novo login.
 - **Presença distribuída**: guardar as conexões em Redis com expiração, para funcionar com mais de uma réplica do backend.
@@ -327,7 +316,7 @@ Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts`
 - **Ordenação por data de término** para "Concluídos recentes" de verdade.
 - **Rate limit geral** na API (hoje só login e cadastro) e envelope de erro único também para o 429.
 
-### E. Produto
+### D. Produto
 
 - **Editar e apagar post e comentário** (o backend não tem as rotas; não inventar no frontend).
 - **Recuperação de senha, exclusão de conta, bloqueio e denúncia**, se a expansão pública pedir.
@@ -338,7 +327,7 @@ Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts`
 - **Cache persistente de imagens**, depois de medir a necessidade em aparelho.
 - **Busca real na IGDB em teste**: um ambiente com credenciais para exercitar o caminho de sucesso e fixar o contrato de `GameSummary`.
 
-### F. Qualidade
+### E. Qualidade
 
 - **Testes de integração no aparelho** (`integration_test`) para as jornadas principais, para não depender só de widget test.
 - **Goldens selecionados** para os padrões visuais mais usados (card de jogo, linha de post, bolha de mensagem), nos dois temas.
@@ -358,4 +347,3 @@ Ajustar `backend/src/push/push.test.ts` e `backend/test/api/push.routes.test.ts`
 | CI | `.github/workflows/flutter.yml`, `.github/workflows/backend.yml` (backend e integração Flutter↔API), `.github/workflows/flutter-release.yml` |
 | Roadmap histórico do projeto (anterior à migração) | `docs/01_ROADMAP.md` |
 | Plano, baseline, ADRs, matriz de aceite e encerramento originais | histórico do git, `docs/` no commit `fd60016` |
-| App legado (removido) | histórico do git e a tag local `legacy-expo-final` (enviar com `git push origin legacy-expo-final`) |

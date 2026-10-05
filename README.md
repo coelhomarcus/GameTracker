@@ -103,10 +103,6 @@ API_URL=https://api.seudominio.com tool/build_release.sh
 
 O script exige API com HTTPS e recusa APK assinado com a chave de debug. O mesmo fluxo roda no GitHub Actions (`.github/workflows/flutter-release.yml`, com secrets). Para só demonstrar o app, o APK debug que o CI gera (`flutter.yml`) já basta. Detalhes e como gerar a chave em [`docs/MIGRACAO_FLUTTER.md`](docs/MIGRACAO_FLUTTER.md#9-build-distribuição-e-ambientes).
 
-## App antigo
-
-O app anterior em Expo (React Native) foi removido da árvore. Ele continua no histórico do git: `git checkout legacy-expo-final -- mobile` recupera a pasta (a tag marca o último commit que a tinha).
-
 ## Documentação
 
 - [`docs/MIGRACAO_FLUTTER.md`](docs/MIGRACAO_FLUTTER.md): como e por que o app foi refeito em Flutter, o que foi verificado, as limitações e as ideias do que falta.

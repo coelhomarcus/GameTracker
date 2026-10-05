@@ -19,7 +19,7 @@ import {
 
 export const gameEntryStatusEnum = pgEnum('game_entry_status', ['backlog', 'playing', 'completed', 'dropped']);
 export const postTypeEnum = pgEnum('post_type', ['status', 'review', 'activity']);
-export const pushProviderEnum = pgEnum('push_provider', ['expo', 'fcm']);
+export const pushProviderEnum = pgEnum('push_provider', ['fcm']);
 export const notificationTypeEnum = pgEnum('notification_type', ['like', 'comment', 'follow']);
 
 export const users = pgTable('users', {
@@ -31,7 +31,6 @@ export const users = pgTable('users', {
   avatarUrl: varchar('avatar_url', { length: 500 }),
   bannerUrl: varchar('banner_url', { length: 500 }),
   bio: varchar('bio', { length: 280 }),
-  expoPushToken: varchar('expo_push_token', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -301,8 +300,7 @@ export const messages = pgTable(
 /**
  * Uma linha por instalação do app (id gerado no aparelho). O token pertence à instalação, não ao
  * usuário: ao trocar de conta no mesmo aparelho a instalação passa para o novo dono, então a conta
- * anterior para de receber push ali. Substitui o campo único `users.expo_push_token`, que
- * continua sendo lido enquanto houver cliente legado.
+ * anterior para de receber push ali.
  */
 export const pushInstallations = pgTable(
   'push_installations',

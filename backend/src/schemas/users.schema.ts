@@ -1,10 +1,6 @@
 import { z } from 'zod';
 import { usernameSchema } from './auth.schema';
 
-export const pushTokenSchema = z.object({
-  token: z.string().min(1).max(255),
-});
-
 export const searchUsersQuerySchema = z.object({
   q: z.string().min(1).max(50),
 });

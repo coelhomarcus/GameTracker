@@ -3,7 +3,7 @@ import { db } from '../db';
 import { pushInstallations } from '../db/schema';
 
 interface Registration {
-  provider: 'expo' | 'fcm';
+  provider: 'fcm';
   platform: string;
   token: string;
 }
