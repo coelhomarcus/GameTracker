@@ -114,6 +114,8 @@ Todas as rotas de negócio exigem Bearer JWT, inclusive os perfis "públicos" (v
 
 ## 5. Experiência e design
 
+> **Redesign posterior.** A experiência descrita nesta seção foi refeita depois da migração (biblioteca agrupada por jogo, página do jogo como centro, comunidade, mensagens e perfil reorganizados, recorte de avatar/banner). O plano está em [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md) e o que foi feito, verificado e deixado de fora, em [`REDESIGN_EXECUCAO.md`](REDESIGN_EXECUCAO.md). Onde houver divergência, vale o registro do redesign.
+
 **Conceito**: uma biblioteca pessoal de jogos com comunidade ao redor. As capas dão personalidade, e o resto usa superfícies, tipografia e estados do Material.
 
 **Navegação**: cinco destinos permanentes (Biblioteca, Explorar, Comunidade, Mensagens e Perfil) em `NavigationBar` abaixo de 600 px e `NavigationRail` a partir daí, com estado preservado por destino. Notificações fica no sino do app bar e Configurações parte do perfil. O feed geral se chama **Geral**, porque o backend entrega posts cronológicos, sem recomendação.

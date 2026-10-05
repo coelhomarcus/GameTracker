@@ -2,6 +2,8 @@
 
 Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um item só é marcado como concluído depois de verificado.
 
+> As etapas 02–12 dizem "sem inspeção no navegador" porque, no momento delas, não havia como abrir telas autenticadas. A Etapa 13 fez essa inspeção em Chrome real para todas elas (abaixo); os dois defeitos que apareceram foram corrigidos na própria Etapa 13.
+
 | Etapa | Estado | Observação |
 |---|---|---|
 | 01 Preparar execução | Concluída, com capturas parciais | Baseline, API de teste e build web OK. Só a captura do login; sem ferramenta para navegar nas telas autenticadas (abaixo) |
@@ -16,7 +18,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 | 10 Mensagens | Concluída (sem inspeção no navegador) | Verificada por testes com transporte falso; ver abaixo |
 | 11 Perfil | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
 | 12 Configurações / auxiliares | Concluída (sem inspeção no navegador) | Verificada por testes; ver abaixo |
-| 13 Validação final | Pendente | |
+| 13 Validação final | Concluída para o web; Android nativo não validado | Inspeção no Chrome real em 5 larguras × 2 temas, cinco percursos, contas vazia/cheia, erro e nova tentativa; dois defeitos achados e corrigidos; suíte completa e integração verdes; APK debug gerado, sem emulador funcional; ver abaixo |
 
 ## Etapa 01 — situação inicial (05/10/2026)
 
@@ -250,3 +252,42 @@ Os novos testes cobrem: papéis tipográficos, margens e larguras do `PageContai
 **Verificações:** `dart format` OK; `flutter analyze` sem problemas; `flutter test` 1.133 contados, 0 falhas; integração 53 passaram. Novos: 17 de Configurações (ordem, 680 dp, Sobre sem links, tema com amostra/seleção/semântica/48 dp, atalhos compartilhados com a Biblioteca nos dois sentidos, quatro ordenações, notificações sem interruptor, central, conta, sair direto e com confirmação por rascunho, 360 px a 200%) e 16 de central e telas auxiliares (linhas, "Não lida" acessível, 680 dp, filtros sem rolagem lateral, marcar todas, rodapé de 50, selo do servidor, destino removido de post e de perfil com volta, não encontrada, restauração, login e cadastro a 360 px/200% e em tela larga). Atualizados os testes de sair (rolam até o botão, agora abaixo da primeira tela) e os de textos.
 
 **Não verificado:** aparência no navegador/aparelho (conferi uma captura temporária de Configurações a 390 px); o push real (só existe o adaptador "sem suporte" neste build).
+
+## Etapa 13 — validação final (05/10/2026)
+
+**Como inspecionei:** não havia ferramenta de automação de navegador, então montei uma fora do repositório: Chrome headless dirigido pelo protocolo DevTools (`ws` do `node_modules` do backend), com a semântica do Flutter web ligada (os nós de acessibilidade dão rótulo e retângulo a cada controle). Dados semeados **só na API de teste** (porta 3101, banco `gametracker_test`; o servidor de desenvolvimento da 3100 não foi usado): 30 jogos sintéticos com capas geradas, três contas (`demo`, `beto_t`, `cris_t`), 21 registros com replays, 8 favoritos, posts com e sem jogo, cadeia de 7 comentários, seguidores e uma conversa de 70 mensagens com uma não lida. O login é feito pelo formulário real (na web a sessão não persiste, decisão 3 da migração).
+
+**Layouts:** 15 telas × 360/390/600/840/1440 px × claro/escuro = 150 capturas (biblioteca, explorar, comunidade, post com comentários aninhados, mensagens, conversa, perfil próprio e de outra pessoa, jogo nas três abas, configurações, notificações, editar perfil, nova publicação). Dos dois lados dos breakpoints: barra inferior até 599, trilho a partir de 600, trilho estendido e lista+conversa a 1440, colunas de leitura de 680 dp, grade de capas ajustando as colunas. As capturas escolhidas estão em [`redesign/evidencias/`](redesign/evidencias/).
+
+**Defeitos achados e corrigidos (ambos só apareciam em Chrome real, com a fonte Roboto; o teste de widget usa a fonte Ahem e não os vê):**
+1. A barra inferior em 360 px quebrava "Comunidade" no meio da palavra ("Comunidad/e"): cada um dos 5 destinos tem 72 dp. Corrigido no tema (`navigationBarTheme`: 11 sp, sem recuo lateral, continua escalando com o texto do sistema). Antes: `folha-360-antes-do-ajuste-barra-e-abas.png`.
+2. As três abas do jogo cortavam "Meu progresso" em 360 px (recuo padrão de 16 dp). Corrigido no tema (`tabBarTheme.labelPadding` de 4 dp).
+Teste de regressão do tema em `design_system_test.dart`; os goldens da Biblioteca a 390 px foram regenerados depois de conferir o diff (só o rótulo da barra mudou).
+
+**Cinco percursos no navegador (390 px, formulário e botões reais):**
+1. *Buscar/adicionar jogo.* A busca no servidor de teste responde "A busca de jogos ainda não está configurada" (não há credenciais da IGDB e o cliente da IGDB tem URL fixa), então a tela de erro com "Tentar de novo" foi vista, mas **a busca por texto não foi exercitada de ponta a ponta no navegador** (segue coberta por `explore_test.dart` com repositório falso). O resto foi real: abrir um jogo fora da biblioteca → "Adicionar à biblioteca" → formulário (Concluído, PC, 12,5 h) → registro criado com aviso "Quer contar para a comunidade?".
+2. *Criar e localizar replay.* "Novo registro (replay)" com Jogando/PC → a aba mostra "Você tem 2 registros", e a Biblioteca mostra **um** card com "Vários status, 2 registros" e o jogo na prateleira "Jogando agora".
+3. *Publicar no jogo e comentar.* "Publicar sobre este jogo" já vem com o jogo vinculado e oferece os registros; o post aparece no topo da aba Comunidade; abrir, comentar, e o comentário aparece com "Responder".
+4. *Conversa pelo perfil e voltar.* Explorar → Pessoas → perfil de Cris → "Mensagem" → conversa nova → mensagem enviada (com "enviada") → voltar leva a Mensagens com a conversa no topo (decisão da Etapa 10: a conversa abre sempre sobre a lista).
+5. *Recortar, editar bio, tema.* O seletor de arquivos real do Chrome (interceptado pelo DevTools) entregou uma JPEG 1200×800; mover/diminuir a área e "Salvar foto"; o arquivo salvo no servidor tem 400×400 e **mostra o mesmo recorte da prévia** (faixa vermelha à esquerda, círculo azul à direita com a barra branca); editar a bio e "Salvar alterações" → "Perfil atualizado" e a API devolve a bio nova; Configurações → Escuro troca o tema na hora.
+
+**Cenários:** conta vazia (biblioteca, explorar, comunidade, mensagens, perfil e notificações com estados vazios e ação; `contas-vazias-390-dark.png`); conta cheia (21 registros, 1.000 no teste de volume da Etapa 05); títulos longos (Zelda "Edição Colecionador Especial", posts de 6 linhas, cadeia de comentários); sem imagem (jogos sem capa, conta sem banner/avatar mostra a inicial). Erro: rede desligada no Chrome → "Sem conexão com o servidor" com "Tentar de novo" → religada, a nova tentativa carrega a página (`erros-reconexao-390-dark.png`).
+
+**Teclado:** com Tab, o foco percorre a navegação, a busca, os filtros e as capas, com o anel de foco visível na capa (`kbd-focus-1440.png`).
+
+**Comandos (em `frontend/`):**
+- `dart format --output=none --set-exit-if-changed lib test` → 0 alterações.
+- `flutter analyze` → sem problemas.
+- `flutter test` → 1.086 passaram, 48 pulados (a suíte de integração, que exige `GT_BACKEND`), 0 falhas.
+- `flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3101` → 53 passaram (inclui queda e reconexão do socket contra o servidor real). Foi na **3101** (API isolada com o banco `_test`), não na 3100 do plano.
+- `flutter build web --dart-define=API_URL=http://localhost:3100` → OK. (Para a inspeção, o build foi feito apontando para a 3101.)
+- `flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3100` → `build/app/outputs/flutter-apk/app-debug.apk` gerado. É para validação em emulador; não é release.
+
+**Limitações reais:**
+- **Android nativo não validado.** O APK compila, mas o único AVD (`gt_pixel`) não passou de "offline" no `adb` em ~10 min de boot sem janela e foi encerrado. Seletor de fotos nativo, teclado, botão voltar do sistema e rolagem no aparelho/emulador não foram exercitados; o gesto de recorte em toque também não (só botões, no navegador).
+- Texto a 200% foi verificado por testes de widget (360 px, todas as telas das Etapas 02–12), não no navegador. Os 360 px do navegador são a 100%.
+- Busca de jogos por texto contra a IGDB real não foi testada (sem credenciais).
+- A reconexão do chat no navegador não foi reproduzida: desligar a rede pelo DevTools não derruba um WebSocket já aberto. Ela está coberta pelo teste de integração com o servidor real e pelos testes com transporte falso.
+- Erro de upload simulado só em testes (repositório falso), não no navegador.
+- Os 360 px do Chrome usam o modo "mobile" emulado; não é um aparelho.
+- A semente e os scripts de inspeção ficaram fora do repositório (diretório temporário da sessão); as capturas ficaram em `redesign/evidencias/`.

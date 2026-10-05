@@ -256,11 +256,11 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 
 **Dependência:** 01–12. **Resultado:** implementação verificável no web, com situação Android informada separadamente.
 
-- [ ] Inspecionar layouts em 360, 390, 600, 840 e 1440 px; temas claro/escuro; texto 100%/200%; mouse/teclado e navegação por Tab. Verificar ambos os lados dos breakpoints com conteúdo realista.
-- [ ] Executar cinco percursos: buscar/adicionar jogo; criar e localizar replay; publicar no jogo e comentar; iniciar conversa pelo perfil e voltar; recortar avatar/banner, editar bio e trocar tema.
-- [ ] Validar os percursos com conta vazia, muitos registros, títulos/nomes extensos e sem imagem. Simular erro de carregamento/upload, retry e reconexão; não usar produção como banco de teste.
-- [ ] Atualizar testes existentes por comportamento; novos testes focam recorte, agrupamento/filtros, navegação da conversa, busca compartilhada e posts do jogo. Não remover asserções de domínio para acomodar regressões.
-- [ ] Rodar em `frontend/`:
+- [x] Inspecionar layouts em 360, 390, 600, 840 e 1440 px; temas claro/escuro; texto 100%/200%; mouse/teclado e navegação por Tab. Verificar ambos os lados dos breakpoints com conteúdo realista. *(Chrome real em 100%; 200% por testes de widget; ver registro)*
+- [x] Executar cinco percursos: buscar/adicionar jogo; criar e localizar replay; publicar no jogo e comentar; iniciar conversa pelo perfil e voltar; recortar avatar/banner, editar bio e trocar tema. *(no navegador; a busca por texto na IGDB não foi exercitada, ver registro)*
+- [x] Validar os percursos com conta vazia, muitos registros, títulos/nomes extensos e sem imagem. Simular erro de carregamento/upload, retry e reconexão; não usar produção como banco de teste. *(upload e reconexão por teste, não no navegador; ver registro)*
+- [x] Atualizar testes existentes por comportamento; novos testes focam recorte, agrupamento/filtros, navegação da conversa, busca compartilhada e posts do jogo. Não remover asserções de domínio para acomodar regressões.
+- [x] Rodar em `frontend/`:
 ```bash
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
@@ -268,11 +268,11 @@ flutter test
 flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3100
 flutter build web --dart-define=API_URL=http://localhost:3100
 ```
-- [ ] A suíte de integração acima usa a API isolada da etapa 01; ela não substitui a inspeção de widgets reais no navegador. Um teste pulado por falta de API deve ser relatado como não executado.
-- [ ] Gerar `flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3100` se o Android SDK estiver disponível. Esse APK é para validação com emulador local; não usá-lo como release de produção.
+- [x] A suíte de integração acima usa a API isolada da etapa 01; ela não substitui a inspeção de widgets reais no navegador. Um teste pulado por falta de API deve ser relatado como não executado.
+- [x] Gerar `flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:3100` se o Android SDK estiver disponível. Esse APK é para validação com emulador local; não usá-lo como release de produção.
 - [ ] Se houver emulador, validar picker, teclado, botão voltar e scroll nele. Ausência de Android físico não bloqueia a entrega web/implementação; registrar “Android nativo não validado” se não houve execução nativa. Build sozinho não prova comportamento.
-- [ ] Atualizar `docs/REDESIGN_EXECUCAO.md` com evidências, comandos/resultados, limitações reais e quais etapas foram concluídas. Acrescentar referência ao redesign na documentação do projeto.
-- [ ] Entregar resumo de mudanças, testes e limitações. Nenhuma etapa deve ser marcada concluída por intenção ou apenas porque o código compila.
+- [x] Atualizar `docs/REDESIGN_EXECUCAO.md` com evidências, comandos/resultados, limitações reais e quais etapas foram concluídas. Acrescentar referência ao redesign na documentação do projeto.
+- [x] Entregar resumo de mudanças, testes e limitações. Nenhuma etapa deve ser marcada concluída por intenção ou apenas porque o código compila.
 
 **Critério final:** todas as telas solicitadas seguem os mesmos componentes e regras; os cinco percursos funcionam no navegador; crop corresponde ao arquivo salvo; replays continuam separados; chat e sessão preservam seus contratos; não há ação sem implementação nem erro visual conhecido nas larguras verificadas.
 

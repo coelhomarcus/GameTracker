@@ -19,7 +19,7 @@ Push com o app fechado ainda não existe (precisa de um projeto Firebase); as no
 | --- | --- |
 | [`frontend/`](frontend/) | App oficial: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO |
 | [`backend/`](backend/) | API: Node.js, Express 5, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO, JWT, IGDB |
-| [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md) |
+| [`docs/`](docs/) | Documentação: [migração para Flutter](docs/MIGRACAO_FLUTTER.md) (decisões, histórico, aceite e o que falta), [roadmap histórico](docs/01_ROADMAP.md), [plano do redesign da experiência](docs/PLANO_REDESIGN_EXPERIENCIA.md) e o [registro de execução](docs/REDESIGN_EXECUCAO.md) (decisões, verificações e limitações) |
 | `docker-compose.test.yml` | Postgres e Redis descartáveis só para os testes |
 | `.github/workflows/` | CI do Flutter, do backend (com integração Flutter↔API) e geração do APK de release |
 
@@ -107,3 +107,4 @@ O script exige API com HTTPS e recusa APK assinado com a chave de debug. O mesmo
 
 - [`docs/MIGRACAO_FLUTTER.md`](docs/MIGRACAO_FLUTTER.md): como e por que o app foi refeito em Flutter, o que foi verificado, as limitações e as ideias do que falta.
 - [`docs/01_ROADMAP.md`](docs/01_ROADMAP.md): histórico do projeto, anterior à migração.
+- [`docs/REDESIGN_EXECUCAO.md`](docs/REDESIGN_EXECUCAO.md): o redesign da experiência do app (biblioteca por jogo, página do jogo como hub, comunidade, mensagens, perfil, recorte de imagens): o que mudou, como foi verificado e o que não foi validado. Capturas em [`docs/redesign/evidencias/`](docs/redesign/evidencias/).

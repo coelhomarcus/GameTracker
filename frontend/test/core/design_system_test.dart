@@ -156,6 +156,25 @@ void main() {
       }
     });
 
+    test('barra de navegação e abas cabem em 360 dp (achado da inspeção no Chrome)', () {
+      // Em 360 dp cada um dos 5 destinos tem 72 dp: com 12 sp "Comunidade" quebrava no meio da
+      // palavra; as 3 abas do jogo cortavam "Meu progresso" com o recuo padrão de 16 dp.
+      for (final theme in [AppTheme.light(), AppTheme.dark()]) {
+        final nav = theme.navigationBarTheme;
+        for (final states in [
+          <WidgetState>{},
+          {WidgetState.selected},
+        ]) {
+          expect(nav.labelTextStyle!.resolve(states)!.fontSize, 11);
+        }
+        expect(nav.labelPadding, EdgeInsets.zero);
+        expect(
+          theme.tabBarTheme.labelPadding,
+          const EdgeInsets.symmetric(horizontal: Space.xs),
+        );
+      }
+    });
+
     test(
       'as duas variações nascem da mesma semente e mantêm as cores de status',
       () {

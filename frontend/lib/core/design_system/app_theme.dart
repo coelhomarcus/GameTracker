@@ -81,6 +81,27 @@ abstract final class AppTheme {
         style: TextButton.styleFrom(shape: controlShape),
       ),
       chipTheme: ChipThemeData(shape: controlShape),
+      // Cinco destinos em 360 dp: com o corpo padrão (12 sp) "Comunidade" quebrava no meio da
+      // palavra. 11 sp cabe sem cortar e continua acompanhando a escala de texto do sistema.
+      navigationBarTheme: NavigationBarThemeData(
+        labelPadding: EdgeInsets.zero,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 11,
+            height: 1.2,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w600
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? scheme.onSurface
+                : scheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      // Três abas de largura igual: "Meu progresso" não cabe com o recuo padrão (16 dp) em 360 dp.
+      tabBarTheme: const TabBarThemeData(
+        labelPadding: EdgeInsets.symmetric(horizontal: Space.xs),
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: controlShape,
