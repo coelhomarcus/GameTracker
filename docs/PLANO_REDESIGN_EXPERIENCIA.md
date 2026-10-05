@@ -28,7 +28,7 @@
 
 - [x] Verificar alterações existentes no git e preservá-las. Não reiniciar o projeto nem recriar runners.
 - [x] Executar `flutter pub get`, `flutter analyze` e `flutter test` em `frontend/`. Distinguir falhas preexistentes de regressões posteriores.
-- [ ] Usar a API de teste em `http://localhost:3100`. Em `backend/`, executar `npm run test:db:up`, `npm run test:seed` e, em processo separado, `npm run dev:test`. Preservar o `.env.test` existente; criar a partir do exemplo somente se ausente.
+- [x] Usar a API de teste em `http://localhost:3100`. Em `backend/`, executar `npm run test:db:up`, `npm run test:seed` e, em processo separado, `npm run dev:test`. Preservar o `.env.test` existente; criar a partir do exemplo somente se ausente. *(feito na porta 3101; a 3100 estava ocupada pelo servidor de desenvolvimento)*
 - [ ] Abrir `flutter run -d chrome --dart-define=API_URL=http://localhost:3100`. Se o ambiente não abrir Chrome automaticamente, usar `-d web-server --web-port=8080` e acessar a URL pelo navegador disponível.
 - [ ] Registrar capturas das telas atuais a 390 e 1440 px, com dados sintéticos: biblioteca vazia, biblioteca com replay, pesquisa, comunidade, conversa, perfil, edição e configurações.
 - [x] Criar `docs/REDESIGN_EXECUCAO.md` com etapa, estado, arquivos alterados, verificações executadas e limitações. Salvar evidências visuais em `docs/redesign/evidencias/` quando a captura estiver disponível.

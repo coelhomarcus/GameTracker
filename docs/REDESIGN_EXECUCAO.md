@@ -4,7 +4,7 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 
 | Etapa | Estado | Observação |
 |---|---|---|
-| 01 Preparar execução | Parcial | Baseline de testes registrado. API de teste, abertura no Chrome e capturas pendentes (abaixo) |
+| 01 Preparar execução | Concluída, com capturas parciais | Baseline, API de teste e build web OK. Só a captura do login; sem ferramenta para navegar nas telas autenticadas (abaixo) |
 | 02 Fundação visual | Concluída (sem inspeção no navegador) | Verificada por testes de widget/golden; ver abaixo |
 | 03 Navegação | Pendente | |
 | 04 Crop de avatar/banner | Pendente | |
@@ -34,12 +34,17 @@ Acompanha [`PLANO_REDESIGN_EXPERIENCIA.md`](PLANO_REDESIGN_EXPERIENCIA.md). Um i
 
 Qualquer falha a partir daqui é regressão.
 
-### Limitações
+### Ambiente de teste (atualizado após abrir o Docker)
 
-- **API de teste não foi iniciada.** `npm run test:db:up` exige Docker, que está indisponível. A porta 3100 já está ocupada por `npm run dev` (`src/server.ts`) usando o `.env` de desenvolvimento, com banco `gametracker_flutter` (porta 5433, sem sufixo `_test`). Esse banco pode ser compartilhado com produção, então **nenhum teste que escreva dados foi executado contra ele** (regra 19 do plano).
-- **`flutter test test/integration` não executado.** Depende da API de teste. Relatar como não executado, não como aprovado.
-- **Capturas de baseline (390/1440 px) não feitas.** Dependem de dados sintéticos criados via API de teste. Telas disponíveis sem dados (login/cadastro) podem ser capturadas separadamente.
-- Para destravar: iniciar o Docker Desktop e rodar `cd backend && npm run test:db:up && npm run test:seed`, parar o `npm run dev` que ocupa a 3100 e rodar `npm run dev:test`.
+- `npm run test:db:up` e `npm run test:seed` OK (banco `gametracker_test`, Postgres 5434, Redis 6381; migrations aplicadas).
+- **API de teste na porta 3101, não 3100.** A 3100 continua ocupada pelo `npm run dev` do desenvolvedor (banco `gametracker_flutter`, que pode ser compartilhado com produção), então não o derrubei. Comando: `cd backend && PORT=3101 PUBLIC_API_URL=http://localhost:3101 npm run dev:test`. A trava de `test/helpers/env.ts` recusa qualquer banco não local ou sem sufixo `_test`.
+- `flutter test test/integration --dart-define=GT_BACKEND=http://localhost:3101`: **50 passaram**, 0 falhas.
+- `flutter build web --dart-define=API_URL=http://localhost:3101`: OK.
+
+### Capturas
+
+- `docs/redesign/evidencias/baseline-login-1440x900.png`: login em 1440 px, tema escuro (o Chrome headless prefere escuro). Feita com Chrome headless sobre o build web.
+- **Não feitas:** biblioteca vazia/com replay, pesquisa, comunidade, conversa, perfil, edição e configurações, e todas as de 390 px. Não há ferramenta de automação de navegador nesta sessão, e o Chrome headless impõe largura mínima de janela (a captura de 390 px saiu cortada e foi descartada). Essas telas exigem navegação manual ou um driver de navegador.
 
 ## Etapa 02 — fundação visual Material 3
 
