@@ -6,7 +6,7 @@ import '../../../core/design_system/game_status.dart';
 import '../../profiles/application/profile_providers.dart';
 import '../data/game_models.dart';
 
-/// Debounce da busca (plano, seção 2.3) e tamanho mínimo do termo.
+/// Debounce da busca (docs/MIGRACAO_FLUTTER.md) e tamanho mínimo do termo.
 const searchDebounce = Duration(milliseconds: 400);
 const searchMinChars = 2;
 

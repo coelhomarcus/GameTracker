@@ -6,7 +6,7 @@ App social pra acompanhar os jogos que você tá jogando — trackeie playthroug
 
 - **Backend**: Node.js, Express, TypeScript, Drizzle ORM (PostgreSQL), Redis + Socket.IO (chat em tempo real), JWT (auth), IGDB (dados dos jogos)
 - **App (oficial)**: Flutter (Android e web), Material 3, Riverpod, go_router, Dio, Socket.IO — em [`flutter_app/`](flutter_app/)
-- **App legado**: Expo (React Native) em [`mobile/`](mobile/), mantido só como plano de retorno até o encerramento descrito em [`docs/06_ENCERRAMENTO_LEGADO.md`](docs/06_ENCERRAMENTO_LEGADO.md); não recebe funcionalidades novas
+- **App legado**: Expo (React Native) em [`mobile/`](mobile/), mantido só como plano de retorno até o encerramento descrito em [`docs/MIGRACAO_FLUTTER.md`](docs/MIGRACAO_FLUTTER.md) (seção 11); não recebe funcionalidades novas
 
 ## Rodando localmente
 
@@ -59,4 +59,4 @@ O script recusa API sem HTTPS e APK assinado com a chave de debug. O mesmo fluxo
 
 ## Documentação
 
-O progresso e as decisões de cada fase do projeto estão registrados em [docs/01_ROADMAP.md](docs/01_ROADMAP.md); a migração para Flutter está em [docs/02_PLANO_MIGRACAO_FLUTTER.md](docs/02_PLANO_MIGRACAO_FLUTTER.md) e a matriz de aceite em [docs/05_MATRIZ_ACEITE.md](docs/05_MATRIZ_ACEITE.md).
+O progresso e as decisões de cada fase do projeto estão registrados em [docs/01_ROADMAP.md](docs/01_ROADMAP.md); a migração para Flutter (decisões, histórico, aceite e o que falta) está em [docs/MIGRACAO_FLUTTER.md](docs/MIGRACAO_FLUTTER.md).

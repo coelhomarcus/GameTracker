@@ -9,7 +9,7 @@ class PushMessage {
 }
 
 /// Fronteira com o sistema de push. O app só conhece esta interface; o adaptador FCM
-/// (firebase_messaging) entra aqui quando existir um projeto Firebase (ADR-5). Sem ele, o
+/// (firebase_messaging) entra aqui quando existir um projeto Firebase (docs/MIGRACAO_FLUTTER.md, decisão 5). Sem ele, o
 /// [NoopPushPlatform] mantém o app funcionando com a central de notificações em polling.
 abstract interface class PushPlatform {
   /// `false` quando o aparelho/ambiente não recebe push (web, adaptador ausente).

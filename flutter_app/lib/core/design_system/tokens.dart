@@ -1,4 +1,4 @@
-/// Escala de espaçamento em unidades lógicas (plano, seção 4.2).
+/// Escala de espaçamento em unidades lógicas (docs/MIGRACAO_FLUTTER.md).
 abstract final class Space {
   static const double xs = 4;
   static const double sm = 8;
@@ -8,7 +8,7 @@ abstract final class Space {
   static const double xxl = 32;
 }
 
-/// Larguras de corte (plano, seção 4.5).
+/// Larguras de corte (docs/MIGRACAO_FLUTTER.md).
 abstract final class Breakpoints {
   static const double medium = 600;
   static const double expanded = 840;

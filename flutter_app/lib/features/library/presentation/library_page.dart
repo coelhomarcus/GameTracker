@@ -217,7 +217,7 @@ class _EntryGrid extends StatelessWidget {
 
   final List<GameEntry> entries;
 
-  /// Largura máxima desejada da capa (plano, seção 4.5: 100–140).
+  /// Largura máxima desejada da capa (docs/MIGRACAO_FLUTTER.md: 100–140).
   static const _maxTileWidth = 140.0;
 
   @override

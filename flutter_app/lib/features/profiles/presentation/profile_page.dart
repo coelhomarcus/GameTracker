@@ -305,7 +305,7 @@ class _Header extends ConsumerWidget {
                 Text(profile.bioOrNull!),
               ],
               const SizedBox(height: Space.md),
-              // Rótulos, não links: não há tela de seguidores/seguindo (plano, seção 4.4).
+              // Rótulos, não links: não há tela de seguidores/seguindo (docs/MIGRACAO_FLUTTER.md).
               Wrap(
                 spacing: Space.xl,
                 runSpacing: Space.xs,

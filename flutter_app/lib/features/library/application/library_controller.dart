@@ -9,7 +9,7 @@ import '../data/game_entry.dart';
 /// formulário: cada mutação aplica a resposta do servidor aqui, então todas as telas
 /// concordam sem refetch. Descartado ao sair ou trocar de conta.
 class LibraryController extends AsyncNotifier<List<GameEntry>> {
-  /// Idade máxima dos dados sociais antes de revalidar ao voltar para o app (plano, seção 5.3).
+  /// Idade máxima dos dados sociais antes de revalidar ao voltar para o app (docs/MIGRACAO_FLUTTER.md).
   static const maxAge = Duration(seconds: 30);
 
   DateTime? _loadedAt;

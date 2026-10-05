@@ -28,7 +28,7 @@ class AuthUser {
   final String? bannerUrl;
   final String? bio;
 
-  /// O nome é opcional; o username é o fallback (plano, seção 6.2, regra 11).
+  /// O nome é opcional; o username é o fallback (docs/MIGRACAO_FLUTTER.md, regra 11).
   String get displayName =>
       (name == null || name!.trim().isEmpty) ? username : name!;
 }

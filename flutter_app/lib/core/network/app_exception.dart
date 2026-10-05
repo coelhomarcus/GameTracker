@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-/// Falhas de acesso a dados, já em termos de domínio (plano, seção 5.3).
+/// Falhas de acesso a dados, já em termos de domínio (docs/MIGRACAO_FLUTTER.md).
 sealed class AppException implements Exception {
   const AppException(this.message);
   final String message;

@@ -16,7 +16,7 @@ enum NotificationType {
   }
 }
 
-/// Filtros da central (plano, seção 4.4): Tudo, Interações (curtidas e comentários) e Seguidores.
+/// Filtros da central (docs/MIGRACAO_FLUTTER.md): Tudo, Interações (curtidas e comentários) e Seguidores.
 enum NotificationFilter {
   all('Tudo'),
   interactions('Interações'),

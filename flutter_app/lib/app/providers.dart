@@ -15,7 +15,7 @@ import '../features/games/data/games_repository.dart';
 import '../features/library/data/library_repository.dart';
 import '../features/profiles/data/profiles_repository.dart';
 
-/// Web: sem persistência do refresh token (ADR-3). Nativo: armazenamento seguro.
+/// Web: sem persistência do refresh token (docs/MIGRACAO_FLUTTER.md, decisão 3). Nativo: armazenamento seguro.
 final tokenStoreProvider = Provider<TokenStore>(
   (ref) => kIsWeb ? MemoryTokenStore() : SecureTokenStore(),
 );
@@ -77,7 +77,7 @@ final libraryRepositoryProvider = Provider<LibraryRepository>(
 );
 
 /// Sem retry automático: uma falha chega à tela, que oferece "Tentar de novo".
-/// Repetir sozinho esconderia o erro e, em mutações, poderia duplicar efeitos (plano, seção 5.3).
+/// Repetir sozinho esconderia o erro e, em mutações, poderia duplicar efeitos (docs/MIGRACAO_FLUTTER.md).
 Duration? noAutomaticRetry(int retryCount, Object error) => null;
 
 /// Relógio injetável (testes de expiração de cache).

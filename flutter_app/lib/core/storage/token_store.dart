@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Guarda só o refresh token. O access token vive em memória (ADR-3).
+/// Guarda só o refresh token. O access token vive em memória (docs/MIGRACAO_FLUTTER.md, decisão 3).
 abstract interface class TokenStore {
   Future<String?> read();
   Future<void> write(String refreshToken);
@@ -26,7 +26,7 @@ class SecureTokenStore implements TokenStore {
   Future<void> clear() => _storage.delete(key: _key);
 }
 
-/// Sem persistência. Usado na web (ADR-3: novo login ao recarregar) e em testes.
+/// Sem persistência. Usado na web (docs/MIGRACAO_FLUTTER.md, decisão 3: novo login ao recarregar) e em testes.
 class MemoryTokenStore implements TokenStore {
   MemoryTokenStore([this._value]);
   String? _value;

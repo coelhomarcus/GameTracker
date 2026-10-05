@@ -31,7 +31,7 @@ class GameSummary {
 }
 
 /// Jogo do cache do backend. `id` é o UUID interno; `igdbId` é o inteiro da IGDB
-/// (plano, seção 6.2, regra 1): favoritar usa o UUID, criar registro usa o igdbId.
+/// (docs/MIGRACAO_FLUTTER.md, regra 1): favoritar usa o UUID, criar registro usa o igdbId.
 class Game {
   const Game({
     required this.id,

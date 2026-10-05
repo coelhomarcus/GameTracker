@@ -45,7 +45,7 @@ class FeedState {
 /// por vez. Serve ao feed e às listas de posts de um perfil: a subclasse só diz como buscar uma
 /// página. Os posts em si vão para o [PostStore]; aqui ficam só os ids.
 abstract class PagedPostsController extends AsyncNotifier<FeedState> {
-  /// Idade máxima antes de revalidar ao voltar para o app (plano, seção 5.3).
+  /// Idade máxima antes de revalidar ao voltar para o app (docs/MIGRACAO_FLUTTER.md).
   static const maxAge = Duration(seconds: 30);
 
   DateTime? _loadedAt;

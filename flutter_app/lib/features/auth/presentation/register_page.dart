@@ -7,7 +7,7 @@ import '../../../core/design_system/tokens.dart';
 import 'auth_form_scaffold.dart';
 import 'auth_messages.dart';
 
-/// Limites iguais aos do backend (plano, seção 6.2, regra 7).
+/// Limites iguais aos do backend (docs/MIGRACAO_FLUTTER.md, regra 7).
 final _usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
 final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
