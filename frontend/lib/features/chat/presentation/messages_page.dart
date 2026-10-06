@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/primary_action.dart';
+import '../../../core/design_system/search_field.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/user_avatar.dart';
 import '../application/conversation_filter.dart';
@@ -229,27 +230,14 @@ class _ToolbarState extends ConsumerState<_Toolbar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          AppSearchField(
             controller: _controller,
+            hintText: 'Buscar conversas',
             onChanged: controller.setQuery,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Buscar conversas',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => _controller.text.isEmpty
-                    ? const SizedBox.shrink()
-                    : IconButton(
-                        tooltip: 'Limpar busca',
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _controller.clear();
-                          controller.setQuery('');
-                        },
-                      ),
-              ),
-            ),
+            onClear: () {
+              _controller.clear();
+              controller.setQuery('');
+            },
           ),
           const SizedBox(height: Space.sm),
           Wrap(
@@ -322,6 +310,7 @@ class _ConversationTile extends ConsumerWidget {
       selected: selected,
       child: ListTile(
         selected: selected,
+        selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
         leading: UserAvatar(name: name, url: other?.avatarUrl),
         title: Text(
           name,

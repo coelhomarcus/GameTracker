@@ -425,7 +425,8 @@ void main() {
       await tapAndSettle(tester, find.byTooltip('Nova conversa'));
       await tester.enterText(
         find.descendant(
-          of: find.byType(SearchBar),
+          // A lista de conversas também tem busca; o seletor aberto é o último.
+          of: find.byType(SearchBar).last,
           matching: find.byType(EditableText),
         ),
         'be',
