@@ -11,6 +11,7 @@ class PageHeader extends StatelessWidget implements PreferredSizeWidget {
     this.width = PageWidth.reading,
     this.action,
     this.utilities = const [],
+    this.bottom,
   });
 
   final String title;
@@ -18,13 +19,19 @@ class PageHeader extends StatelessWidget implements PreferredSizeWidget {
   final Widget? action;
   final List<Widget> utilities;
 
+  /// Abas ou controles abaixo do título, alinhados à mesma coluna de conteúdo.
+  final PreferredSizeWidget? bottom;
+
+  static const _titleHeight = 72.0;
+
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize =>
+      Size.fromHeight(_titleHeight + (bottom?.preferredSize.height ?? 0));
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      toolbarHeight: preferredSize.height,
+      toolbarHeight: _titleHeight,
       titleSpacing: 0,
       title: PageContainer(
         width: width,
@@ -43,6 +50,12 @@ class PageHeader extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
       ),
+      bottom: bottom == null
+          ? null
+          : PreferredSize(
+              preferredSize: bottom!.preferredSize,
+              child: PageContainer(width: width, child: bottom!),
+            ),
     );
   }
 }

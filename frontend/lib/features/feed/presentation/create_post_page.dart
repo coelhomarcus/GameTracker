@@ -275,39 +275,63 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
                           alignLabelWithHint: true,
                         ),
                       ),
-                      const SizedBox(height: Space.lg),
-                      Text('Jogo (opcional)', style: text.titleSmall),
-                      const SizedBox(height: Space.sm),
-                      _gameLink(),
-                      if (entriesForGame.isNotEmpty) ...[
-                        const SizedBox(height: Space.lg),
-                        Text('Registro (opcional)', style: text.titleSmall),
-                        const SizedBox(height: Space.sm),
-                        Wrap(
-                          spacing: Space.sm,
-                          runSpacing: Space.sm,
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Nenhum'),
-                              selected: _entry == null,
-                              onSelected: _sending
-                                  ? null
-                                  : (_) => setState(() => _entry = null),
-                            ),
-                            for (final e in entriesForGame)
-                              ChoiceChip(
-                                avatar: Icon(e.status.icon, size: 18),
-                                label: Text(
-                                  '${e.platform} · ${e.status.label}',
-                                ),
-                                selected: _entry?.id == e.id,
-                                onSelected: _sending
-                                    ? null
-                                    : (_) => setState(() => _entry = e),
-                              ),
-                          ],
+                      const SizedBox(height: Space.xl),
+                      // Vínculo ao jogo e ao registro: um bloco só, separado do texto.
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(Radii.card),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
-                      ],
+                        child: Padding(
+                          padding: const EdgeInsets.all(Space.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text('Jogo (opcional)', style: text.titleSmall),
+                              const SizedBox(height: Space.sm),
+                              _gameLink(),
+                              if (entriesForGame.isNotEmpty) ...[
+                                const SizedBox(height: Space.lg),
+                                Text(
+                                  'Registro (opcional)',
+                                  style: text.titleSmall,
+                                ),
+                                const SizedBox(height: Space.sm),
+                                Wrap(
+                                  spacing: Space.sm,
+                                  runSpacing: Space.sm,
+                                  children: [
+                                    ChoiceChip(
+                                      label: const Text('Nenhum'),
+                                      selected: _entry == null,
+                                      onSelected: _sending
+                                          ? null
+                                          : (_) =>
+                                                setState(() => _entry = null),
+                                    ),
+                                    for (final e in entriesForGame)
+                                      ChoiceChip(
+                                        avatar: Icon(e.status.icon, size: 18),
+                                        label: Text(
+                                          '${e.platform} · ${e.status.label}',
+                                        ),
+                                        selected: _entry?.id == e.id,
+                                        onSelected: _sending
+                                            ? null
+                                            : (_) => setState(() => _entry = e),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/page_header.dart';
 import '../../../core/design_system/primary_action.dart';
 import '../application/feed_controller.dart';
 import '../data/post_models.dart';
@@ -24,9 +25,10 @@ class CommunityPage extends StatelessWidget {
     return DefaultTabController(
       length: FeedScope.values.length,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Comunidade'),
-          actions: [?publish.headerButton(context), const NotificationsBell()],
+        appBar: PageHeader(
+          title: 'Comunidade',
+          action: publish.headerButton(context),
+          utilities: const [NotificationsBell()],
           bottom: TabBar(
             tabs: [
               for (final scope in FeedScope.values) Tab(text: scope.label),

@@ -496,4 +496,25 @@ void main() {
     await goTo(tester, '/posts/new?entryId=e1');
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('o vínculo com o jogo fica num bloco próprio abaixo do texto', (
+    tester,
+  ) async {
+    final h = AppHarness();
+    await h.pump(tester);
+    await goTo(tester, '/posts/new');
+    final field = tester.getRect(find.byType(TextField).first);
+    final label = tester.getRect(find.text('Jogo (opcional)'));
+    final block = tester.getRect(
+      find
+          .ancestor(
+            of: find.text('Jogo (opcional)'),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(block.top, greaterThan(field.bottom));
+    expect(block.contains(label.center), isTrue);
+    expect(find.text('Vincular um jogo'), findsOneWidget);
+  });
 }

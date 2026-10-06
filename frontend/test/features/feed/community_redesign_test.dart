@@ -74,6 +74,24 @@ void main() {
       expect(box.center.dx, closeTo(area.center.dx, 1));
     });
 
+    testWidgets('título e abas ficam alinhados à coluna do feed', (
+      tester,
+    ) async {
+      final feed = FakeFeedRepository(general: [written()]);
+      await openCommunity(tester, feed, size: const Size(1440, 900));
+      final column = tester.getRect(find.byType(PostTile).first);
+      final title = tester.getTopLeft(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Comunidade'),
+        ),
+      );
+      final tabs = tester.getRect(find.byType(TabBar));
+      expect(title.dx, closeTo(column.left, 1));
+      expect(tabs.left, closeTo(column.left, 1));
+      expect(tabs.right, closeTo(column.right, 1));
+    });
+
     testWidgets('no celular usa a largura menos a margem de 16', (
       tester,
     ) async {
