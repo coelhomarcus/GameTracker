@@ -188,10 +188,17 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
           onRefresh: _refresh,
           child: LayoutBuilder(
             builder: (context, box) {
+              // Cabeçalho, sobre e progresso usam a largura ampla; o texto das publicações
+              // continua numa coluna de leitura.
               final insets = PageContainer.insetsFor(
+                box.maxWidth,
+                PageWidth.wide,
+              );
+              final readingInsets = PageContainer.insetsFor(
                 box.maxWidth,
                 PageWidth.reading,
               );
+              final roomy = box.maxWidth >= Breakpoints.medium;
               return ListenableBuilder(
                 listenable: _tabs,
                 builder: (context, _) => CustomScrollView(
@@ -211,8 +218,10 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
                       sliver: SliverToBoxAdapter(
                         child: _Hero(
                           game: game,
-                          records: library.hasValue ? mine.length : null,
+                          records: library.hasValue ? mine : null,
+                          recordsFailed: library.hasError && !library.hasValue,
                           onFavorite: _toggleFavorite,
+                          onViewRecords: () => _tabs.animateTo(1),
                         ),
                       ),
                     ),
@@ -221,6 +230,13 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
                       delegate: PinnedTabBarDelegate(
                         TabBar(
                           controller: _tabs,
+                          isScrollable: roomy,
+                          tabAlignment: roomy
+                              ? TabAlignment.start
+                              : TabAlignment.fill,
+                          padding: roomy
+                              ? EdgeInsets.only(left: insets.left)
+                              : null,
                           tabs: const [
                             Tab(text: 'Sobre'),
                             Tab(text: 'Meu progresso'),
@@ -230,7 +246,7 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
                         Theme.of(context).colorScheme.surface,
                       ),
                     ),
-                    ..._content(game, mine, library, insets),
+                    ..._content(game, mine, library, insets, readingInsets),
                   ],
                 ),
               );
@@ -246,6 +262,7 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
     List<GameEntry> mine,
     AsyncValue<List<GameEntry>> library,
     EdgeInsets insets,
+    EdgeInsets readingInsets,
   ) {
     final padding = insets.copyWith(top: Space.lg, bottom: Space.xxl);
     return switch (_tabs.index) {
@@ -257,7 +274,7 @@ class _GameScaffoldState extends ConsumerState<_GameScaffold>
           ),
         ),
       ],
-      2 => _communitySlivers(game, insets),
+      2 => _communitySlivers(game, readingInsets),
       _ => [
         SliverPadding(
           padding: padding,
@@ -293,20 +310,28 @@ int _newestFirst(GameEntry a, GameEntry b) {
   return byDate != 0 ? byDate : b.id.compareTo(a.id);
 }
 
-/// Capa, título, plataformas, gêneros, favorito e a ação principal. Sem registros a ação é
-/// "Adicionar à biblioteca"; com registros, "Novo registro" e quantos já existem.
+/// Capa, título, plataformas, gêneros, favorito e a ação principal, que depende dos registros:
+/// sem nenhum, adiciona; com um, atualiza esse; com vários, leva à lista deles. Criar um replay
+/// é sempre uma ação separada. Se a primeira screenshot existir, ela vira uma faixa de arte
+/// acima do cabeçalho; o texto fica sempre sobre a superfície da página.
 class _Hero extends StatelessWidget {
   const _Hero({
     required this.game,
     required this.records,
+    required this.recordsFailed,
     required this.onFavorite,
+    required this.onViewRecords,
   });
 
   final Game game;
 
   /// Registros do usuário neste jogo; `null` enquanto a coleção não carregou.
-  final int? records;
+  final List<GameEntry>? records;
+
+  /// A coleção falhou e não há dados anteriores; a aba "Meu progresso" oferece tentar de novo.
+  final bool recordsFailed;
   final VoidCallback onFavorite;
+  final VoidCallback onViewRecords;
 
   @override
   Widget build(BuildContext context) {
@@ -316,90 +341,185 @@ class _Hero extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
     final favorite = game.isFavoritedByMe;
-    final count = records;
+    final mine = records;
+    final count = mine?.length;
     final has = count != null && count > 0;
 
     return LayoutBuilder(
-      builder: (context, box) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: Space.lg,
-        children: [
-          SizedBox(
-            width: box.maxWidth < 420 ? 96 : 128,
-            child: GameCover(name: game.name, url: game.coverUrl),
-          ),
-          Expanded(
-            child: Column(
+      builder: (context, box) {
+        final coverWidth = box.maxWidth < 420
+            ? 96.0
+            : box.maxWidth < Breakpoints.expanded
+            ? 128.0
+            : 176.0;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (game.screenshots.isNotEmpty) ...[
+              _Backdrop(
+                url: game.screenshots.first,
+                height: box.maxWidth < Breakpoints.medium ? 132 : 200,
+              ),
+              const SizedBox(height: Space.lg),
+            ],
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Space.lg,
               children: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    game.name,
-                    style: text.headlineMedium,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
+                SizedBox(
+                  width: coverWidth,
+                  child: GameCover(name: game.name, url: game.coverUrl),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          game.name,
+                          style: text.headlineMedium,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (game.platforms.isNotEmpty) ...[
+                        const SizedBox(height: Space.xs),
+                        Text(
+                          game.platforms.join(' · '),
+                          style: muted,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (game.genres.isNotEmpty)
+                        Text(
+                          game.genres.join(' · '),
+                          style: muted,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const SizedBox(height: Space.md),
+                      Wrap(
+                        spacing: Space.sm,
+                        runSpacing: Space.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _primaryAction(context, mine),
+                          if (has)
+                            OutlinedButton.icon(
+                              onPressed: () => context.push(
+                                '/games/${game.igdbId}/playthroughs/new',
+                              ),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Novo registro'),
+                            ),
+                          IconButton(
+                            tooltip: favorite
+                                ? 'Remover dos favoritos'
+                                : 'Favoritar',
+                            isSelected: favorite,
+                            icon: const Icon(Icons.favorite_border),
+                            selectedIcon: Icon(
+                              Icons.favorite,
+                              color: context.domainColors.like,
+                            ),
+                            onPressed: onFavorite,
+                          ),
+                        ],
+                      ),
+                      if (has)
+                        Padding(
+                          padding: const EdgeInsets.only(top: Space.xs),
+                          child: Text(
+                            count == 1
+                                ? 'Você tem 1 registro deste jogo'
+                                : 'Você tem $count registros deste jogo',
+                            style: muted,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (game.platforms.isNotEmpty) ...[
-                  const SizedBox(height: Space.xs),
-                  Text(
-                    game.platforms.join(' · '),
-                    style: muted,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (game.genres.isNotEmpty)
-                  Text(
-                    game.genres.join(' · '),
-                    style: muted,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                const SizedBox(height: Space.md),
-                Wrap(
-                  spacing: Space.sm,
-                  runSpacing: Space.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => context.push(
-                        '/games/${game.igdbId}/playthroughs/new',
-                      ),
-                      icon: const Icon(Icons.add),
-                      label: Text(
-                        has || count == null
-                            ? 'Novo registro'
-                            : 'Adicionar à biblioteca',
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: favorite ? 'Remover dos favoritos' : 'Favoritar',
-                      isSelected: favorite,
-                      icon: const Icon(Icons.favorite_border),
-                      selectedIcon: Icon(
-                        Icons.favorite,
-                        color: context.domainColors.like,
-                      ),
-                      onPressed: onFavorite,
-                    ),
-                  ],
-                ),
-                if (has)
-                  Padding(
-                    padding: const EdgeInsets.only(top: Space.xs),
-                    child: Text(
-                      count == 1
-                          ? 'Você tem 1 registro deste jogo'
-                          : 'Você tem $count registros deste jogo',
-                      style: muted,
-                    ),
-                  ),
               ],
             ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Sem a coleção carregada não dá para saber se há registro: a ação espera, em vez de
+  /// oferecer criar ou atualizar às cegas.
+  Widget _primaryAction(BuildContext context, List<GameEntry>? mine) {
+    if (mine == null) {
+      return FilledButton(
+        onPressed: null,
+        child: Text(
+          recordsFailed ? 'Registros indisponíveis' : 'Carregando registros…',
+        ),
+      );
+    }
+    if (mine.isEmpty) {
+      return FilledButton.icon(
+        onPressed: () => context.push('/games/${game.igdbId}/playthroughs/new'),
+        icon: const Icon(Icons.add),
+        label: const Text('Adicionar à biblioteca'),
+      );
+    }
+    if (mine.length == 1) {
+      return FilledButton.icon(
+        onPressed: () => context.push(
+          '/games/${game.igdbId}/playthroughs/${mine.single.id}/edit',
+        ),
+        icon: const Icon(Icons.edit_outlined),
+        label: const Text('Atualizar progresso'),
+      );
+    }
+    return FilledButton.icon(
+      onPressed: onViewRecords,
+      icon: const Icon(Icons.list_alt_outlined),
+      label: const Text('Ver registros'),
+    );
+  }
+}
+
+/// Arte opcional do cabeçalho. É decorativa, carrega por conta própria e, sem imagem, deixa só
+/// uma superfície neutra; nenhum texto fica por cima dela.
+class _Backdrop extends StatelessWidget {
+  const _Backdrop({required this.url, required this.height});
+
+  final String url;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final neutral = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final resolved = ImageUrls.resolve(url);
+    return ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(Radii.card),
+        child: SizedBox(
+          height: height,
+          child: ColoredBox(
+            color: neutral,
+            child: resolved == null
+                ? null
+                : Image.network(
+                    resolved,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    cacheWidth: 1200,
+                    frameBuilder: (context, child, frame, sync) =>
+                        AnimatedOpacity(
+                          opacity: frame == null ? 0 : 1,
+                          duration: Motion.resolve(context, Motion.medium),
+                          child: child,
+                        ),
+                    errorBuilder: (_, _, _) => const SizedBox.expand(),
+                  ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -410,82 +530,138 @@ class _AboutSection extends StatelessWidget {
 
   final Game game;
 
+  /// Largura a partir da qual plataformas e gêneros ficam ao lado do texto.
+  static const _sideBySide = Breakpoints.expanded;
+  static const _asideWidth = 280.0;
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SectionHeader(title: 'Sinopse'),
-        _Synopsis(summary: game.summary),
-        if (game.platforms.isNotEmpty) ...[
-          const SizedBox(height: Space.xl),
-          const SectionHeader(title: 'Plataformas'),
-          Wrap(
-            spacing: Space.sm,
-            runSpacing: Space.sm,
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (box.maxWidth < _sideBySide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final platform in game.platforms)
-                Chip(label: Text(platform)),
+              _synopsis(),
+              if (_hasFacts) ...[const SizedBox(height: Space.xl), _facts()],
+              if (game.screenshots.isNotEmpty) ...[
+                const SizedBox(height: Space.xl),
+                _screenshots(context),
+              ],
             ],
-          ),
-        ],
-        if (game.genres.isNotEmpty) ...[
-          const SizedBox(height: Space.xl),
-          const SectionHeader(title: 'Gêneros'),
-          Wrap(
-            spacing: Space.sm,
-            runSpacing: Space.sm,
-            children: [
-              for (final genre in game.genres) Chip(label: Text(genre)),
-            ],
-          ),
-        ],
-        if (game.screenshots.isNotEmpty) ...[
-          const SizedBox(height: Space.xl),
-          const SectionHeader(title: 'Screenshots'),
-          SizedBox(
-            height: 140,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: game.screenshots.length,
-              separatorBuilder: (_, _) => const SizedBox(width: Space.md),
-              itemBuilder: (context, i) => Semantics(
-                button: true,
-                label:
-                    'Abrir screenshot ${i + 1} de ${game.screenshots.length}',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(Radii.cover),
-                  onTap: () => ImageViewerPage.open(
-                    context,
-                    urls: game.screenshots,
-                    initialIndex: i,
-                    title: 'Screenshot de ${game.name}',
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.cover),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        ImageUrls.resolve(game.screenshots[i])!,
-                        fit: BoxFit.cover,
-                        cacheWidth: 480,
-                        errorBuilder: (_, _, _) => ColoredBox(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          child: const Icon(Icons.broken_image_outlined),
-                        ),
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: Space.xxl,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // O parágrafo não acompanha a largura da janela.
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: ContentWidth.reading,
                       ),
+                      child: _synopsis(),
+                    ),
+                  ),
+                  if (game.screenshots.isNotEmpty) ...[
+                    const SizedBox(height: Space.xl),
+                    _screenshots(context),
+                  ],
+                ],
+              ),
+            ),
+            if (_hasFacts) SizedBox(width: _asideWidth, child: _facts()),
+          ],
+        );
+      },
+    );
+  }
+
+  bool get _hasFacts => game.platforms.isNotEmpty || game.genres.isNotEmpty;
+
+  Widget _synopsis() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SectionHeader(title: 'Sinopse'),
+      _Synopsis(summary: game.summary),
+    ],
+  );
+
+  Widget _facts() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (game.platforms.isNotEmpty) ...[
+        const SectionHeader(title: 'Plataformas'),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [
+            for (final platform in game.platforms) Chip(label: Text(platform)),
+          ],
+        ),
+      ],
+      if (game.genres.isNotEmpty) ...[
+        if (game.platforms.isNotEmpty) const SizedBox(height: Space.xl),
+        const SectionHeader(title: 'Gêneros'),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [for (final genre in game.genres) Chip(label: Text(genre))],
+        ),
+      ],
+    ],
+  );
+
+  Widget _screenshots(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SectionHeader(title: 'Screenshots'),
+      SizedBox(
+        height: 140,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: game.screenshots.length,
+          separatorBuilder: (_, _) => const SizedBox(width: Space.md),
+          itemBuilder: (context, i) => Semantics(
+            button: true,
+            label: 'Abrir screenshot ${i + 1} de ${game.screenshots.length}',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(Radii.cover),
+              onTap: () => ImageViewerPage.open(
+                context,
+                urls: game.screenshots,
+                initialIndex: i,
+                title: 'Screenshot de ${game.name}',
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Radii.cover),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    ImageUrls.resolve(game.screenshots[i])!,
+                    fit: BoxFit.cover,
+                    cacheWidth: 480,
+                    errorBuilder: (_, _, _) => ColoredBox(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                      child: const Icon(Icons.broken_image_outlined),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ],
-      ],
-    );
-  }
+        ),
+      ),
+    ],
+  );
 }
 
 /// Sinopse limitada a seis linhas, com "Ler mais" só quando o texto não cabe nelas.
@@ -578,18 +754,35 @@ class _ProgressSection extends StatelessWidget {
                       'Crie um registro para acompanhar status, horas e nota.',
                 ),
               ),
-            for (final e in mine)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Space.md),
-                child: _RecordCard(entry: e),
-              ),
-            const SizedBox(height: Space.sm),
-            FilledButton.tonalIcon(
-              onPressed: () =>
-                  context.push('/games/${game.igdbId}/playthroughs/new'),
-              icon: const Icon(Icons.add),
-              label: Text(
-                mine.isEmpty ? 'Novo registro' : 'Novo registro (replay)',
+            LayoutBuilder(
+              builder: (context, box) {
+                // Cada registro é um cartão próprio; em tela larga ficam lado a lado.
+                final columns = box.maxWidth >= Breakpoints.expanded ? 2 : 1;
+                final width =
+                    (box.maxWidth - (columns - 1) * Space.md) / columns;
+                return Wrap(
+                  spacing: Space.md,
+                  runSpacing: Space.md,
+                  children: [
+                    for (final e in mine)
+                      SizedBox(
+                        width: width,
+                        child: _RecordCard(entry: e),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: Space.lg),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: () =>
+                    context.push('/games/${game.igdbId}/playthroughs/new'),
+                icon: const Icon(Icons.add),
+                label: Text(
+                  mine.isEmpty ? 'Novo registro' : 'Novo registro (replay)',
+                ),
               ),
             ),
           ],
@@ -643,7 +836,25 @@ class _RecordCard extends StatelessWidget {
               ),
               if (notes != null && notes.isNotEmpty) ...[
                 const SizedBox(height: Space.xs),
-                Text(notes, maxLines: 3, overflow: TextOverflow.ellipsis),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: Space.xs,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: muted?.color,
+                      semanticLabel: 'Nota privada',
+                    ),
+                    Expanded(
+                      child: Text(
+                        notes,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ],
           ),

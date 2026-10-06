@@ -97,4 +97,74 @@ void main() {
     expect(find.byType(GameListRow), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  group('rail nas páginas de detalhe', () {
+    for (final path in [
+      '/games/900001',
+      '/games/900001/playthroughs/new',
+      '/users/u-beto',
+      '/settings',
+      '/notifications',
+    ]) {
+      testWidgets('$path mantém o rail a 1280 e não duplica', (tester) async {
+        await signedIn().pump(tester, size: const Size(1280, 900));
+        await goTo(tester, path);
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('$path não mostra rail nem barra a 400', (tester) async {
+        await signedIn().pump(tester, size: const Size(400, 900));
+        await goTo(tester, path);
+        expect(find.byType(NavigationRail), findsNothing);
+        expect(find.byType(NavigationBar), findsNothing);
+      });
+    }
+
+    testWidgets('o rail leva ao destino escolhido a partir do detalhe', (
+      tester,
+    ) async {
+      await signedIn().pump(tester, size: const Size(1280, 900));
+      await goTo(tester, '/games/900001');
+      await tapAndSettle(
+        tester,
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Explorar'),
+        ),
+      );
+      final context = tester.element(find.byType(NavigationRail));
+      expect(GoRouter.of(context).state.uri.path, '/explore');
+      expect(find.byType(NavigationRail), findsOneWidget);
+    });
+
+    testWidgets('voltar do detalhe devolve o destino com o filtro intacto', (
+      tester,
+    ) async {
+      await signedIn().pump(tester, size: const Size(1280, 900));
+      await chooseStatus(tester, 'Jogando (1)');
+      await openLibraryGame(
+        tester,
+        'Jogo Fixture Dois com um nome bem comprido para testar quebra',
+      );
+      expect(find.byType(NavigationRail), findsOneWidget);
+      await tapAndSettle(tester, find.byType(BackButton));
+      expect(find.text('Jogo Fixture Um'), findsNothing);
+      expect(find.byType(NavigationRail), findsOneWidget);
+    });
+
+    testWidgets('redimensionar no detalhe não perde a página aberta', (
+      tester,
+    ) async {
+      await signedIn().pump(tester, size: const Size(1280, 900));
+      await goTo(tester, '/games/900001?tab=progress');
+      tester.view.physicalSize = const Size(400, 900);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.widgetWithText(Tab, 'Meu progresso'), findsOneWidget);
+      tester.view.physicalSize = const Size(1280, 900);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationRail), findsOneWidget);
+    });
+  });
 }

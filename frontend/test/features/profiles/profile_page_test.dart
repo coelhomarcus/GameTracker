@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gametracker/core/design_system/game_card.dart';
+import 'package:gametracker/core/design_system/game_list_row.dart';
+import 'package:gametracker/core/design_system/game_shelf_item.dart';
 import 'package:gametracker/core/design_system/user_avatar.dart';
 import 'package:gametracker/features/library/presentation/entry_actions.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
@@ -14,6 +16,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../support/fake_feed.dart';
 import '../../support/fake_profiles.dart';
 import '../../support/fake_repos.dart';
+import '../../support/golden.dart';
 import '../../support/harness.dart';
 
 /// Viewport alta: a lista de registros é lazy e começa abaixo das prateleiras.
@@ -43,9 +46,18 @@ Future<AppHarness> openProfile(
   FakeLibraryRepository? library,
   String userId = 'u-beto',
   Size size = const Size(400, 900),
+  double textScale = 1,
+  Map<String, Object> prefs = const {},
+  String? fontFamily,
 }) async {
   final h = AppHarness(profiles: profiles, feed: feed, library: library);
-  await h.pump(tester, size: size);
+  await h.pump(
+    tester,
+    size: size,
+    textScale: textScale,
+    prefs: prefs,
+    fontFamily: fontFamily,
+  );
   await goTo(tester, '/users/$userId');
   return h;
 }
@@ -69,6 +81,8 @@ final gamesCounter = find.byWidgetPredicate(
 );
 
 void main() {
+  setUpAll(loadGoldenFonts);
+
   group('perfil de outra pessoa', () {
     testWidgets(
       'mostra identidade, bio e contadores como rótulos (sem links)',
@@ -207,14 +221,14 @@ void main() {
       return p;
     }
 
-    /// Capas da grade de jogos (as prateleiras de destaque também usam `GameCard`).
+    /// Cards identificáveis da grade; destaques usam `GameShelfItem`.
     final grid = find.descendant(
       of: find.byType(SliverGrid),
       matching: find.byType(GameCard),
     );
 
     testWidgets(
-      'destaques e a grade de jogos, sem dados fixos embaixo da capa',
+      'destaques e grade mostram identificação sem expor dados privados',
       (tester) async {
         await openProfile(tester, profiles: rich(), size: tall);
         expect(find.text('Favoritos'), findsOneWidget);
@@ -226,6 +240,14 @@ void main() {
         );
         expect(statusMenu, findsOneWidget);
         expect(grid, findsNWidgets(3));
+        expect(
+          find.descendant(of: grid, matching: find.text('Concluído Bom')),
+          findsWidgets,
+        );
+        expect(
+          find.descendant(of: grid, matching: find.text('Concluído')),
+          findsOneWidget,
+        );
         expect(find.text('3,5 h'), findsNothing);
         expect(find.textContaining('9/10'), findsNothing);
         expect(find.byType(ListTile), findsNothing);
@@ -294,8 +316,32 @@ void main() {
       expect(statusMenu, findsOneWidget);
     });
 
+    for (final width in [360.0, 390.0, 600.0, 840.0, 1280.0, 1440.0]) {
+      testWidgets('coleção identificável sem overflow em ${width.toInt()} dp', (
+        tester,
+      ) async {
+        await openProfile(tester, profiles: rich(), size: Size(width, 1400));
+        expect(grid, findsNWidgets(3));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('texto a 200% troca a coleção para linhas legíveis', (
+      tester,
+    ) async {
+      await openProfile(
+        tester,
+        profiles: rich(),
+        size: const Size(360, 2400),
+        textScale: 2,
+      );
+      expect(find.byType(SliverGrid), findsNothing);
+      expect(find.byType(GameListRow), findsNWidgets(3));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
-      'replays viram um cartão só, com selo, e não repetem os destaques',
+      'replays viram um cartão só, com contexto textual, e não repetem destaques',
       (tester) async {
         final p =
             withBeto(); // perfil diz 1 registro; a coleção tem 3 do mesmo jogo
@@ -306,15 +352,16 @@ void main() {
         ];
         await openProfile(tester, profiles: p, size: tall);
         expect(grid, findsOneWidget);
-        expect(
-          find.text('3'),
-          findsOneWidget,
-          reason: 'selo de três registros',
-        );
+        expect(find.text('3 registros'), findsOneWidget);
+        expect(find.text('Vários status'), findsOneWidget);
         expect(find.textContaining('1 jogo'), findsOneWidget);
         // "Jogando agora": o jogo aparece uma vez, apesar de dois registros jogando.
-        final highlights = find.byType(GameCard).evaluate().length - 1;
-        expect(highlights, 1);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is GameShelfItem && w.title == 'Hades',
+          ),
+          findsOneWidget,
+        );
       },
     );
   });
@@ -490,7 +537,7 @@ void main() {
       ];
       await openProfile(tester, profiles: p, size: tall);
       Finder covers() => find.byWidgetPredicate(
-        (w) => w is GameCard && w.title.startsWith('Favorito'),
+        (w) => w is GameShelfItem && w.title.startsWith('Favorito'),
       );
       expect(covers(), findsNWidgets(6));
       await tapAndSettle(tester, find.text('Ver todos'));
@@ -511,7 +558,7 @@ void main() {
         expect(find.text('Ver todos'), findsNothing);
         double x(String t) => tester
             .getTopLeft(
-              find.byWidgetPredicate((w) => w is GameCard && w.title == t),
+              find.byWidgetPredicate((w) => w is GameShelfItem && w.title == t),
             )
             .dx;
         expect(x('Terceiro'), lessThan(x('Primeiro')));
@@ -525,10 +572,8 @@ void main() {
           _entry('e$i', 'Jogo $i', GameStatus.playing, igdb: i),
       ];
       await openProfile(tester, profiles: p, size: tall);
-      // Os destaques são um Wrap de capas; a grade (SliverGrid) tem os 8 jogos.
-      final inHighlights = find.descendant(
-        of: find.byType(Wrap),
-        matching: find.byType(GameCard),
+      final inHighlights = find.byWidgetPredicate(
+        (w) => w is GameShelfItem && w.title.startsWith('Jogo '),
       );
       expect(inHighlights, findsNWidgets(6));
     });
@@ -801,5 +846,43 @@ void main() {
     await h.pump(tester, size: const Size(360, 800), textScale: 2.0);
     await goTo(tester, '/users/u-beto');
     expect(tester.takeException(), isNull);
+  });
+
+  group('goldens da etapa 3', () {
+    FakeProfilesRepository sample() {
+      final profiles = withBeto();
+      profiles.favoritesByUser['u-beto'] = [
+        fakeGame(igdbId: 7, name: 'Hollow Knight', platforms: ['PC']),
+        fakeGame(igdbId: 8, name: 'Celeste', platforms: ['Switch', 'PC']),
+      ];
+      profiles.collectionByUser['u-beto'] = [
+        _entry('a', 'Hades', GameStatus.playing, igdb: 1, hours: 12),
+        _entry('b', 'Hades', GameStatus.completed, igdb: 1, hours: 20),
+        _entry('c', 'Sea of Stars', GameStatus.playing, igdb: 2),
+        _entry('d', 'Outer Wilds', GameStatus.completed, igdb: 3),
+      ];
+      return profiles;
+    }
+
+    for (final (layout, size) in [
+      ('390', const Size(390, 1000)),
+      ('1280', const Size(1280, 900)),
+    ]) {
+      for (final theme in ['light', 'dark']) {
+        testWidgets('$layout · $theme', skip: goldenSkip, (tester) async {
+          await openProfile(
+            tester,
+            profiles: sample(),
+            size: size,
+            prefs: {'theme.mode': theme},
+            fontFamily: goldenFontFamily,
+          );
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/profile_${layout}_$theme.png'),
+          );
+        });
+      }
+    }
   });
 }

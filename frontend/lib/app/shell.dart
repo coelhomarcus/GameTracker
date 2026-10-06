@@ -21,38 +21,126 @@ const _destinations = [
   _Destination('Perfil', Icons.person_outline, Icons.person),
 ];
 
+const _destinationRoots = [
+  '/library',
+  '/explore',
+  '/community',
+  '/messages',
+  '/me',
+];
+
+const _communityIndex = 2;
+const _messagesIndex = 3;
+
+/// Efeitos de entrar num destino, iguais na barra, no rail e no rail das páginas de detalhe.
+void _prepareDestination(WidgetRef ref, int index) {
+  // Ao entrar na Comunidade, revalida o feed se ele ficou velho ou foi marcado como
+  // desatualizado (ex.: uma atividade criada pelo backend depois de salvar um registro).
+  if (index == _communityIndex) {
+    ref.read(feedRevalidatorProvider).revalidateIfStale();
+  }
+  // Não há evento por usuário no backend: ao entrar em Mensagens, a lista é revalidada.
+  if (index == _messagesIndex && ref.exists(conversationsControllerProvider)) {
+    ref.read(conversationsControllerProvider.notifier).revalidateIfStale();
+  }
+}
+
+/// O ícone de Mensagens ganha um selo com as conversas não lidas.
+Widget _icon(_Destination d, {required bool selected, required int unread}) {
+  final icon = Icon(selected ? d.selectedIcon : d.icon);
+  if (d.label != 'Mensagens' || unread == 0) return icon;
+  return Badge(label: Text('$unread'), child: icon);
+}
+
+/// Rail com os cinco destinos. [selectedIndex] é nulo quando a página aberta não pertence a
+/// nenhum deles.
+class _AppRail extends ConsumerWidget {
+  const _AppRail({required this.selectedIndex, required this.onSelected});
+
+  final int? selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final width = MediaQuery.sizeOf(context).width;
+    final unread = ref.watch(unreadConversationsProvider);
+    final extended = width >= Breakpoints.railExtended;
+    return Row(
+      children: [
+        NavigationRail(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onSelected,
+          extended: extended,
+          labelType: extended
+              ? NavigationRailLabelType.none
+              : NavigationRailLabelType.all,
+          destinations: [
+            for (final d in _destinations)
+              NavigationRailDestination(
+                icon: _icon(d, selected: false, unread: unread),
+                selectedIcon: _icon(d, selected: true, unread: unread),
+                label: Text(d.label),
+              ),
+          ],
+        ),
+        const VerticalDivider(width: 1),
+      ],
+    );
+  }
+}
+
+/// Moldura das páginas fora dos cinco destinos (detalhe de jogo, post, perfil de outra pessoa,
+/// formulários, alertas e ajustes). No celular a página ocupa a tela e volta pelo histórico; a
+/// partir de 600 dp o rail continua à esquerda, como nos destinos.
+class DetailShell extends ConsumerWidget {
+  const DetailShell({super.key, required this.child});
+
+  final Widget child;
+
+  /// Destino ao qual a página pertence, quando houver um óbvio.
+  static int? destinationFor(String path) {
+    if (path.startsWith('/posts')) return _communityIndex;
+    if (path.startsWith('/me') || path.startsWith('/settings')) return 4;
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.medium;
+    final path = GoRouterState.of(context).uri.path;
+    // A página tem chave própria: girar ou redimensionar a janela mostra ou esconde o rail sem
+    // recriar o histórico dela.
+    return Scaffold(
+      body: Row(
+        children: [
+          if (wide)
+            _AppRail(
+              selectedIndex: destinationFor(path),
+              onSelected: (i) {
+                _prepareDestination(ref, i);
+                context.go(_destinationRoots[i]);
+              },
+            ),
+          Expanded(key: const ValueKey('detail-content'), child: child),
+        ],
+      ),
+    );
+  }
+}
+
 /// Mesmos cinco destinos em qualquer largura: barra abaixo de 600, rail a partir daí.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
-  static const _communityIndex = 2;
-  static const _messagesIndex = 3;
-
   void _select(WidgetRef ref, int index) {
-    // Ao entrar na Comunidade, revalida o feed se ele ficou velho ou foi marcado como
-    // desatualizado (ex.: uma atividade criada pelo backend depois de salvar um registro).
-    if (index == _communityIndex) {
-      ref.read(feedRevalidatorProvider).revalidateIfStale();
-    }
-    // Não há evento por usuário no backend: ao entrar em Mensagens, a lista é revalidada.
-    if (index == _messagesIndex &&
-        ref.exists(conversationsControllerProvider)) {
-      ref.read(conversationsControllerProvider.notifier).revalidateIfStale();
-    }
+    _prepareDestination(ref, index);
     navigationShell.goBranch(
       index,
       // Tocar no destino já ativo volta à raiz dele.
       initialLocation: index == navigationShell.currentIndex,
     );
-  }
-
-  /// O ícone de Mensagens ganha um selo com as conversas não lidas.
-  Widget _icon(_Destination d, {required bool selected, required int unread}) {
-    final icon = Icon(selected ? d.selectedIcon : d.icon);
-    if (d.label != 'Mensagens' || unread == 0) return icon;
-    return Badge(label: Text('$unread'), child: icon);
   }
 
   @override
@@ -88,23 +176,10 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
+          _AppRail(
             selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (i) => _select(ref, i),
-            extended: width >= Breakpoints.railExtended,
-            labelType: width >= Breakpoints.railExtended
-                ? NavigationRailLabelType.none
-                : NavigationRailLabelType.all,
-            destinations: [
-              for (final d in _destinations)
-                NavigationRailDestination(
-                  icon: _icon(d, selected: false, unread: unread),
-                  selectedIcon: _icon(d, selected: true, unread: unread),
-                  label: Text(d.label),
-                ),
-            ],
+            onSelected: (i) => _select(ref, i),
           ),
-          const VerticalDivider(width: 1),
           Expanded(child: navigationShell),
         ],
       ),

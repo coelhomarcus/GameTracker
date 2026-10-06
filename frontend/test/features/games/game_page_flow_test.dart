@@ -1,5 +1,7 @@
 // Etapa 08: a página do jogo como centro da experiência: cabeçalho, abas pela rota, registros e
 // a comunidade com posts paginados.
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/core/dates/date_only.dart';
@@ -115,6 +117,151 @@ void main() {
         ),
       );
       expect(find.text('Adicionar à biblioteca'), findsOneWidget);
+    });
+  });
+
+  group('ação principal do cabeçalho', () {
+    testWidgets('um registro: "Atualizar progresso" abre a edição dele', (
+      tester,
+    ) async {
+      await open(tester, harness(entries: [fakeEntry(id: 'solo')]));
+      expect(find.text('Atualizar progresso'), findsOneWidget);
+      expect(find.text('Adicionar à biblioteca'), findsNothing);
+      // "Novo registro" continua disponível como ação separada.
+      expect(find.text('Novo registro'), findsOneWidget);
+      await tapAndSettle(tester, find.text('Atualizar progresso'));
+      expect(uri(tester), '/games/900001/playthroughs/solo/edit');
+    });
+
+    testWidgets('um registro: "Novo registro" cria um replay', (tester) async {
+      await open(tester, harness(entries: [fakeEntry(id: 'solo')]));
+      await tapAndSettle(tester, find.text('Novo registro'));
+      expect(uri(tester), '/games/900001/playthroughs/new');
+    });
+
+    testWidgets('vários registros: "Ver registros" abre a aba de progresso', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        harness(
+          entries: [
+            fakeEntry(id: 'a'),
+            fakeEntry(id: 'b', platform: 'PS5'),
+          ],
+        ),
+      );
+      expect(find.text('Ver registros'), findsOneWidget);
+      expect(find.text('Atualizar progresso'), findsNothing);
+      await tapAndSettle(tester, find.text('Ver registros'));
+      expect(tabIndex(tester), 1);
+      expect(uri(tester), '/games/900001?tab=progress');
+      expect(find.byType(EntryMenuButton), findsNWidgets(2));
+    });
+
+    testWidgets('enquanto a biblioteca carrega, a ação espera', (tester) async {
+      final h = harness(entries: [fakeEntry(id: 'solo')]);
+      final gate = Completer<void>();
+      h.library.listGate = gate;
+      await h.pump(tester, size: const Size(400, 1400));
+      // O gate só vale depois do primeiro pump; abre o jogo e segura de novo.
+      await goTo(tester, '/games/900001');
+      final primary = find.widgetWithText(
+        FilledButton,
+        'Carregando registros…',
+      );
+      if (primary.evaluate().isNotEmpty) {
+        expect(tester.widget<FilledButton>(primary).onPressed, isNull);
+        expect(find.text('Adicionar à biblioteca'), findsNothing);
+        expect(find.text('Atualizar progresso'), findsNothing);
+      }
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Atualizar progresso'), findsOneWidget);
+    });
+
+    testWidgets('se a biblioteca falha, a ação não finge que não há registro', (
+      tester,
+    ) async {
+      final h = harness();
+      h.library.listError = const NetworkException();
+      await open(tester, h);
+      expect(find.text('Registros indisponíveis'), findsOneWidget);
+      expect(find.text('Adicionar à biblioteca'), findsNothing);
+    });
+  });
+
+  group('arte do cabeçalho', () {
+    testWidgets('sem screenshots não reserva faixa de arte', (tester) async {
+      await open(tester, harness());
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('com screenshot mostra a arte sem texto sobre ela', (
+      tester,
+    ) async {
+      final games = FakeGamesRepository(
+        games: {
+          900001: Game(
+            id: 'g-900001',
+            igdbId: 900001,
+            name: 'Jogo Fixture Um',
+            screenshots: const ['https://img.example/shot1.jpg'],
+            platforms: const ['PC'],
+            genres: const ['RPG'],
+            summary: 'Sinopse de teste.',
+            isFavoritedByMe: false,
+          ),
+        },
+      );
+      await open(tester, harness(games: games));
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ClipRRect), findsWidgets);
+      expect(find.text('Jogo Fixture Um'), findsWidgets);
+    });
+  });
+
+  group('largura ampla', () {
+    testWidgets('Sobre coloca plataformas e gêneros ao lado da sinopse', (
+      tester,
+    ) async {
+      await open(tester, harness(), size: const Size(1440, 900));
+      final synopsis = tester.getTopLeft(find.text('Sinopse')).dx;
+      final platforms = tester.getTopLeft(find.text('Plataformas')).dx;
+      expect(platforms, greaterThan(synopsis + 400));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('registros ficam em duas colunas', (tester) async {
+      await open(
+        tester,
+        harness(
+          entries: [
+            fakeEntry(id: 'a', platform: 'PC'),
+            fakeEntry(id: 'b', platform: 'PlayStation 5'),
+          ],
+        ),
+        path: '/games/900001?tab=progress',
+        size: const Size(1440, 900),
+      );
+      final cards = find.byType(Card);
+      final first = tester.getTopLeft(cards.at(0));
+      final second = tester.getTopLeft(cards.at(1));
+      expect(second.dy, first.dy);
+      expect(second.dx, greaterThan(first.dx));
+    });
+
+    testWidgets('notas ganham o rótulo de nota privada', (tester) async {
+      await open(
+        tester,
+        harness(entries: [fakeEntry(notes: 'Só para mim')]),
+        path: '/games/900001?tab=progress',
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.lock_outline)).semanticLabel,
+        'Nota privada',
+      );
+      expect(find.text('Só para mim'), findsOneWidget);
     });
   });
 

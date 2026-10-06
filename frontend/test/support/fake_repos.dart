@@ -55,6 +55,7 @@ class FakeLibraryRepository implements LibraryRepository {
   Object? listError;
   Object? mutationError;
   Completer<void>? mutationGate;
+  Completer<void>? listGate;
   int listCalls = 0;
   final created = <(int, EntryDraft)>[];
   final updated = <(String, EntryDraft)>[];
@@ -64,6 +65,7 @@ class FakeLibraryRepository implements LibraryRepository {
   @override
   Future<List<GameEntry>> listMine() async {
     listCalls++;
+    await listGate?.future;
     final error = listError;
     if (error != null) throw error;
     return [...entries];

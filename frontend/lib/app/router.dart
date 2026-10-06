@@ -164,56 +164,62 @@ GoRouter buildRouter({
         ),
       ],
     ),
-    // `/posts/new` precisa vir antes de `/posts/:postId`.
-    GoRoute(
-      path: '/posts/new',
-      builder: (_, state) => CreatePostPage(
-        entryId: state.uri.queryParameters['entryId'],
-        igdbId: int.tryParse(state.uri.queryParameters['igdbId'] ?? ''),
-        initialText: state.uri.queryParameters['text'],
-      ),
-    ),
-    GoRoute(
-      path: '/posts/:postId',
-      builder: (_, state) =>
-          PostDetailPage(postId: state.pathParameters['postId'] ?? ''),
-    ),
-    GoRoute(
-      path: '/users/:userId',
-      // O próprio usuário é resolvido para a experiência canônica do perfil.
-      redirect: (context, state) {
-        final current = session();
-        final isMe =
-            current is SessionAuthenticated &&
-            current.user.id == state.pathParameters['userId'];
-        return isMe ? '/me' : null;
-      },
-      builder: (_, state) =>
-          UserProfilePage(userId: state.pathParameters['userId'] ?? ''),
-    ),
-    GoRoute(
-      path: '/notifications',
-      builder: (_, _) => const NotificationsPage(),
-    ),
-    GoRoute(path: '/me/edit', builder: (_, _) => const EditProfilePage()),
-    GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
-    GoRoute(
-      path: '/games/:igdbId',
-      builder: (_, state) => GamePage(
-        igdbId: _igdbId(state),
-        tab: state.uri.queryParameters['tab'],
-      ),
+    // Páginas fora dos cinco destinos: no desktop o rail continua visível.
+    ShellRoute(
+      builder: (_, _, child) => DetailShell(child: child),
       routes: [
+        // `/posts/new` precisa vir antes de `/posts/:postId`.
         GoRoute(
-          path: 'playthroughs/new',
-          builder: (_, state) => TrackingFormPage(igdbId: _igdbId(state)),
+          path: '/posts/new',
+          builder: (_, state) => CreatePostPage(
+            entryId: state.uri.queryParameters['entryId'],
+            igdbId: int.tryParse(state.uri.queryParameters['igdbId'] ?? ''),
+            initialText: state.uri.queryParameters['text'],
+          ),
         ),
         GoRoute(
-          path: 'playthroughs/:entryId/edit',
-          builder: (_, state) => TrackingFormPage(
+          path: '/posts/:postId',
+          builder: (_, state) =>
+              PostDetailPage(postId: state.pathParameters['postId'] ?? ''),
+        ),
+        GoRoute(
+          path: '/users/:userId',
+          // O próprio usuário é resolvido para a experiência canônica do perfil.
+          redirect: (context, state) {
+            final current = session();
+            final isMe =
+                current is SessionAuthenticated &&
+                current.user.id == state.pathParameters['userId'];
+            return isMe ? '/me' : null;
+          },
+          builder: (_, state) =>
+              UserProfilePage(userId: state.pathParameters['userId'] ?? ''),
+        ),
+        GoRoute(
+          path: '/notifications',
+          builder: (_, _) => const NotificationsPage(),
+        ),
+        GoRoute(path: '/me/edit', builder: (_, _) => const EditProfilePage()),
+        GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+        GoRoute(
+          path: '/games/:igdbId',
+          builder: (_, state) => GamePage(
             igdbId: _igdbId(state),
-            entryId: state.pathParameters['entryId'],
+            tab: state.uri.queryParameters['tab'],
           ),
+          routes: [
+            GoRoute(
+              path: 'playthroughs/new',
+              builder: (_, state) => TrackingFormPage(igdbId: _igdbId(state)),
+            ),
+            GoRoute(
+              path: 'playthroughs/:entryId/edit',
+              builder: (_, state) => TrackingFormPage(
+                igdbId: _igdbId(state),
+                entryId: state.pathParameters['entryId'],
+              ),
+            ),
+          ],
         ),
       ],
     ),
