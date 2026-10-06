@@ -13,6 +13,8 @@ import 'package:gametracker/core/design_system/tokens.dart';
 import 'package:gametracker/core/design_system/user_avatar.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../support/golden.dart';
+
 const _longTitle =
     'The Legend of Zelda: Tears of the Kingdom — Edição Colecionador Especial';
 
@@ -483,7 +485,7 @@ void main() {
         handle.dispose();
       });
 
-      testWidgets('$name · golden', (tester) async {
+      testWidgets('$name · golden', skip: goldenSkip, (tester) async {
         await _pump(
           tester,
           _Gallery(query: 'zelda', onClear: () {}),

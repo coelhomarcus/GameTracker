@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../support/fake_repos.dart';
+import '../../support/golden.dart';
 import '../../support/harness.dart';
 
 /// Abre o jogo na Biblioteca e usa o menu de um registro específico ("Meu progresso").
@@ -521,7 +522,7 @@ void main() {
       ('lista_390', const Size(390, 1000), false),
       ('grade_1280', const Size(1280, 900), true),
     ]) {
-      testWidgets(name, (tester) async {
+      testWidgets(name, skip: goldenSkip, (tester) async {
         await AppHarness(library: FakeLibraryRepository(sample()))
             .pump(tester, size: size, prefs: {'library.grid': grid});
         await expectLater(
