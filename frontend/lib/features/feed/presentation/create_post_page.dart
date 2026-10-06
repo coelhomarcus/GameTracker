@@ -15,10 +15,7 @@ import '../application/post_store.dart';
 
 const maxPostLength = 500;
 
-/// Texto inicial sugerido ao oferecer a publicação de um jogo concluído.
-String celebrationText(String gameName) => 'Zerei $gameName! 🎉';
-
-/// Compor um post. Pode vir ligado a um registro (`entryId`, ex.: ao concluir um jogo) e com
+/// Compor um post. Pode vir ligado a um registro (`entryId`) e com
 /// um texto sugerido. Em falha o texto e os vínculos ficam como estão.
 class CreatePostPage extends ConsumerStatefulWidget {
   const CreatePostPage({

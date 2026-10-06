@@ -138,7 +138,7 @@ Nenhuma rota leva token na URL, e destinos inexistentes mostram uma saída útil
 - Status é escolhido direto, sem o ciclo automático antigo `completed → dropped`.
 - "Completos recentemente" virou **Concluídos**, porque a ordenação do backend é pela criação do registro, não pela conclusão.
 - Contadores de seguidores são rótulos, não links (não há tela de seguidores).
-- O convite para publicar ("Zerei {jogo}! 🎉") só aparece depois que o servidor confirma e só quando o status passa a concluído.
+- Concluir um jogo não convida a publicar: o backend já cria sozinho a atividade "zerou {jogo}" (`type: 'activity'`), e um convite manual duplicava o post no feed. (Havia um aviso "Quer contar para a comunidade?" com a ação Publicar; foi removido.)
 - Edição de perfil avisa que **as fotos são salvas na hora**; "cancelar" não desfaz um upload já feito.
 
 ## 6. Mudanças no backend

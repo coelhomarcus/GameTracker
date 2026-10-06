@@ -251,69 +251,16 @@ void main() {
     expect(find.text('rascunho'), findsOneWidget, reason: 'texto preservado');
   });
 
-  group('celebração ao concluir um jogo', () {
-    testWidgets(
-      'pelo menu de status: oferece publicar e abre o compositor já preenchido',
-      (tester) async {
-        final library = FakeLibraryRepository([
-          fakeEntry(id: 'e1', status: GameStatus.playing),
-        ]);
-        final feed = FakeFeedRepository();
-        final h = AppHarness(feed: feed, library: library);
-        await h.pump(tester);
-
-        await openLibraryGame(tester, 'Jogo Fixture Um');
-        await tapAndSettle(
-          tester,
-          find.byTooltip('Ações do registro de Jogo Fixture Um'),
-        );
-        await tapAndSettle(tester, find.text('Alterar status'));
-        await tapAndSettle(tester, find.widgetWithText(ListTile, 'Concluído'));
-
-        expect(
-          find.textContaining('Quer contar para a comunidade?'),
-          findsOneWidget,
-        );
-        expect(feed.created, isEmpty, reason: 'a publicação é voluntária');
-
-        await tapAndSettle(tester, find.text('Publicar'));
-        expect(find.text('Nova publicação'), findsOneWidget);
-        expect(
-          tester.widget<TextField>(textField).controller!.text,
-          'Zerei Jogo Fixture Um! 🎉',
-        );
-        expect(
-          find.widgetWithText(InputChip, 'Jogo Fixture Um'),
-          findsOneWidget,
-          reason: 'registro vinculado',
-        );
-
-        await tapAndSettle(tester, publish);
-        expect(feed.created.single.gameEntryId, 'e1');
-        expect(feed.created.single.content, 'Zerei Jogo Fixture Um! 🎉');
-      },
-    );
-
-    testWidgets('outros status não oferecem publicar', (tester) async {
-      final library = FakeLibraryRepository([
-        fakeEntry(id: 'e1', status: GameStatus.backlog),
-      ]);
-      await AppHarness(library: library).pump(tester);
-      await openLibraryGame(tester, 'Jogo Fixture Um');
-      await tapAndSettle(
-        tester,
-        find.byTooltip('Ações do registro de Jogo Fixture Um'),
-      );
-      await tapAndSettle(tester, find.text('Alterar status'));
-      await tapAndSettle(tester, find.widgetWithText(ListTile, 'Jogando'));
-      expect(find.textContaining('Quer contar'), findsNothing);
-    });
-
-    testWidgets('falha ao concluir não oferece publicar', (tester) async {
+  group('concluir um jogo não convida a publicar', () {
+    // O backend já cria a atividade "zerou" sozinho; um convite para publicar o mesmo fato à mão
+    // duplicava o post no feed.
+    testWidgets('pelo menu de status: só confirma a mudança', (tester) async {
       final library = FakeLibraryRepository([
         fakeEntry(id: 'e1', status: GameStatus.playing),
-      ])..mutationError = const NetworkException();
-      await AppHarness(library: library).pump(tester);
+      ]);
+      final feed = FakeFeedRepository();
+      await AppHarness(feed: feed, library: library).pump(tester);
+
       await openLibraryGame(tester, 'Jogo Fixture Um');
       await tapAndSettle(
         tester,
@@ -321,73 +268,43 @@ void main() {
       );
       await tapAndSettle(tester, find.text('Alterar status'));
       await tapAndSettle(tester, find.widgetWithText(ListTile, 'Concluído'));
+
+      expect(find.text('Jogo Fixture Um: Concluído'), findsOneWidget);
       expect(find.textContaining('Quer contar'), findsNothing);
-      expect(find.textContaining('Sem conexão'), findsOneWidget);
+      expect(find.widgetWithText(SnackBarAction, 'Publicar'), findsNothing);
+      expect(feed.created, isEmpty);
     });
 
-    testWidgets(
-      'pelo formulário: só quando passa a concluído (não ao editar um já concluído)',
-      (tester) async {
-        final library = FakeLibraryRepository([
-          fakeEntry(id: 'e1', status: GameStatus.playing),
-          fakeEntry(id: 'e2', status: GameStatus.completed),
-        ]);
-        final h = AppHarness(library: library);
-        await h.pump(tester);
-        await goTo(tester, '/games/900001');
-        GoRouter.of(tester.element(find.byType(Scaffold).first))
-            .push('/games/900001/playthroughs/e1/edit');
-        await tester.pumpAndSettle();
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(ChoiceChip, 'Concluído'),
-        );
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilledButton, 'Salvar registro'),
-        );
-        expect(
-          find.textContaining('Quer contar para a comunidade?'),
-          findsOneWidget,
-        );
+    testWidgets('pelo formulário ao editar: só diz que atualizou', (
+      tester,
+    ) async {
+      final library = FakeLibraryRepository([
+        fakeEntry(id: 'e1', status: GameStatus.playing),
+      ]);
+      await AppHarness(library: library).pump(tester);
+      await goTo(tester, '/games/900001');
+      GoRouter.of(tester.element(find.byType(Scaffold).first))
+          .push('/games/900001/playthroughs/e1/edit');
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.widgetWithText(ChoiceChip, 'Concluído'));
+      await tapAndSettle(
+        tester,
+        find.widgetWithText(FilledButton, 'Salvar registro'),
+      );
+      expect(find.text('Registro atualizado'), findsOneWidget);
+      expect(find.textContaining('Quer contar'), findsNothing);
+    });
 
-        ScaffoldMessenger.of(tester.element(find.byType(Scaffold).first))
-            .clearSnackBars();
-        await tester.pumpAndSettle();
-        GoRouter.of(tester.element(find.byType(Scaffold).first))
-            .push('/games/900001/playthroughs/e2/edit');
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.widgetWithText(TextFormField, 'Horas jogadas'),
-          '9',
-        );
-        await tester.pumpAndSettle();
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilledButton, 'Salvar registro'),
-        );
-        expect(
-          find.textContaining('Quer contar'),
-          findsNothing,
-          reason: 'já estava concluído',
-        );
-        expect(find.text('Registro atualizado'), findsOneWidget);
-      },
-    );
-
-    testWidgets('criando já como concluído também oferece', (tester) async {
-      final h = AppHarness();
-      await h.pump(tester);
+    testWidgets('criando já como concluído: só diz que criou', (tester) async {
+      await AppHarness().pump(tester);
       await goTo(tester, '/games/900001/playthroughs/new');
       await tapAndSettle(tester, find.widgetWithText(ChoiceChip, 'Concluído'));
       await tapAndSettle(
         tester,
         find.widgetWithText(FilledButton, 'Salvar registro'),
       );
-      expect(
-        find.textContaining('Quer contar para a comunidade?'),
-        findsOneWidget,
-      );
+      expect(find.text('Registro criado'), findsOneWidget);
+      expect(find.textContaining('Quer contar'), findsNothing);
     });
   });
 

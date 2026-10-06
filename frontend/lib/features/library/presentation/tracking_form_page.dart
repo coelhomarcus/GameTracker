@@ -13,7 +13,6 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/network/error_messages.dart';
 import '../../../core/navigation/back_navigation.dart';
 import '../../auth/presentation/auth_form_scaffold.dart';
-import '../../feed/presentation/celebration.dart';
 import '../../games/application/game_providers.dart';
 import '../../games/data/game_models.dart';
 import '../application/library_controller.dart';
@@ -264,27 +263,19 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
       _error = null;
     });
     final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
     final controller = ref.read(libraryProvider.notifier);
     try {
       final draft = _draft();
-      final wasCompleted = widget.entry?.status == GameStatus.completed;
-      final GameEntry saved;
       if (_editing) {
-        saved = await controller.edit(widget.entry!, draft);
+        await controller.edit(widget.entry!, draft);
       } else {
-        saved = await controller.create(widget.game.igdbId, draft);
+        await controller.create(widget.game.igdbId, draft);
       }
-      if (saved.status == GameStatus.completed && !wasCompleted) {
-        // Só depois do sucesso, e só quando o jogo acabou de ser concluído.
-        offerCelebration(messenger: messenger, router: router, entry: saved);
-      } else {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(_editing ? 'Registro atualizado' : 'Registro criado'),
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_editing ? 'Registro atualizado' : 'Registro criado'),
+        ),
+      );
       if (!mounted) return;
       // Já salvo: sair sem pedir confirmação de descarte.
       _saved = true;

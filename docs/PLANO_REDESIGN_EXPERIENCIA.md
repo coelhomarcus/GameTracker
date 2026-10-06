@@ -135,7 +135,7 @@ No celular: começar com três capas por linha, ajustando pela largura disponív
 ## Etapa 06 — Melhorar formulário de registro e ações de progresso
 
 **Dependência:** 05.
-**Editar:** `frontend/lib/features/library/presentation/tracking_form_page.dart`, `entry_actions.dart` e `frontend/lib/features/feed/presentation/celebration.dart`.
+**Editar:** `frontend/lib/features/library/presentation/tracking_form_page.dart`, `entry_actions.dart` (o convite `celebration.dart` foi removido depois; ver `REDESIGN_EXECUCAO.md`).
 
 - [x] Cabeçalho com capa/título; título da página “Novo registro” ou “Editar registro”. Se já há registro do jogo, informar “Você já tem N registros deste jogo. Este será um novo registro.”
 - [x] Ordem dos campos: status, plataforma, datas, horas, nota e notas pessoais. Status em chips com ícone+texto; plataforma sugerida pelo catálogo, mantendo entrada manual que a API aceita.
