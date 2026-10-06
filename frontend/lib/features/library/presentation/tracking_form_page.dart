@@ -368,7 +368,10 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
                         const SectionHeader(title: 'Plataforma'),
                         _platformField(),
                         const SizedBox(height: Space.xl),
-                        const SectionHeader(title: 'Progresso'),
+                        const SectionHeader(
+                          title: 'Progresso',
+                          hint: 'opcional',
+                        ),
                         _periodRow(),
                         if (periodError != null)
                           Padding(
@@ -383,7 +386,10 @@ class _TrackingFormState extends ConsumerState<TrackingForm> {
                         const SizedBox(height: Space.lg),
                         _hoursField(),
                         const SizedBox(height: Space.xl),
-                        const SectionHeader(title: 'Sua avaliação'),
+                        const SectionHeader(
+                          title: 'Sua avaliação',
+                          hint: 'opcional',
+                        ),
                         _ratingField(text),
                         const SizedBox(height: Space.lg),
                         TextFormField(

@@ -8,12 +8,16 @@ class SectionHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.count,
+    this.hint,
     this.actionLabel,
     this.onAction,
   }) : assert((actionLabel == null) == (onAction == null));
 
   final String title;
   final int? count;
+
+  /// Complemento discreto ao lado do título, como "opcional".
+  final String? hint;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -37,6 +41,13 @@ class SectionHeader extends StatelessWidget {
                   if (count != null)
                     TextSpan(
                       text: '  $count',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (hint != null)
+                    TextSpan(
+                      text: '  $hint',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

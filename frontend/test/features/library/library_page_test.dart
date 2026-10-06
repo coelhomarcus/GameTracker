@@ -962,4 +962,39 @@ void main() {
     expect(find.text('Jogo Fixture Um'), findsNothing);
     expect(find.text('Entrar'), findsWidgets);
   });
+
+  testWidgets('voltar do detalhe recupera a posição de rolagem', (
+    tester,
+  ) async {
+    final h = AppHarness(
+      library: FakeLibraryRepository([
+        for (var i = 0; i < 60; i++)
+          fakeEntry(
+            id: 'e$i',
+            game: fakeGame(igdbId: 910000 + i, name: 'Jogo Volume $i'),
+          ),
+      ]),
+    );
+    await h.pump(tester, size: const Size(400, 800));
+    await tester.drag(verticalScroll.first, const Offset(0, -2500));
+    await tester.pumpAndSettle();
+    final before = tester
+        .state<ScrollableState>(verticalScroll.first)
+        .position
+        .pixels;
+    expect(before, greaterThan(1000));
+
+    // Abre um jogo visível e volta.
+    final visible = find.byType(GameCard).hitTestable();
+    await tester.tap(visible.first);
+    await tester.pumpAndSettle();
+    expect(location(tester), startsWith('/games/'));
+    await tapAndSettle(tester, find.byType(BackButton));
+
+    final after = tester
+        .state<ScrollableState>(verticalScroll.first)
+        .position
+        .pixels;
+    expect(after, before);
+  });
 }

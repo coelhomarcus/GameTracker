@@ -339,15 +339,17 @@ void main() {
       final order = [
         y('Status'),
         y('Plataforma'),
-        y('Progresso'),
+        y('Progresso  opcional'),
         y('Início'),
         y('Horas jogadas'),
-        y('Sua avaliação'),
+        y('Sua avaliação  opcional'),
         y('Nota'),
         y('Notas pessoais'),
       ];
       expect(order, orderedEquals([...order]..sort()));
       expect(order.toSet(), hasLength(order.length));
+      // Só status e plataforma são essenciais; o resto avisa que pode ficar em branco.
+      expect(find.textContaining('opcional'), findsNWidgets(2));
     });
 
     testWidgets('status em chips com ícone e texto', (tester) async {
