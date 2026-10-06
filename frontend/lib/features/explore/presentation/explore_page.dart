@@ -218,11 +218,10 @@ class _Home extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(width: Space.md),
               itemBuilder: (context, i) => SizedBox(
                 width: 104,
-                child: GameCard(
+                child: GameCard.cover(
                   title: playing[i].game.name,
                   coverUrl: playing[i].game.coverUrl,
-                  status: GameStatus.playing,
-                  showDetails: false,
+                  semanticDescription: GameStatus.playing.label,
                   onTap: () => context.push(
                     '/games/${playing[i].game.igdbId}?tab=progress',
                   ),

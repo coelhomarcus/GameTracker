@@ -42,28 +42,40 @@ class _Gallery extends StatelessWidget {
                   actionLabel: 'Ver todos',
                   onAction: () {},
                 ),
-                const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: Space.md,
-                  children: [
-                    Expanded(
-                      child: GameCard(
-                        title: 'Hades',
-                        status: GameStatus.playing,
-                        caption: 'PC',
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = (constraints.maxWidth - Space.md * 2) / 3;
+                    final height = GameGridGeometry.cardExtentFor(
+                      context,
+                      width,
+                    );
+                    return SizedBox(
+                      height: height,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: Space.md,
+                        children: [
+                          Expanded(
+                            child: GameCard.collection(
+                              title: 'Hades',
+                              status: GameStatus.playing,
+                              caption: 'PC',
+                            ),
+                          ),
+                          Expanded(
+                            child: GameCard.collection(
+                              title: _longTitle,
+                              status: GameStatus.completed,
+                              caption: '2 registros',
+                            ),
+                          ),
+                          const Expanded(
+                            child: GameCard.cover(title: 'Celeste'),
+                          ),
+                        ],
                       ),
-                    ),
-                    Expanded(
-                      child: GameCard(
-                        title: _longTitle,
-                        status: GameStatus.completed,
-                        caption: '2 registros',
-                      ),
-                    ),
-                    Expanded(
-                      child: GameCard(title: 'Celeste', showDetails: false),
-                    ),
-                  ],
+                    );
+                  },
                 ),
                 const SizedBox(height: Space.lg),
                 FilterToolbar(
@@ -83,11 +95,12 @@ class _Gallery extends StatelessWidget {
                       onSelected: (_) {},
                     ),
                   ],
-                  sort: SortMenu<String>(
+                  sortBuilder: (compact) => SortMenu<String>(
                     values: const ['Recentes', 'Nome A–Z'],
                     selected: 'Recentes',
                     labelOf: (v) => v,
                     onSelected: (_) {},
+                    compact: compact,
                   ),
                   viewToggle: ViewModeToggle(grid: true, onChanged: (_) {}),
                   onClear: onClear,
@@ -116,14 +129,15 @@ Future<void> _pump(
   Size size = const Size(390, 900),
   double textScale = 1,
   Brightness brightness = Brightness.light,
+  String? fontFamily,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(fontFamily: fontFamily),
+      darkTheme: AppTheme.dark(fontFamily: fontFamily),
       themeMode: brightness == Brightness.dark
           ? ThemeMode.dark
           : ThemeMode.light,
@@ -139,7 +153,20 @@ Future<void> _pump(
 }
 
 void main() {
+  setUpAll(loadGoldenFonts);
+
   group('tema', () {
+    test('superfícies são neutras e mantêm o violeta como ação', () {
+      final light = AppTheme.light().colorScheme;
+      final dark = AppTheme.dark().colorScheme;
+      expect(light.primary, isNot(light.surface));
+      expect(dark.primary, isNot(dark.surface));
+      expect(light.surface, const Color(0xFFF9F8FC));
+      expect(dark.surface, const Color(0xFF121216));
+      expect(light.surfaceContainerLow, const Color(0xFFF5F3F8));
+      expect(dark.surfaceContainerLow, const Color(0xFF1A191E));
+    });
+
     test('papéis tipográficos seguem tamanho/altura de linha do plano', () {
       for (final theme in [AppTheme.light(), AppTheme.dark()]) {
         final t = theme.textTheme;
@@ -235,13 +262,13 @@ void main() {
   });
 
   group('GameCard', () {
-    testWidgets('colunas: cards de pelo menos 132 dp com 12 de espaço', (
+    testWidgets('colunas: mínimos adaptativos com 12 dp de espaço', (
       tester,
     ) async {
-      expect(GameCard.columnsFor(360), 2);
-      expect(GameCard.columnsFor(300), 2);
-      expect(GameCard.columnsFor(275), 1);
-      expect(GameCard.columnsFor(1200), 8);
+      expect(GameGridGeometry.columnsFor(328), 2);
+      expect(GameGridGeometry.columnsFor(468), 3);
+      expect(GameGridGeometry.columnsFor(600), 3);
+      expect(GameGridGeometry.columnsFor(1200), 6);
     });
 
     testWidgets('o rótulo de acessibilidade reúne título, status e legenda', (
@@ -251,11 +278,15 @@ void main() {
       await _pump(
         tester,
         Scaffold(
-          body: GameCard(
-            title: 'Hades',
-            status: GameStatus.playing,
-            caption: '2 registros',
-            onTap: () {},
+          body: SizedBox(
+            width: 160,
+            height: 330,
+            child: GameCard.collection(
+              title: 'Hades',
+              status: GameStatus.playing,
+              caption: '2 registros',
+              onTap: () {},
+            ),
           ),
         ),
       );
@@ -271,6 +302,27 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('geometria reserva capa, duas linhas, status e legenda', (
+      tester,
+    ) async {
+      late GameGridGeometry geometry;
+      await _pump(
+        tester,
+        Scaffold(
+          body: Builder(
+            builder: (context) {
+              geometry = GameGridGeometry.resolve(context, 328);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      expect(geometry.columns, 2);
+      expect(geometry.cardWidth, 158);
+      expect(geometry.titleExtent, 48);
+      expect(geometry.cardExtent, greaterThan(geometry.cardWidth * 4 / 3));
+    });
+
     testWidgets('toque abre e o foco do teclado ganha contorno', (
       tester,
     ) async {
@@ -278,7 +330,7 @@ void main() {
       await _pump(
         tester,
         Scaffold(
-          body: GameCard(title: 'Hades', onTap: () => taps++),
+          body: GameCard.cover(title: 'Hades', onTap: () => taps++),
         ),
       );
       Color? outline() =>
@@ -309,7 +361,7 @@ void main() {
         Scaffold(
           body: SizedBox(
             width: 160,
-            child: GameCard(
+            child: GameCard.cover(
               title: 'Hades',
               onTap: () => opened++,
               overlay: IconButton(
@@ -329,7 +381,15 @@ void main() {
       await _pump(
         tester,
         const Scaffold(
-          body: SizedBox(width: 140, child: GameCard(title: _longTitle)),
+          body: SizedBox(
+            width: 140,
+            height: 420,
+            child: GameCard.collection(
+              title: _longTitle,
+              status: GameStatus.playing,
+              caption: 'Nintendo Switch',
+            ),
+          ),
         ),
         textScale: 2,
       );
@@ -490,6 +550,7 @@ void main() {
           tester,
           _Gallery(query: 'zelda', onClear: () {}),
           brightness: brightness,
+          fontFamily: goldenFontFamily,
         );
         await expectLater(
           find.byType(Scaffold),

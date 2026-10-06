@@ -22,7 +22,10 @@ class _SessionRefresh extends ChangeNotifier {
 }
 
 class GameTrackerApp extends ConsumerStatefulWidget {
-  const GameTrackerApp({super.key});
+  const GameTrackerApp({super.key, this.fontFamily});
+
+  /// Injeção usada por capturas determinísticas; em produção a fonte continua sendo a do sistema.
+  final String? fontFamily;
 
   @override
   ConsumerState<GameTrackerApp> createState() => _GameTrackerAppState();
@@ -95,8 +98,8 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     return MaterialApp.router(
       title: 'GameTracker',
       routerConfig: _router,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(fontFamily: widget.fontFamily),
+      darkTheme: AppTheme.dark(fontFamily: widget.fontFamily),
       themeMode: ref.watch(themeModeProvider),
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],

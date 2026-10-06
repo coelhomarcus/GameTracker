@@ -419,7 +419,9 @@ class _LoadedState extends ConsumerState<_Loaded>
         sliver: SliverLayoutBuilder(
           builder: (context, constraints) => SliverGrid.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: GameCard.columnsFor(constraints.crossAxisExtent),
+              crossAxisCount: GameGridGeometry.columnsFor(
+                constraints.crossAxisExtent,
+              ),
               mainAxisSpacing: Space.md,
               crossAxisSpacing: Space.md,
               childAspectRatio: 3 / 4,
@@ -764,10 +766,9 @@ class _CoverWrap extends StatelessWidget {
         for (final c in covers)
           SizedBox(
             width: size,
-            child: GameCard(
+            child: GameCard.cover(
               title: c.title,
               coverUrl: c.url,
-              showDetails: false,
               onTap: () => context.push('/games/${c.igdbId}'),
             ),
           ),
@@ -822,12 +823,13 @@ class _GameTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final parts = [if (group.mixedStatus) 'Vários status', ?group.recordsLabel];
-    return GameCard(
+    return GameCard.cover(
       title: group.game.name,
       coverUrl: group.game.coverUrl,
-      status: group.singleStatus,
-      caption: parts.isEmpty ? null : parts.join(', '),
-      showDetails: false,
+      semanticDescription: [
+        group.singleStatus?.label,
+        if (parts.isNotEmpty) parts.join(', '),
+      ].whereType<String>().join(', '),
       onTap: () => context.push('/games/${group.game.igdbId}'),
       badge: group.hasReplays
           ? DecoratedBox(

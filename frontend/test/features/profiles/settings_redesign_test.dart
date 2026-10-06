@@ -1,6 +1,7 @@
 // Etapa 12: Configurações em seções, tema com amostra, atalhos da Biblioteca, notificações, conta.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/app/app_info.dart';
+import 'package:gametracker/core/design_system/game_list_row.dart';
 import 'package:gametracker/features/library/application/library_prefs.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -183,7 +184,7 @@ void main() {
 
         // A Biblioteca mostra o que foi escolhido aqui (mesmos providers, nada duplicado).
         await goTo(tester, '/library');
-        expect(find.byType(ListTile), findsWidgets, reason: 'lista');
+        expect(find.byType(GameListRow), findsWidgets, reason: 'lista');
         expect(find.byTooltip('Ordenar por Nome A–Z'), findsOneWidget);
         expect(h.library.listCalls, greaterThan(0));
 

@@ -2,17 +2,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/data/hours.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/content_skeleton.dart';
 import '../../../core/design_system/filter_toolbar.dart';
 import '../../../core/design_system/game_card.dart';
-import '../../../core/design_system/game_cover.dart';
+import '../../../core/design_system/game_list_row.dart';
+import '../../../core/design_system/game_shelf_item.dart';
 import '../../../core/design_system/game_status.dart';
+import '../../../core/design_system/page_header.dart';
 import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/primary_action.dart';
 import '../../../core/design_system/section_header.dart';
-import '../../../core/design_system/status_chip.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../games/presentation/game_search_view.dart';
 import '../../notifications/presentation/notifications_bell.dart';
@@ -26,6 +28,7 @@ import 'entry_actions.dart';
 /// Com texto este ampliado a grade de capas deixa de ser legível e a lista assume, sem mexer na
 /// preferência salva.
 const _listBeyondTextScale = 1.75;
+final _unsetAccount = Object();
 
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
@@ -36,6 +39,15 @@ class LibraryPage extends ConsumerStatefulWidget {
 
 class _LibraryPageState extends ConsumerState<LibraryPage> {
   final _toolbarKey = GlobalKey();
+  final _scrollController = ScrollController();
+  Object? _scrollAccount = _unsetAccount;
+  bool _searchFocused = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _addGame() async {
     final game = await pickGame(context);
@@ -60,10 +72,20 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final accountId = ref.watch(currentUserIdProvider);
+    if (!identical(_scrollAccount, _unsetAccount) &&
+        _scrollAccount != accountId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) _scrollController.jumpTo(0);
+      });
+    }
+    _scrollAccount = accountId;
     final library = ref.watch(libraryProvider);
     final overview = ref.watch(libraryOverviewProvider);
     final filter = ref.watch(libraryFilterProvider);
     final prefs = ref.watch(libraryPrefsProvider);
+    final largeText =
+        MediaQuery.textScalerOf(context).scale(14) / 14 >= _listBeyondTextScale;
     final addGame = PrimaryAction(
       heroTag: 'fab-library',
       icon: Icons.add,
@@ -72,9 +94,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Biblioteca'),
-        actions: [?addGame.headerButton(context), const NotificationsBell()],
+      appBar: PageHeader(
+        title: 'Biblioteca',
+        width: PageWidth.wide,
+        action: addGame.headerButton(context),
+        utilities: const [NotificationsBell()],
       ),
       floatingActionButton: addGame.fab(context),
       body: AsyncContent<List<GameEntry>>(
@@ -82,7 +106,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         staleBanner: true,
         loading: PageContainer(
           width: PageWidth.wide,
-          child: prefs.grid
+          child: prefs.grid && !largeText
               ? const ContentSkeleton.grid()
               : const ContentSkeleton.list(),
         ),
@@ -114,6 +138,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
               filter: filter,
               prefs: prefs,
               toolbarKey: _toolbarKey,
+              scrollController: _scrollController,
+              scrollKey: PageStorageKey('library-scroll-$accountId'),
+              searchFocused: _searchFocused,
+              onSearchFocusChanged: (focused) {
+                if (_searchFocused != focused) {
+                  setState(() => _searchFocused = focused);
+                }
+              },
               onShowAllPlaying: _showAllPlaying,
             ),
           );
@@ -129,6 +161,10 @@ class _LibraryScroll extends ConsumerWidget {
     required this.filter,
     required this.prefs,
     required this.toolbarKey,
+    required this.scrollController,
+    required this.scrollKey,
+    required this.searchFocused,
+    required this.onSearchFocusChanged,
     required this.onShowAllPlaying,
   });
 
@@ -136,6 +172,10 @@ class _LibraryScroll extends ConsumerWidget {
   final LibraryFilter filter;
   final LibraryPrefs prefs;
   final GlobalKey toolbarKey;
+  final ScrollController scrollController;
+  final PageStorageKey<String> scrollKey;
+  final bool searchFocused;
+  final ValueChanged<bool> onSearchFocusChanged;
   final VoidCallback onShowAllPlaying;
 
   @override
@@ -160,13 +200,15 @@ class _LibraryScroll extends ConsumerWidget {
         );
 
         return CustomScrollView(
+          key: scrollKey,
+          controller: scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             padded(
               SliverToBoxAdapter(child: _Summary(overview.summary)),
               top: Space.sm,
             ),
-            if (!filter.isActive && overview.shelf.isNotEmpty)
+            if (!filter.isActive && !searchFocused && overview.shelf.isNotEmpty)
               padded(
                 SliverToBoxAdapter(
                   child: _Shelf(
@@ -210,17 +252,19 @@ class _LibraryScroll extends ConsumerWidget {
                           onSelected: filters.setPlatform,
                         ),
                       ],
-                      sort: SortMenu<LibrarySort>(
+                      sortBuilder: (compact) => SortMenu<LibrarySort>(
                         values: LibrarySort.values,
                         selected: prefs.sort,
                         labelOf: (sort) => sort.label,
                         onSelected: prefsController.setSort,
+                        compact: compact,
                       ),
                       viewToggle: ViewModeToggle(
                         grid: prefs.grid,
                         onChanged: prefsController.setGrid,
                       ),
                       onClear: filter.isActive ? filters.clear : null,
+                      onSearchFocusChanged: onSearchFocusChanged,
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: Space.sm),
@@ -247,18 +291,22 @@ class _LibraryScroll extends ConsumerWidget {
             else if (showGrid)
               padded(
                 SliverLayoutBuilder(
-                  builder: (context, constraints) => SliverGrid.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: GameCard.columnsFor(
-                        constraints.crossAxisExtent,
+                  builder: (context, constraints) {
+                    final geometry = GameGridGeometry.resolve(
+                      context,
+                      constraints.crossAxisExtent,
+                    );
+                    return SliverGrid.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: geometry.columns,
+                        mainAxisSpacing: GameGridGeometry.spacing,
+                        crossAxisSpacing: GameGridGeometry.spacing,
+                        mainAxisExtent: geometry.cardExtent,
                       ),
-                      mainAxisSpacing: Space.md,
-                      crossAxisSpacing: Space.md,
-                      childAspectRatio: 3 / 4,
-                    ),
-                    itemCount: groups.length,
-                    itemBuilder: (context, i) => _GroupTile(group: groups[i]),
-                  ),
+                      itemCount: groups.length,
+                      itemBuilder: (context, i) => _GroupTile(group: groups[i]),
+                    );
+                  },
                 ),
                 bottom: PrimaryAction.fabClearance,
               )
@@ -314,7 +362,7 @@ class _Shelf extends StatelessWidget {
   final List<LibraryGroup> shelf;
   final VoidCallback onShowAll;
 
-  static const _coverWidth = 104.0;
+  static const _itemWidth = 224.0;
 
   @override
   Widget build(BuildContext context) {
@@ -326,22 +374,24 @@ class _Shelf extends StatelessWidget {
           actionLabel: 'Ver todos',
           onAction: onShowAll,
         ),
-        SizedBox(
-          height: _coverWidth * 4 / 3,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: shelf.length,
-            separatorBuilder: (_, _) => const SizedBox(width: Space.md),
-            itemBuilder: (context, i) => SizedBox(
-              width: _coverWidth,
-              child: GameCard(
-                title: shelf[i].game.name,
-                coverUrl: shelf[i].game.coverUrl,
-                status: GameStatus.playing,
-                showDetails: false,
-                onTap: () => _openGame(context, shelf[i].game.igdbId),
-              ),
-            ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < shelf.length; i++) ...[
+                if (i > 0) const SizedBox(width: Space.md),
+                SizedBox(
+                  width: _itemWidth,
+                  child: GameShelfItem(
+                    title: shelf[i].game.name,
+                    coverUrl: shelf[i].game.coverUrl,
+                    caption: _shelfCaption(shelf[i]),
+                    onTap: () => _openGame(context, shelf[i].game.igdbId),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],
@@ -352,13 +402,22 @@ class _Shelf extends StatelessWidget {
 void _openGame(BuildContext context, int igdbId) =>
     context.push('/games/$igdbId?tab=progress');
 
-/// Texto lido pelo leitor de tela quando a grade mostra só a capa.
-String? _spokenCaption(LibraryGroup group) {
-  final parts = [if (group.mixedStatus) 'Vários status', ?group.recordsLabel];
-  return parts.isEmpty ? null : parts.join(', ');
+String _shelfCaption(LibraryGroup group) {
+  final platforms = group.platforms.where((p) => p.trim().isNotEmpty).toList();
+  return switch (platforms.length) {
+    0 => 'Plataforma não informada',
+    1 => platforms.single,
+    _ => '${platforms.length} plataformas',
+  };
 }
 
-/// Capa na grade: sem título nem dados fixos embaixo; só o indicador de replays.
+String _collectionCaption(LibraryGroup group) {
+  if (group.hasReplays) return group.recordsLabel!;
+  final platforms = group.platforms.where((p) => p.trim().isNotEmpty);
+  return platforms.isEmpty ? 'Plataforma não informada' : platforms.first;
+}
+
+/// Card da grade: a capa nunca precisa carregar sozinha a identificação do jogo.
 class _GroupTile extends StatelessWidget {
   const _GroupTile({required this.group});
 
@@ -366,55 +425,13 @@ class _GroupTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return GameCard(
+    return GameCard.collection(
       title: group.game.name,
       coverUrl: group.game.coverUrl,
       status: group.singleStatus,
-      caption: _spokenCaption(group),
-      showDetails: false,
+      caption: _collectionCaption(group),
       onTap: () => _openGame(context, group.game.igdbId),
-      badge: group.hasReplays ? _ReplayBadge(group.totalEntries) : null,
-      overlay: Material(
-        color: scheme.surface.withValues(alpha: 0.78),
-        shape: const CircleBorder(),
-        child: GameMenuButton(game: group.game),
-      ),
-    );
-  }
-}
-
-class _ReplayBadge extends StatelessWidget {
-  const _ReplayBadge(this.count);
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(Radii.control),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.sm,
-          vertical: Space.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          spacing: Space.xs,
-          children: [
-            Icon(Icons.layers_outlined, size: 14, color: scheme.onSurface),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.labelSmall
-                  ?.copyWith(color: scheme.onSurface),
-            ),
-          ],
-        ),
-      ),
+      trailing: GameMenuButton(game: group.game),
     );
   }
 }
@@ -435,40 +452,16 @@ class _GroupRow extends StatelessWidget {
     // A nota é de um registro: só aparece quando o jogo tem um único.
     final single = group.totalEntries == 1 ? group.entries.single : null;
     final rating = single?.rating;
-    final meta = Theme.of(context).textTheme.bodyMedium;
-
-    return ListTile(
-      leading: SizedBox(
-        width: 48,
-        child: GameCover(
-          name: group.game.name,
-          url: group.game.coverUrl,
-          radius: Radii.cover,
-        ),
-      ),
-      title: Text(
-        group.game.name,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: Space.xs),
-        child: Wrap(
-          spacing: Space.sm,
-          runSpacing: Space.xs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            group.singleStatus == null
-                ? const StatusChip.mixed()
-                : StatusChip(group.singleStatus!),
-            if (platformText.isNotEmpty) Text(platformText, style: meta),
-            if (group.recordsLabel != null)
-              Text(group.recordsLabel!, style: meta),
-            if (hours != null) Text('${formatHours(hours)} h', style: meta),
-            if (rating != null) Text('Nota $rating/10', style: meta),
-          ],
-        ),
-      ),
+    return GameListRow(
+      title: group.game.name,
+      coverUrl: group.game.coverUrl,
+      status: group.singleStatus,
+      metadata: [
+        if (platformText.isNotEmpty) platformText,
+        ?group.recordsLabel,
+        if (hours != null) '${formatHours(hours)} h',
+        if (rating != null) 'Nota $rating/10',
+      ],
       trailing: GameMenuButton(game: group.game),
       onTap: () => _openGame(context, group.game.igdbId),
     );

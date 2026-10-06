@@ -2,10 +2,9 @@ import 'package:material_ui/material_ui.dart';
 
 import 'tokens.dart';
 
-/// Pesquisa, filtros, ordenação e modo de exibição, em poucas linhas silenciosas: a busca ocupa a
-/// primeira, com a ordenação e o modo de exibição como ícones ao lado; os filtros ([filters],
-/// normalmente `FilterMenuButton`) vêm logo abaixo e quebram de linha conforme o espaço e o
-/// tamanho do texto, sem rolagem horizontal.
+/// Pesquisa, filtros, ordenação e modo de exibição em uma composição responsiva. Em largura
+/// compacta a busca ocupa a primeira linha e os controles quebram abaixo; em largura ampla todos
+/// os controles compartilham o mesmo [Wrap], sem rolagem horizontal.
 ///
 /// A busca só aparece com [onQueryChanged]; sem ela, ordenação e modo de exibição seguem junto dos
 /// filtros. [onClear] mostra "Limpar" e deve ser passado apenas quando há filtro ativo.
@@ -16,56 +15,72 @@ class FilterToolbar extends StatelessWidget {
     this.onQueryChanged,
     this.searchHint = 'Buscar',
     this.filters = const [],
-    this.sort,
+    this.sortBuilder,
     this.viewToggle,
     this.onClear,
+    this.onSearchFocusChanged,
   });
 
   final String query;
   final ValueChanged<String>? onQueryChanged;
   final String searchHint;
   final List<Widget> filters;
-  final Widget? sort;
+  final Widget Function(bool compact)? sortBuilder;
   final Widget? viewToggle;
   final VoidCallback? onClear;
+  final ValueChanged<bool>? onSearchFocusChanged;
 
   @override
   Widget build(BuildContext context) {
-    final hasSearch = onQueryChanged != null;
-    final inline = hasSearch ? const <Widget>[] : [?sort, ?viewToggle];
-    final hasRow = filters.isNotEmpty || inline.isNotEmpty || onClear != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (hasSearch)
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < Breakpoints.medium;
+        final controls = <Widget>[
+          ...filters,
+          ?sortBuilder?.call(compact),
+          ?viewToggle,
+          if (onClear != null)
+            TextButton(onPressed: onClear, child: const Text('Limpar')),
+        ];
+        final search = onQueryChanged == null
+            ? null
+            : _SearchField(
+                query: query,
+                hint: searchHint,
+                onChanged: onQueryChanged!,
+                onFocusChanged: onSearchFocusChanged,
+              );
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: _SearchField(
-                  query: query,
-                  hint: searchHint,
-                  onChanged: onQueryChanged!,
+              ?search,
+              if (search != null && controls.isNotEmpty)
+                const SizedBox(height: Space.sm),
+              if (controls.isNotEmpty)
+                Wrap(
+                  spacing: Space.xs,
+                  runSpacing: Space.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: controls,
                 ),
+            ],
+          );
+        }
+        return Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (search != null)
+              SizedBox(
+                width: constraints.maxWidth.clamp(320, 360),
+                child: search,
               ),
-              if (sort != null) const SizedBox(width: Space.xs),
-              ?sort,
-              ?viewToggle,
-            ],
-          ),
-        if (hasSearch && hasRow) const SizedBox(height: Space.xs),
-        if (hasRow)
-          Wrap(
-            spacing: Space.xs,
-            runSpacing: 0,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ...filters,
-              ...inline,
-              if (onClear != null)
-                TextButton(onPressed: onClear, child: const Text('Limpar')),
-            ],
-          ),
-      ],
+            ...controls,
+          ],
+        );
+      },
     );
   }
 }
@@ -158,11 +173,13 @@ class _SearchField extends StatefulWidget {
     required this.query,
     required this.hint,
     required this.onChanged,
+    this.onFocusChanged,
   });
 
   final String query;
   final String hint;
   final ValueChanged<String> onChanged;
+  final ValueChanged<bool>? onFocusChanged;
 
   @override
   State<_SearchField> createState() => _SearchFieldState();
@@ -170,6 +187,9 @@ class _SearchField extends StatefulWidget {
 
 class _SearchFieldState extends State<_SearchField> {
   late final _controller = TextEditingController(text: widget.query);
+  late final _focusNode = FocusNode()..addListener(_notifyFocus);
+
+  void _notifyFocus() => widget.onFocusChanged?.call(_focusNode.hasFocus);
 
   @override
   void didUpdateWidget(_SearchField old) {
@@ -186,6 +206,9 @@ class _SearchFieldState extends State<_SearchField> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode
+      ..removeListener(_notifyFocus)
+      ..dispose();
     super.dispose();
   }
 
@@ -193,6 +216,7 @@ class _SearchFieldState extends State<_SearchField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
+      focusNode: _focusNode,
       textInputAction: TextInputAction.search,
       onChanged: widget.onChanged,
       decoration: InputDecoration(
@@ -224,18 +248,19 @@ class SortMenu<T> extends StatelessWidget {
     required this.selected,
     required this.labelOf,
     required this.onSelected,
+    this.compact = false,
   });
 
   final List<T> values;
   final T selected;
   final String Function(T) labelOf;
   final ValueChanged<T> onSelected;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<T>(
       tooltip: 'Ordenar por ${labelOf(selected)}',
-      icon: const Icon(Icons.sort),
       initialValue: selected,
       onSelected: onSelected,
       itemBuilder: (_) => [
@@ -246,6 +271,23 @@ class SortMenu<T> extends StatelessWidget {
             child: Text(labelOf(value)),
           ),
       ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Center(
+          widthFactor: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Space.sm),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.sort, size: 20),
+                const SizedBox(width: Space.xs),
+                Text(compact ? 'Ordenar' : 'Ordenar: ${labelOf(selected)}'),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -263,10 +305,25 @@ class ViewModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: grid ? 'Mostrar como lista' : 'Mostrar como grade',
-      icon: Icon(grid ? Icons.view_list : Icons.grid_view),
-      onPressed: () => onChanged(!grid),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
+      child: SegmentedButton<bool>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(
+            value: true,
+            tooltip: 'Mostrar como grade',
+            icon: Icon(Icons.grid_view),
+          ),
+          ButtonSegment(
+            value: false,
+            tooltip: 'Mostrar como lista',
+            icon: Icon(Icons.view_list),
+          ),
+        ],
+        selected: {grid},
+        onSelectionChanged: (selection) => onChanged(selection.single),
+      ),
     );
   }
 }

@@ -81,8 +81,11 @@ class ContentSkeleton extends StatelessWidget {
   Widget _grid(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = GameCard.columnsFor(constraints.maxWidth);
-        final rows = (itemCount / columns).ceil();
+        final geometry = GameGridGeometry.resolve(
+          context,
+          constraints.maxWidth,
+        );
+        final rows = (itemCount / geometry.columns).ceil();
         return ListView.builder(
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: Space.sm),
@@ -92,11 +95,11 @@ class ContentSkeleton extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var c = 0; c < columns; c++) ...[
-                  if (c > 0) const SizedBox(width: Space.md),
+                for (var c = 0; c < geometry.columns; c++) ...[
+                  if (c > 0) const SizedBox(width: GameGridGeometry.spacing),
                   Expanded(
-                    child: row * columns + c < itemCount
-                        ? const _GridTileSkeleton()
+                    child: row * geometry.columns + c < itemCount
+                        ? _GridTileSkeleton(geometry: geometry)
                         : const SizedBox.shrink(),
                   ),
                 ],
@@ -110,18 +113,25 @@ class ContentSkeleton extends StatelessWidget {
 }
 
 class _GridTileSkeleton extends StatelessWidget {
-  const _GridTileSkeleton();
+  const _GridTileSkeleton({required this.geometry});
+
+  final GameGridGeometry geometry;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AspectRatio(aspectRatio: 3 / 4, child: SkeletonBox()),
-        SizedBox(height: Space.sm),
-        SkeletonBox(height: 16),
-        SizedBox(height: Space.xs),
-        FractionallySizedBox(widthFactor: 0.6, child: SkeletonBox(height: 12)),
+        const AspectRatio(aspectRatio: 3 / 4, child: SkeletonBox()),
+        const SizedBox(height: Space.sm),
+        SkeletonBox(height: geometry.titleExtent),
+        const SizedBox(height: Space.xs),
+        SkeletonBox(width: 84, height: geometry.statusExtent),
+        const SizedBox(height: Space.xs),
+        FractionallySizedBox(
+          widthFactor: 0.65,
+          child: SkeletonBox(height: geometry.captionExtent),
+        ),
       ],
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/core/dates/date_only.dart';
 import 'package:gametracker/core/design_system/game_card.dart';
+import 'package:gametracker/core/design_system/game_list_row.dart';
+import 'package:gametracker/core/design_system/game_shelf_item.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/core/network/app_exception.dart';
 import 'package:gametracker/features/library/data/game_entry.dart';
@@ -25,12 +27,19 @@ String location(WidgetTester tester) =>
 Finder get searchField =>
     find.widgetWithText(TextField, 'Buscar na biblioteca');
 
+final verticalScroll = find.byWidgetPredicate(
+  (widget) =>
+      widget is Scrollable && widget.axisDirection == AxisDirection.down,
+);
+
 Future<void> search(WidgetTester tester, String text) async {
   await tester.enterText(searchField, text);
   await tester.pumpAndSettle();
 }
 
 void main() {
+  setUpAll(loadGoldenFonts);
+
   testWidgets('estado de carregamento e depois a coleção', (tester) async {
     final h = AppHarness(library: FakeLibraryRepository([fakeEntry()]));
     await h.pump(tester);
@@ -79,17 +88,17 @@ void main() {
     ]);
 
     testWidgets(
-      'dois registros do mesmo jogo são um cartão só, com indicador',
+      'dois registros do mesmo jogo são um cartão só, com contexto textual',
       (tester) async {
         await AppHarness(library: twoRecords).pump(tester);
         expect(find.byType(GameCard), findsOneWidget);
         expect(find.text('1 jogo · 2 registros'), findsOneWidget);
-        expect(find.text('2'), findsOneWidget, reason: 'indicador de replays');
+        expect(find.text('2 registros'), findsOneWidget);
         expect(find.text('1 jogo encontrado'), findsOneWidget);
       },
     );
 
-    testWidgets('a grade não mostra título nem dados fixos embaixo da capa', (
+    testWidgets('a grade mostra título, status e contexto sem horas ou nota', (
       tester,
     ) async {
       await AppHarness(
@@ -103,7 +112,9 @@ void main() {
           ),
         ]),
       ).pump(tester);
-      expect(find.text('PC'), findsNothing);
+      expect(find.text('Jogo Fixture Um'), findsWidgets);
+      expect(find.text('Concluído'), findsOneWidget);
+      expect(find.text('PC'), findsOneWidget);
       expect(find.textContaining('20'), findsNothing);
       expect(find.textContaining('8/10'), findsNothing);
     });
@@ -145,6 +156,15 @@ void main() {
       ).pump(tester, prefs: {'library.grid': false});
       expect(find.text('Nota 8/10'), findsOneWidget);
       expect(find.text('0,0 h'), findsOneWidget, reason: 'zero é um valor');
+    });
+
+    testWidgets('plataforma vazia é ausência, não texto em branco', (
+      tester,
+    ) async {
+      await AppHarness(
+        library: FakeLibraryRepository([fakeEntry(platform: '')]),
+      ).pump(tester);
+      expect(find.text('Plataforma não informada'), findsOneWidget);
     });
 
     testWidgets('tocar na capa abre o jogo em "Meu progresso"', (tester) async {
@@ -349,7 +369,7 @@ void main() {
         expect(find.text('Limpar'), findsNothing);
         expect(tester.widget<TextField>(searchField).controller!.text, isEmpty);
         expect(
-          find.byType(ListTile),
+          find.byType(GameListRow),
           findsNWidgets(3),
           reason: 'mantém a lista',
         );
@@ -408,10 +428,32 @@ void main() {
       await search(tester, 'cel');
       expect(find.text('Jogando agora'), findsNothing);
       await tapAndSettle(tester, find.byTooltip('Limpar busca'));
+      expect(find.text('Jogando agora'), findsNothing);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
       expect(find.text('Jogando agora'), findsOneWidget);
 
       await chooseStatus(tester, 'Concluído (1)');
       expect(find.text('Jogando agora'), findsNothing);
+    });
+
+    testWidgets('some ao focar a busca vazia e volta ao perder o foco', (
+      tester,
+    ) async {
+      await AppHarness(
+        library: FakeLibraryRepository([
+          fakeEntry(id: 'a', status: GameStatus.playing),
+        ]),
+      ).pump(tester, size: const Size(400, 1000));
+      expect(find.text('Jogando agora'), findsOneWidget);
+
+      await tester.tap(searchField);
+      await tester.pumpAndSettle();
+      expect(find.text('Jogando agora'), findsNothing);
+
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      expect(find.text('Jogando agora'), findsOneWidget);
     });
 
     testWidgets('"Ver todos" filtra por Jogando e esconde a prateleira', (
@@ -433,7 +475,7 @@ void main() {
       expect(statusButtonText('Jogando (1)'), findsOneWidget);
     });
 
-    testWidgets('no máximo 6 capas', (tester) async {
+    testWidgets('no máximo 6 itens identificados', (tester) async {
       await AppHarness(
         library: FakeLibraryRepository([
           for (var i = 0; i < 9; i++)
@@ -445,16 +487,24 @@ void main() {
             ),
         ]),
       ).pump(tester, size: const Size(1400, 1000));
-      final shelf = find.descendant(
-        of: find.byType(ListView).first,
-        matching: find.byType(GameCard),
-      );
-      expect(shelf.evaluate().length, lessThanOrEqualTo(6));
+      expect(find.byType(GameShelfItem), findsNWidgets(6));
       expect(find.text('Jogo 8'), findsWidgets);
       expect(
         find.text('9 jogos · 9 registros · 9 jogos em andamento'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('resume várias plataformas sem escolher uma arbitrariamente', (
+      tester,
+    ) async {
+      await AppHarness(
+        library: FakeLibraryRepository([
+          fakeEntry(id: 'a', status: GameStatus.playing, platform: 'PC'),
+          fakeEntry(id: 'b', status: GameStatus.playing, platform: 'PS5'),
+        ]),
+      ).pump(tester, size: const Size(400, 1000));
+      expect(find.text('2 plataformas'), findsOneWidget);
     });
   });
 
@@ -518,8 +568,12 @@ void main() {
       ('grade_1280', const Size(1280, 900), true),
     ]) {
       testWidgets(name, skip: goldenSkip, (tester) async {
-        await AppHarness(library: FakeLibraryRepository(sample()))
-            .pump(tester, size: size, prefs: {'library.grid': grid});
+        await AppHarness(library: FakeLibraryRepository(sample())).pump(
+          tester,
+          size: size,
+          prefs: {'library.grid': grid},
+          fontFamily: goldenFontFamily,
+        );
         await expectLater(
           find.byType(MaterialApp),
           matchesGoldenFile('goldens/library_$name.png'),
@@ -529,6 +583,28 @@ void main() {
   });
 
   group('exibição', () {
+    for (final width in [360.0, 390.0, 600.0, 840.0, 1280.0, 1440.0]) {
+      testWidgets('layout sem overflow em ${width.toInt()} dp', (tester) async {
+        await AppHarness(
+          library: FakeLibraryRepository([
+            for (var i = 0; i < 6; i++)
+              fakeEntry(
+                id: 'e$i',
+                game: fakeGame(
+                  igdbId: 10 + i,
+                  name: i == 0
+                      ? 'The Legend of Zelda: Tears of the Kingdom — Edição Especial'
+                      : 'Jogo $i',
+                ),
+                status: GameStatus.values[i % GameStatus.values.length],
+                platform: 'PlayStation 5 Edição Digital',
+              ),
+          ]),
+        ).pump(tester, size: Size(width, 1000), textScale: 1.5);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
     testWidgets('grade: duas colunas em 360 dp', (tester) async {
       await AppHarness(
         library: FakeLibraryRepository([
@@ -558,11 +634,11 @@ void main() {
         prefs: {'library.grid': true},
       );
       await tester.scrollUntilVisible(
-        find.byType(ListTile),
+        find.byType(GameListRow),
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.byType(ListTile), findsWidgets);
+      expect(find.byType(GameListRow), findsWidgets);
       expect(
         find.byTooltip('Mostrar como lista'),
         findsOneWidget,
@@ -591,8 +667,10 @@ void main() {
       ).pump(tester, prefs: {'library.grid': false, 'library.sort': 'name'});
 
       List<String> titles() => [
-        for (final t in tester.widgetList<ListTile>(find.byType(ListTile)))
-          ((t.title as Text).data)!,
+        for (final row in tester.widgetList<GameListRow>(
+          find.byType(GameListRow),
+        ))
+          row.title,
       ];
       expect(titles(), ['Alfa', 'Beta', 'Zeta']);
 
@@ -622,26 +700,99 @@ void main() {
       tester,
       prefs: {'library.grid': false, 'library.sort': 'most_played'},
     );
-    // Lista (não grade): cada registro é um ListTile, e "Segundo" (50 h) vem primeiro.
-    expect(find.byType(ListTile), findsNWidgets(2));
-    final firstTitle = tester.widget<Text>(
-      find
-          .descendant(
-            of: find.byType(ListTile).first,
-            matching: find.byType(Text),
-          )
-          .first,
+    expect(find.byType(GameListRow), findsNWidgets(2));
+    expect(
+      tester.widget<GameListRow>(find.byType(GameListRow).first).title,
+      'Segundo',
     );
-    expect(firstTitle.data, 'Segundo');
   });
 
   testWidgets('alternar grade/lista grava a preferência', (tester) async {
     await AppHarness(library: FakeLibraryRepository([fakeEntry()]))
         .pump(tester);
-    expect(find.byType(ListTile), findsNothing);
+    expect(find.byType(GameListRow), findsNothing);
     await tapAndSettle(tester, find.byTooltip('Mostrar como lista'));
-    expect(find.byType(ListTile), findsOneWidget);
-    expect(find.byTooltip('Mostrar como grade'), findsOneWidget);
+    expect(find.byType(GameListRow), findsOneWidget);
+    expect(
+      tester
+          .widget<SegmentedButton<bool>>(find.byType(SegmentedButton<bool>))
+          .selected,
+      {false},
+    );
+  });
+
+  testWidgets('abrir e voltar do detalhe preserva a posição da Biblioteca', (
+    tester,
+  ) async {
+    await AppHarness(
+      library: FakeLibraryRepository([
+        for (var i = 0; i < 30; i++)
+          fakeEntry(
+            id: 'e$i',
+            game: fakeGame(igdbId: 100 + i, name: 'Jogo $i'),
+          ),
+      ]),
+    ).pump(tester, size: const Size(400, 800));
+    final scroll = tester.widget<CustomScrollView>(
+      find.byType(CustomScrollView),
+    );
+    final target = find.byWidgetPredicate(
+      (widget) => widget is GameCard && widget.title == 'Jogo 20',
+    );
+    await tester.scrollUntilVisible(
+      target,
+      600,
+      scrollable: verticalScroll.first,
+    );
+    final before = scroll.controller!.offset;
+    expect(before, greaterThan(0));
+
+    await openLibraryGame(tester, 'Jogo 20');
+    await tapAndSettle(tester, find.byType(BackButton));
+    expect(scroll.controller!.offset, closeTo(before, 1));
+  });
+
+  testWidgets('uma nova sessão começa a Biblioteca no topo', (tester) async {
+    final h = AppHarness(
+      library: FakeLibraryRepository([
+        for (var i = 0; i < 30; i++)
+          fakeEntry(
+            id: 'e$i',
+            game: fakeGame(igdbId: 100 + i, name: 'Jogo $i'),
+          ),
+      ]),
+    );
+    await h.pump(tester, size: const Size(400, 800));
+    await tester.scrollUntilVisible(
+      find.byWidgetPredicate(
+        (widget) => widget is GameCard && widget.title == 'Jogo 20',
+      ),
+      600,
+      scrollable: verticalScroll.first,
+    );
+    expect(
+      tester
+          .widget<CustomScrollView>(find.byType(CustomScrollView))
+          .controller!
+          .offset,
+      greaterThan(0),
+    );
+
+    await tapAndSettle(tester, find.text('Perfil').last);
+    await tapAndSettle(tester, find.byTooltip('Configurações'));
+    await tapSignOut(tester);
+    await tester.enterText(find.byType(TextFormField).first, 'ana');
+    await tester.enterText(find.byType(TextFormField).last, 'senha');
+    await tapAndSettle(tester, find.widgetWithText(FilledButton, 'Entrar'));
+    await goTo(tester, '/library');
+
+    expect(
+      tester
+          .widget<CustomScrollView>(find.byType(CustomScrollView))
+          .controller!
+          .offset,
+      0,
+    );
   });
 
   testWidgets(

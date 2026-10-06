@@ -4,7 +4,8 @@ import 'package:flutter/painting.dart' show Size;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:material_ui/material_ui.dart' show Scaffold, Scrollable;
+import 'package:material_ui/material_ui.dart'
+    show PopupMenuItem, Scaffold, Scrollable;
 import 'package:gametracker/app/app.dart';
 import 'package:gametracker/app/providers.dart';
 import 'package:gametracker/features/auth/data/auth_repository.dart';
@@ -89,6 +90,7 @@ class AppHarness {
     Size size = const Size(400, 900),
     double textScale = 1.0,
     Map<String, Object> prefs = const {},
+    String? fontFamily,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -138,7 +140,7 @@ class AppHarness {
           ),
           sharedPreferencesProvider.overrideWithValue(sharedPrefs),
         ],
-        child: const GameTrackerApp(),
+        child: GameTrackerApp(fontFamily: fontFamily),
       ),
     );
     await tester.pumpAndSettle();
@@ -148,7 +150,12 @@ class AppHarness {
 /// Toca e estabiliza. Só rola quando o alvo está fora da tela: `ensureVisible` dentro de um
 /// `TabBarView` chega a trocar de aba, o que não é o que um usuário faria.
 Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
-  final center = tester.getCenter(finder.first);
+  final menuItem = find.ancestor(
+    of: finder.first,
+    matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+  );
+  final target = menuItem.evaluate().isEmpty ? finder.first : menuItem.last;
+  final center = tester.getCenter(target);
   final size = tester.view.physicalSize / tester.view.devicePixelRatio;
   final onScreen =
       center.dx >= 0 &&
@@ -156,10 +163,10 @@ Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
       center.dx <= size.width &&
       center.dy <= size.height;
   if (!onScreen) {
-    await tester.ensureVisible(finder);
+    await tester.ensureVisible(target);
     await tester.pumpAndSettle();
   }
-  await tester.tap(finder);
+  await tester.tap(target);
   await tester.pumpAndSettle();
 }
 

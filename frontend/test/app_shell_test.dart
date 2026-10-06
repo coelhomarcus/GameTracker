@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gametracker/core/design_system/game_list_row.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -93,7 +94,7 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.byType(ListTile), findsWidgets);
+    expect(find.byType(GameListRow), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

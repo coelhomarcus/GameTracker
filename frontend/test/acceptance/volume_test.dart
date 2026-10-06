@@ -6,7 +6,7 @@ import 'package:gametracker/core/design_system/game_card.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/features/library/application/library_groups.dart';
 import 'package:material_ui/material_ui.dart'
-    show AxisDirection, Scrollable, Size, TextField;
+    show AxisDirection, PageStorageKey, Scrollable, Size, TextField;
 
 import '../support/fake_chat.dart';
 import '../support/fake_repos.dart';
@@ -66,10 +66,18 @@ void main() {
       );
 
       final scrollWatch = Stopwatch()..start();
+      final libraryScroll = find.descendant(
+        of: find.byKey(const PageStorageKey<String>('library-scroll-u1')),
+        matching: _vertical,
+      );
+      final lastGridCard = find.byWidgetPredicate(
+        (widget) => widget is GameCard && widget.title == 'Jogo 799',
+      );
+      expect(libraryScroll, findsOneWidget);
       await tester.scrollUntilVisible(
-        find.text('Jogo 799'),
+        lastGridCard,
         4000,
-        scrollable: _vertical.first,
+        scrollable: libraryScroll,
         maxScrolls: 400,
       );
       scrollWatch.stop();
@@ -79,7 +87,7 @@ void main() {
       print(
         'projeção 1000: ${overviewWatch.elapsedMilliseconds} ms · abrir: ${openWatch.elapsedMilliseconds} ms · rolar até o fim: ${scrollWatch.elapsedMilliseconds} ms',
       );
-      expect(find.text('Jogo 799'), findsWidgets);
+      expect(lastGridCard, findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
