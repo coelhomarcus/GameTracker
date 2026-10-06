@@ -167,4 +167,25 @@ void main() {
       expect(find.byType(NavigationRail), findsOneWidget);
     });
   });
+
+  testWidgets('títulos dos destinos começam na mesma margem do conteúdo', (
+    tester,
+  ) async {
+    await signedIn().pump(tester, size: const Size(1280, 900));
+    double titleLeft(String label) => tester
+        .getTopLeft(
+          find.descendant(of: find.byType(AppBar), matching: find.text(label)),
+        )
+        .dx;
+    // Biblioteca e Perfil usam a mesma coluna larga; o título não pode ficar mais perto do rail.
+    final library = titleLeft('Biblioteca');
+    await tapAndSettle(
+      tester,
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Perfil'),
+      ),
+    );
+    expect(titleLeft('Perfil'), library);
+  });
 }

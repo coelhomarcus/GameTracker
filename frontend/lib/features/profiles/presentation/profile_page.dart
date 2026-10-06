@@ -10,6 +10,7 @@ import '../../../core/design_system/game_list_row.dart';
 import '../../../core/design_system/game_shelf_item.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/page_header.dart';
 import '../../../core/design_system/pinned_tab_bar.dart';
 import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
@@ -88,25 +89,31 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  AppBar _bar(BuildContext context, UserProfile? profile) => AppBar(
-    leading: isMe ? null : const FallbackBackButton(fallback: '/community'),
-    automaticallyImplyLeading: false,
-    title: Text(
-      isMe ? 'Perfil' : (profile?.displayName ?? 'Perfil'),
-      overflow: TextOverflow.ellipsis,
-    ),
-    actions: [
-      if (isMe) ...[
-        const NotificationsBell(),
-        IconButton(
-          tooltip: 'Configurações',
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => context.push('/settings'),
-        ),
-      ],
-    ],
-  );
+  PreferredSizeWidget _bar(BuildContext context, UserProfile? profile) => isMe
+      ? _ownHeader(context)
+      : AppBar(
+          leading: const FallbackBackButton(fallback: '/community'),
+          automaticallyImplyLeading: false,
+          title: Text(
+            profile?.displayName ?? 'Perfil',
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
 }
+
+/// Cabeçalho do próprio perfil, alinhado à coluna de conteúdo como nos outros destinos.
+PageHeader _ownHeader(BuildContext context) => PageHeader(
+  title: 'Perfil',
+  width: PageWidth.wide,
+  utilities: [
+    const NotificationsBell(),
+    IconButton(
+      tooltip: 'Configurações',
+      icon: const Icon(Icons.settings_outlined),
+      onPressed: () => context.push('/settings'),
+    ),
+  ],
+);
 
 class _Loaded extends ConsumerStatefulWidget {
   const _Loaded({required this.profile, required this.isMe});
@@ -187,26 +194,13 @@ class _LoadedState extends ConsumerState<_Loaded>
         : null;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: widget.isMe
-            ? null
-            : const FallbackBackButton(fallback: '/community'),
-        automaticallyImplyLeading: false,
-        title: Text(
-          widget.isMe ? 'Perfil' : profile.displayName,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          if (widget.isMe) ...[
-            const NotificationsBell(),
-            IconButton(
-              tooltip: 'Configurações',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => context.push('/settings'),
+      appBar: widget.isMe
+          ? _ownHeader(context)
+          : AppBar(
+              leading: const FallbackBackButton(fallback: '/community'),
+              automaticallyImplyLeading: false,
+              title: Text(profile.displayName, overflow: TextOverflow.ellipsis),
             ),
-          ],
-        ],
-      ),
       body: LayoutBuilder(
         builder: (context, box) {
           final twoColumns = box.maxWidth >= _twoColumnMinWidth;
@@ -720,7 +714,7 @@ class _Highlights extends StatelessWidget {
         ? favorites
         : favorites.take(_highlightsLimit).toList();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

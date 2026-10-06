@@ -138,6 +138,8 @@ abstract final class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
+        // O mesmo alinhamento à esquerda em qualquer plataforma.
+        centerTitle: false,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,

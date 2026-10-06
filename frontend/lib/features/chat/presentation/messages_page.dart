@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/providers.dart';
 import '../../../core/dates/relative_time.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/page_header.dart';
 import '../../../core/design_system/primary_action.dart';
 import '../../../core/design_system/search_field.dart';
 import '../../../core/design_system/tokens.dart';
@@ -98,13 +99,10 @@ class ConversationsPane extends ConsumerWidget {
       onPressed: () => _newConversation(context, ref),
     );
     return Scaffold(
-      appBar: AppBar(
-        // Raiz do destino: com a conversa aberta por rota (a lista fica embaixo na pilha), o
-        // Material mostraria um voltar que não pertence a este cabeçalho.
-        automaticallyImplyLeading: false,
-        title: const Text('Mensagens'),
-        // A lista pode ter só 320 dp: só o ícone cabe com texto ampliado.
-        actions: [?newConversation.headerButton(context, compact: true)],
+      // A lista pode ter só 320 dp: só o ícone cabe com texto ampliado.
+      appBar: PageHeader(
+        title: 'Mensagens',
+        action: newConversation.headerButton(context, compact: true),
       ),
       // Com a conversa ao lado, o botão fica no cabeçalho; o FAB cobriria a lista.
       floatingActionButton: splitLayout ? null : newConversation.fab(context),
