@@ -119,6 +119,17 @@ const _viewports = {
   'janela larga 1400': (Size(1400, 900), 1.0),
 };
 
+/// Os dois lados de cada corte de layout (barra/rail, rail estendido) e um texto intermediário.
+const _breakpointViewports = {
+  'janela 599': (Size(599, 900), 1.0),
+  'janela 600': (Size(600, 960), 1.0),
+  'janela 839': (Size(839, 900), 1.0),
+  'janela 840': (Size(840, 900), 1.0),
+  'janela 1239': (Size(1239, 900), 1.0),
+  'janela 1240': (Size(1240, 900), 1.0),
+  'celular 390, texto 150%': (Size(390, 844), 1.5),
+};
+
 /// [tapTargets] fica desligado só no Explorar: a diretriz mede o nó interno do campo do `SearchBar`
 /// (312x24), mas a barra inteira (56 dp) recebe o toque; há um teste próprio para isso.
 Future<void> _guidelines(WidgetTester tester, {bool tapTargets = true}) async {
@@ -137,6 +148,28 @@ void main() {
         for (final MapEntry(key: name, value: path) in {
           ..._signedInRoutes,
         }.entries) {
+          testWidgets('${dark ? 'escuro' : 'claro'} · $viewName · $name', (
+            tester,
+          ) async {
+            final h = rich();
+            await h.pump(
+              tester,
+              size: size,
+              textScale: scale,
+              prefs: {'theme.mode': dark ? 'dark' : 'light'},
+            );
+            await goTo(tester, path);
+            expect(tester.takeException(), isNull);
+          });
+        }
+      }
+    }
+
+    for (final dark in [false, true]) {
+      for (final MapEntry(key: viewName, value: (size, scale))
+          in _breakpointViewports.entries) {
+        for (final MapEntry(key: name, value: path)
+            in _signedInRoutes.entries) {
           testWidgets('${dark ? 'escuro' : 'claro'} · $viewName · $name', (
             tester,
           ) async {
