@@ -224,7 +224,7 @@ void main() {
           findsNothing,
           reason: 'não é mais um destaque',
         );
-        expect(find.text('Todos (3)'), findsOneWidget);
+        expect(statusMenu, findsOneWidget);
         expect(grid, findsNWidgets(3));
         expect(find.text('3,5 h'), findsNothing);
         expect(find.textContaining('9/10'), findsNothing);
@@ -239,31 +239,24 @@ void main() {
       expect(find.textContaining('NOTA-PRIVADA'), findsNothing);
     });
 
-    testWidgets(
-      'filtro por status com contagem de jogos; tocar de novo limpa',
-      (tester) async {
-        await openProfile(tester, profiles: rich(), size: tall);
-        expect(grid, findsNWidgets(3));
+    testWidgets('filtro por status com contagem de jogos; "Todos" limpa', (
+      tester,
+    ) async {
+      await openProfile(tester, profiles: rich(), size: tall);
+      expect(grid, findsNWidgets(3));
+      await tapAndSettle(tester, statusMenu);
+      expect(find.text('Todos (3)'), findsOneWidget);
+      await tapAndSettle(tester, find.text('Abandonado (1)'));
+      expect(grid, findsNWidgets(1));
+      expect(statusButtonText('Abandonado (1)'), findsOneWidget);
 
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilterChip, 'Abandonado (1)'),
-        );
-        expect(grid, findsNWidgets(1));
+      await chooseStatus(tester, 'Jogando (1)');
+      expect(grid, findsNWidgets(1));
 
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilterChip, 'Jogando (1)'),
-        );
-        expect(grid, findsNWidgets(1));
-
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilterChip, 'Jogando (1)'),
-        );
-        expect(grid, findsNWidgets(3), reason: 'tocar de novo limpa o filtro');
-      },
-    );
+      await chooseStatus(tester, 'Todos (3)');
+      expect(grid, findsNWidgets(3), reason: '"Todos" limpa o filtro');
+      expect(statusButtonText('Status'), findsOneWidget);
+    });
 
     testWidgets('é somente leitura: sem menu no cartão de outra pessoa', (
       tester,
@@ -298,7 +291,7 @@ void main() {
       expect(find.textContaining('Sem conexão'), findsOneWidget);
       p.collectionError = null;
       await tapAndSettle(tester, find.text('Tentar de novo'));
-      expect(find.text('Todos (3)'), findsOneWidget);
+      expect(statusMenu, findsOneWidget);
     });
 
     testWidgets(
@@ -347,7 +340,7 @@ void main() {
         await h.pump(tester, size: tall);
         await tapAndSettle(tester, find.text('Perfil').last);
         expect(find.text('Editar perfil'), findsOneWidget);
-        expect(find.text('Todos (1)'), findsOneWidget);
+        expect(statusMenu, findsOneWidget);
         expect(
           profiles.collectionCalls,
           0,

@@ -18,7 +18,9 @@ import 'package:gametracker/features/push/application/push_controller.dart';
 import 'package:gametracker/features/push/data/push_platform.dart';
 import 'package:gametracker/features/push/data/push_repository.dart';
 import 'package:gametracker/features/games/data/games_repository.dart';
+import 'package:gametracker/core/design_system/filter_toolbar.dart';
 import 'package:gametracker/core/design_system/game_card.dart';
+import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/features/profiles/application/profile_image_picker.dart';
 import 'package:gametracker/features/profiles/data/profiles_repository.dart';
 import 'package:gametracker/features/profiles/presentation/profile_image_crop_page.dart';
@@ -191,3 +193,19 @@ Future<void> tapSignOut(WidgetTester tester) async {
   );
   await tapAndSettle(tester, find.text('Sair'));
 }
+
+/// O filtro de status (Biblioteca e Perfil) é um botão com menu: sem filtro mostra "Status"; as
+/// contagens ficam dentro do menu.
+final statusMenu = find.byTooltip('Filtrar por status');
+
+/// Abre o menu de status e escolhe a opção pelo texto exato, por exemplo `Concluído (2)`.
+Future<void> chooseStatus(WidgetTester tester, String option) async {
+  await tapAndSettle(tester, statusMenu);
+  await tapAndSettle(tester, find.text(option).last);
+}
+
+/// Texto que o botão de status mostra agora (`Status` sem filtro, ou a opção escolhida).
+Finder statusButtonText(String text) => find.descendant(
+  of: find.byType(FilterMenuButton<GameStatus>),
+  matching: find.text(text),
+);

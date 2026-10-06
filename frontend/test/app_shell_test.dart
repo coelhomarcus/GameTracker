@@ -61,7 +61,7 @@ void main() {
     tester,
   ) async {
     await signedIn().pump(tester, size: const Size(400, 800));
-    await tapAndSettle(tester, find.widgetWithText(FilterChip, 'Jogando (1)'));
+    await chooseStatus(tester, 'Jogando (1)');
     expect(find.textContaining('Jogo Fixture Dois'), findsWidgets);
     expect(find.text('Jogo Fixture Um'), findsNothing);
 

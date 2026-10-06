@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/design_system/async_content.dart';
+import '../../../core/design_system/filter_toolbar.dart';
 import '../../../core/design_system/game_card.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/page_container.dart';
@@ -794,23 +795,18 @@ class _GamesHeader extends StatelessWidget {
     if (overview == null || overview.summary.games == 0) {
       return const SizedBox.shrink();
     }
-    return Wrap(
-      spacing: Space.sm,
-      runSpacing: Space.xs,
-      children: [
-        FilterChip(
-          label: Text('Todos (${overview.totalGames})'),
-          selected: status == null,
-          onSelected: (_) => onStatus(null),
-        ),
-        for (final s in GameStatus.values)
-          FilterChip(
-            avatar: Icon(s.icon, size: 18),
-            label: Text('${s.label} (${overview.statusCounts[s]})'),
-            selected: status == s,
-            onSelected: (_) => onStatus(status == s ? null : s),
-          ),
-      ],
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: FilterMenuButton<GameStatus>(
+        label: 'Status',
+        selected: status,
+        onSelected: onStatus,
+        options: [
+          (value: null, label: 'Todos (${overview.totalGames})'),
+          for (final s in GameStatus.values)
+            (value: s, label: '${s.label} (${overview.statusCounts[s]})'),
+        ],
+      ),
     );
   }
 }

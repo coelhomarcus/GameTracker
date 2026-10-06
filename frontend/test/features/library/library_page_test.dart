@@ -223,35 +223,34 @@ void main() {
         AppHarness(library: FakeLibraryRepository(data))
             .pump(tester, size: const Size(400, 1400));
 
-    testWidgets('chips contam jogos distintos e filtram; tocar de novo limpa', (
+    testWidgets('o menu de status conta jogos distintos e filtra', (
       tester,
     ) async {
       await pumpData(tester);
+      expect(statusButtonText('Status'), findsOneWidget);
+      expect(find.text('3 jogos encontrados'), findsOneWidget);
+
+      await tapAndSettle(tester, statusMenu);
       expect(find.text('Todos (3)'), findsOneWidget);
       expect(find.text('Concluído (2)'), findsOneWidget);
       expect(find.text('Jogando (1)'), findsOneWidget);
       expect(find.text('Abandonado (0)'), findsOneWidget);
-      expect(find.text('3 jogos encontrados'), findsOneWidget);
-
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Concluído (2)'),
-      );
+      await tapAndSettle(tester, find.text('Concluído (2)'));
       expect(find.text('2 jogos encontrados'), findsOneWidget);
       expect(libraryGame('Celeste'), findsOneWidget);
       expect(find.text('Pokémon Ônix'), findsNothing);
-
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Abandonado (0)'),
+      expect(
+        statusButtonText('Concluído (2)'),
+        findsOneWidget,
+        reason: 'o botão mostra o filtro ativo',
       );
+
+      await chooseStatus(tester, 'Abandonado (0)');
       expect(find.text('Nenhum jogo com esses filtros'), findsOneWidget);
 
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Abandonado (0)'),
-      );
+      await chooseStatus(tester, 'Todos (3)');
       expect(find.text('3 jogos encontrados'), findsOneWidget);
+      expect(statusButtonText('Status'), findsOneWidget);
     });
 
     testWidgets('busca ignora caixa e acentos; "Limpar busca" volta a tudo', (
@@ -261,11 +260,14 @@ void main() {
       await search(tester, 'pokemon onix');
       expect(find.text('1 jogo encontrado'), findsOneWidget);
       expect(libraryGame('Pokémon Ônix'), findsOneWidget);
+      await tapAndSettle(tester, statusMenu);
       expect(
         find.text('Todos (1)'),
         findsOneWidget,
-        reason: 'a busca vale para os chips',
+        reason: 'a busca vale para as contagens do menu',
       );
+      await tester.tapAt(const Offset(2, 2));
+      await tester.pumpAndSettle();
 
       await tapAndSettle(tester, find.byTooltip('Limpar busca'));
       expect(find.text('3 jogos encontrados'), findsOneWidget);
@@ -281,8 +283,11 @@ void main() {
       }
       await tapAndSettle(tester, find.text('PS5').last);
       expect(find.text('1 jogo encontrado'), findsOneWidget);
+      await tapAndSettle(tester, statusMenu);
       expect(find.text('Concluído (0)'), findsOneWidget);
       expect(find.text('Jogando (1)'), findsOneWidget);
+      await tester.tapAt(const Offset(2, 2));
+      await tester.pumpAndSettle();
 
       await tapAndSettle(tester, find.byTooltip('Filtrar por plataforma'));
       await tapAndSettle(tester, find.text('Todas as plataformas'));
@@ -294,14 +299,18 @@ void main() {
     ) async {
       // Hades: concluído no PC e jogando no PS5. "Jogando" + "PC" não o encontra.
       await pumpData(tester);
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Jogando (1)'),
-      );
+      await chooseStatus(tester, 'Jogando (1)');
       await tapAndSettle(tester, find.byTooltip('Filtrar por plataforma'));
       await tapAndSettle(tester, find.text('PC').last);
       expect(find.text('Nenhum jogo com esses filtros'), findsOneWidget);
-      expect(find.text('Jogando (0)'), findsOneWidget);
+      await tapAndSettle(tester, statusMenu);
+      expect(
+        find.text('Jogando (0)'),
+        findsNWidgets(2),
+        reason: 'o botão (filtro ativo) e a opção do menu',
+      );
+      await tester.tapAt(const Offset(2, 2));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('na lista, o filtro parcial mostra "1 de 2 registros"', (
@@ -313,10 +322,7 @@ void main() {
         prefs: {'library.grid': false},
       );
       expect(find.text('Vários status'), findsOneWidget);
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Jogando (1)'),
-      );
+      await chooseStatus(tester, 'Jogando (1)');
       expect(find.text('1 de 2 registros'), findsOneWidget);
       expect(find.text('Vários status'), findsNothing);
       expect(find.text('Jogando'), findsWidgets);
@@ -332,10 +338,7 @@ void main() {
         );
         expect(find.text('Limpar'), findsNothing);
         await search(tester, 'zzz');
-        await tapAndSettle(
-          tester,
-          find.widgetWithText(FilterChip, 'Concluído (0)'),
-        );
+        await chooseStatus(tester, 'Concluído (0)');
         expect(find.text('Nenhum jogo com esses filtros'), findsOneWidget);
 
         await tapAndSettle(
@@ -407,10 +410,7 @@ void main() {
       await tapAndSettle(tester, find.byTooltip('Limpar busca'));
       expect(find.text('Jogando agora'), findsOneWidget);
 
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Concluído (1)'),
-      );
+      await chooseStatus(tester, 'Concluído (1)');
       expect(find.text('Jogando agora'), findsNothing);
     });
 
@@ -430,12 +430,7 @@ void main() {
       await tapAndSettle(tester, find.text('Ver todos'));
       expect(find.text('Jogando agora'), findsNothing);
       expect(find.text('1 jogo encontrado'), findsOneWidget);
-      expect(
-        tester
-            .widget<FilterChip>(find.widgetWithText(FilterChip, 'Jogando (1)'))
-            .selected,
-        isTrue,
-      );
+      expect(statusButtonText('Jogando (1)'), findsOneWidget);
     });
 
     testWidgets('no máximo 6 capas', (tester) async {

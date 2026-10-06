@@ -187,20 +187,23 @@ class _LibraryScroll extends ConsumerWidget {
                       onQueryChanged: filters.setQuery,
                       searchHint: 'Buscar na biblioteca',
                       filters: [
-                        FilterChip(
-                          label: Text('Todos (${overview.totalGames})'),
-                          selected: filter.status == null,
-                          onSelected: (_) => filters.setStatus(null),
-                        ),
-                        for (final s in GameStatus.values)
-                          FilterChip(
-                            avatar: Icon(s.icon, size: 18),
-                            label: Text(
-                              '${s.label} (${overview.statusCounts[s]})',
+                        FilterMenuButton<GameStatus>(
+                          label: 'Status',
+                          selected: filter.status,
+                          onSelected: filters.setStatus,
+                          options: [
+                            (
+                              value: null,
+                              label: 'Todos (${overview.totalGames})',
                             ),
-                            selected: filter.status == s,
-                            onSelected: (_) => filters.toggleStatus(s),
-                          ),
+                            for (final s in GameStatus.values)
+                              (
+                                value: s,
+                                label:
+                                    '${s.label} (${overview.statusCounts[s]})',
+                              ),
+                          ],
+                        ),
                         _PlatformMenu(
                           platforms: overview.platforms,
                           selectedKey: filter.platformKey,
@@ -484,42 +487,18 @@ class _PlatformMenu extends StatelessWidget {
   final String? selectedKey;
   final ValueChanged<String?> onSelected;
 
-  /// `null` não chega ao `onSelected` do menu (é o mesmo que dispensá-lo).
-  static const _all = '';
-
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final selected = selectedKey;
-    final label = selected == null
-        ? 'Plataforma'
-        : platforms[selected] ?? selected;
-    return PopupMenuButton<String>(
-      tooltip: 'Filtrar por plataforma',
-      initialValue: selected ?? _all,
-      onSelected: (key) => onSelected(key == _all ? null : key),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: _all, child: Text('Todas as plataformas')),
-        for (final entry in platforms.entries)
-          PopupMenuItem(value: entry.key, child: Text(entry.value)),
-      ],
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
-        child: Center(
-          widthFactor: 1,
-          child: Chip(
-            avatar: const Icon(Icons.videogame_asset_outlined, size: 18),
-            label: Text(label),
-            deleteIcon: const Icon(Icons.arrow_drop_down, size: 18),
-            onDeleted: null,
-            backgroundColor: selected == null
-                ? null
-                : scheme.secondaryContainer,
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => FilterMenuButton<String>(
+    label: 'Plataforma',
+    tooltip: 'Filtrar por plataforma',
+    selected: selectedKey,
+    onSelected: onSelected,
+    options: [
+      (value: null, label: 'Todas as plataformas'),
+      for (final entry in platforms.entries)
+        (value: entry.key, label: entry.value),
+    ],
+  );
 }
 
 class _EmptyFilter extends ConsumerWidget {

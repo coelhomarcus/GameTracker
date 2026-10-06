@@ -304,10 +304,7 @@ void main() {
       tester,
     ) async {
       await harness().pump(tester, size: const Size(400, 800));
-      await tapAndSettle(
-        tester,
-        find.widgetWithText(FilterChip, 'Jogando (1)'),
-      );
+      await chooseStatus(tester, 'Jogando (1)');
       expect(find.text('Jogo Fixture Um'), findsNothing);
       await select(tester, 'Biblioteca');
       expect(find.text('Jogo Fixture Um'), findsNothing);

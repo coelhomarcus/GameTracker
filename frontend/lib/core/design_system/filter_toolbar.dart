@@ -2,11 +2,13 @@ import 'package:material_ui/material_ui.dart';
 
 import 'tokens.dart';
 
-/// Pesquisa, filtros, ordenação e modo de exibição. Tudo quebra em linhas conforme o espaço e o
-/// tamanho do texto; nenhum controle depende de rolagem horizontal.
+/// Pesquisa, filtros, ordenação e modo de exibição, em poucas linhas silenciosas: a busca ocupa a
+/// primeira, com a ordenação e o modo de exibição como ícones ao lado; os filtros ([filters],
+/// normalmente `FilterMenuButton`) vêm logo abaixo e quebram de linha conforme o espaço e o
+/// tamanho do texto, sem rolagem horizontal.
 ///
-/// A busca só aparece com [onQueryChanged]. [filters] costuma ser uma lista de `FilterChip`;
-/// [onClear] mostra "Limpar" e deve ser passado apenas quando há filtro ativo.
+/// A busca só aparece com [onQueryChanged]; sem ela, ordenação e modo de exibição seguem junto dos
+/// filtros. [onClear] mostra "Limpar" e deve ser passado apenas quando há filtro ativo.
 class FilterToolbar extends StatelessWidget {
   const FilterToolbar({
     super.key,
@@ -29,35 +31,124 @@ class FilterToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRow =
-        filters.isNotEmpty ||
-        sort != null ||
-        viewToggle != null ||
-        onClear != null;
+    final hasSearch = onQueryChanged != null;
+    final inline = hasSearch ? const <Widget>[] : [?sort, ?viewToggle];
+    final hasRow = filters.isNotEmpty || inline.isNotEmpty || onClear != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (onQueryChanged != null)
-          _SearchField(
-            query: query,
-            hint: searchHint,
-            onChanged: onQueryChanged!,
+        if (hasSearch)
+          Row(
+            children: [
+              Expanded(
+                child: _SearchField(
+                  query: query,
+                  hint: searchHint,
+                  onChanged: onQueryChanged!,
+                ),
+              ),
+              if (sort != null) const SizedBox(width: Space.xs),
+              ?sort,
+              ?viewToggle,
+            ],
           ),
-        if (onQueryChanged != null && hasRow) const SizedBox(height: Space.sm),
+        if (hasSearch && hasRow) const SizedBox(height: Space.xs),
         if (hasRow)
           Wrap(
-            spacing: Space.sm,
-            runSpacing: Space.xs,
+            spacing: Space.xs,
+            runSpacing: 0,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               ...filters,
-              ?sort,
-              ?viewToggle,
+              ...inline,
               if (onClear != null)
                 TextButton(onPressed: onClear, child: const Text('Limpar')),
             ],
           ),
       ],
+    );
+  }
+}
+
+/// Uma opção de [FilterMenuButton]; [value] `null` é "sem filtro".
+typedef FilterOption<T> = ({T? value, String label});
+
+/// Filtro como um botão discreto com menu: mostra [label] enquanto nada está filtrado e o nome da
+/// opção escolhida (com destaque) quando há filtro. Substitui uma fileira de chips por um controle só.
+class FilterMenuButton<T> extends StatelessWidget {
+  const FilterMenuButton({
+    super.key,
+    required this.label,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    this.tooltip,
+  });
+
+  /// Texto do botão sem filtro, por exemplo "Status".
+  final String label;
+
+  /// A primeira opção deve ser a que remove o filtro (`value: null`).
+  final List<FilterOption<T>> options;
+  final T? selected;
+  final ValueChanged<T?> onSelected;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final index = options.indexWhere((o) => o.value == selected);
+    final active = selected != null && index >= 0;
+    final text = active ? options[index].label : label;
+    final color = active ? scheme.onSecondaryContainer : scheme.onSurface;
+    return PopupMenuButton<int>(
+      tooltip: tooltip ?? 'Filtrar por ${label.toLowerCase()}',
+      initialValue: index < 0 ? 0 : index,
+      onSelected: (i) => onSelected(options[i].value),
+      itemBuilder: (_) => [
+        for (var i = 0; i < options.length; i++)
+          CheckedPopupMenuItem(
+            value: i,
+            checked: i == (index < 0 ? 0 : index),
+            child: Text(options[i].label),
+          ),
+      ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Center(
+          widthFactor: 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: active ? scheme.secondaryContainer : null,
+              borderRadius: BorderRadius.circular(Radii.control),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: Space.md,
+                right: Space.xs,
+                top: Space.sm,
+                bottom: Space.sm,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      text,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: color,
+                        fontWeight: active ? FontWeight.w600 : null,
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.arrow_drop_down, size: 20, color: color),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
