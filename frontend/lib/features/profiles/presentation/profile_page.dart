@@ -6,6 +6,8 @@ import '../../../app/providers.dart';
 import '../../../core/design_system/async_content.dart';
 import '../../../core/design_system/filter_toolbar.dart';
 import '../../../core/design_system/game_card.dart';
+import '../../../core/design_system/game_list_row.dart';
+import '../../../core/design_system/game_shelf_item.dart';
 import '../../../core/design_system/game_status.dart';
 import '../../../core/design_system/page_container.dart';
 import '../../../core/design_system/pinned_tab_bar.dart';
@@ -223,7 +225,7 @@ class _LoadedState extends ConsumerState<_Loaded>
             expanded: _favoritesExpanded,
             onToggleExpanded: () =>
                 setState(() => _favoritesExpanded = !_favoritesExpanded),
-            coverSize: twoColumns ? 80 : 96,
+            wide: twoColumns,
           );
           final tabs = SliverPersistentHeader(
             pinned: true,
@@ -413,23 +415,36 @@ class _LoadedState extends ConsumerState<_Loaded>
         ),
       ];
     }
+    final largeText = MediaQuery.textScalerOf(context).scale(14) / 14 >= 1.75;
     return [
       SliverPadding(
         padding: bottom,
-        sliver: SliverLayoutBuilder(
-          builder: (context, constraints) => SliverGrid.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: GameGridGeometry.columnsFor(
-                constraints.crossAxisExtent,
+        sliver: largeText
+            ? SliverList.builder(
+                itemCount: overview.groups.length * 2 - 1,
+                itemBuilder: (context, i) => i.isOdd
+                    ? const Divider(height: 1)
+                    : _GameRow(group: overview.groups[i ~/ 2]),
+              )
+            : SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final geometry = GameGridGeometry.resolve(
+                    context,
+                    constraints.crossAxisExtent,
+                  );
+                  return SliverGrid.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: geometry.columns,
+                      mainAxisExtent: geometry.cardExtent,
+                      mainAxisSpacing: GameGridGeometry.spacing,
+                      crossAxisSpacing: GameGridGeometry.spacing,
+                    ),
+                    itemCount: overview.groups.length,
+                    itemBuilder: (context, i) =>
+                        _GameTile(group: overview.groups[i]),
+                  );
+                },
               ),
-              mainAxisSpacing: Space.md,
-              crossAxisSpacing: Space.md,
-              childAspectRatio: 3 / 4,
-            ),
-            itemCount: overview.groups.length,
-            itemBuilder: (context, i) => _GameTile(group: overview.groups[i]),
-          ),
-        ),
       ),
     ];
   }
@@ -690,14 +705,14 @@ class _Highlights extends StatelessWidget {
     required this.playing,
     required this.expanded,
     required this.onToggleExpanded,
-    required this.coverSize,
+    required this.wide,
   });
 
   final List<Game> favorites;
   final List<LibraryGroup> playing;
   final bool expanded;
   final VoidCallback onToggleExpanded;
-  final double coverSize;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
@@ -719,25 +734,33 @@ class _Highlights extends StatelessWidget {
                   ? onToggleExpanded
                   : null,
             ),
-            _CoverWrap(
-              size: coverSize,
-              covers: [
+            _HighlightShelf(
+              wide: wide,
+              items: [
                 for (final g in shownFavorites)
-                  (title: g.name, url: g.coverUrl, igdbId: g.igdbId),
+                  (
+                    title: g.name,
+                    url: g.coverUrl,
+                    caption: _platformCaption(g.platforms),
+                    igdbId: g.igdbId,
+                    progress: false,
+                  ),
               ],
             ),
             const SizedBox(height: Space.lg),
           ],
           if (playing.isNotEmpty) ...[
             const SectionHeader(title: 'Jogando agora'),
-            _CoverWrap(
-              size: coverSize,
-              covers: [
+            _HighlightShelf(
+              wide: wide,
+              items: [
                 for (final g in playing)
                   (
                     title: g.game.name,
                     url: g.game.coverUrl,
+                    caption: _groupPlatformCaption(g),
                     igdbId: g.game.igdbId,
+                    progress: true,
                   ),
               ],
             ),
@@ -749,33 +772,68 @@ class _Highlights extends StatelessWidget {
   }
 }
 
-typedef _Cover = ({String title, String? url, int igdbId});
+typedef _HighlightItem = ({
+  String title,
+  String? url,
+  String caption,
+  int igdbId,
+  bool progress,
+});
 
-class _CoverWrap extends StatelessWidget {
-  const _CoverWrap({required this.size, required this.covers});
+class _HighlightShelf extends StatelessWidget {
+  const _HighlightShelf({required this.wide, required this.items});
 
-  final double size;
-  final List<_Cover> covers;
+  final bool wide;
+  final List<_HighlightItem> items;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: Space.sm,
-      runSpacing: Space.sm,
-      children: [
-        for (final c in covers)
-          SizedBox(
-            width: size,
-            child: GameCard.cover(
-              title: c.title,
-              coverUrl: c.url,
-              onTap: () => context.push('/games/${c.igdbId}'),
-            ),
-          ),
-      ],
+    Widget item(_HighlightItem item) => SizedBox(
+      height: GameShelfItem.extent(context),
+      child: GameShelfItem(
+        title: item.title,
+        caption: item.caption,
+        coverUrl: item.url,
+        onTap: () => context.push(
+          '/games/${item.igdbId}${item.progress ? '?tab=progress' : ''}',
+        ),
+      ),
+    );
+    if (wide) {
+      return Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            item(items[i]),
+            if (i != items.length - 1) const SizedBox(height: Space.sm),
+          ],
+        ],
+      );
+    }
+    return SizedBox(
+      height: GameShelfItem.extent(context),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(width: Space.sm),
+              SizedBox(width: 240, child: item(items[i])),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
+
+String _platformCaption(List<String> platforms) => platforms.isEmpty
+    ? 'Plataforma não informada'
+    : platforms.length == 1
+    ? platforms.single
+    : '${platforms.length} plataformas';
+
+String _groupPlatformCaption(LibraryGroup group) =>
+    _platformCaption(group.platforms);
 
 /// Filtro de status da aba Jogos, com contagem de jogos distintos.
 class _GamesHeader extends StatelessWidget {
@@ -812,8 +870,12 @@ class _GamesHeader extends StatelessWidget {
   }
 }
 
-/// Capa na grade de jogos do perfil: abre o jogo; sem menu (o perfil é só leitura) e sem
-/// título, plataforma, horas ou nota fixos. Vários registros do mesmo jogo viram um selo.
+String _groupCaption(LibraryGroup group) {
+  if (group.hasReplays) return group.recordsLabel!;
+  return _groupPlatformCaption(group);
+}
+
+/// Card da coleção do perfil: mesma identificação da Biblioteca, sem ações privadas.
 class _GameTile extends StatelessWidget {
   const _GameTile({required this.group});
 
@@ -821,45 +883,27 @@ class _GameTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final parts = [if (group.mixedStatus) 'Vários status', ?group.recordsLabel];
-    return GameCard.cover(
+    return GameCard.collection(
       title: group.game.name,
       coverUrl: group.game.coverUrl,
-      semanticDescription: [
-        group.singleStatus?.label,
-        if (parts.isNotEmpty) parts.join(', '),
-      ].whereType<String>().join(', '),
+      status: group.singleStatus,
+      caption: _groupCaption(group),
       onTap: () => context.push('/games/${group.game.igdbId}'),
-      badge: group.hasReplays
-          ? DecoratedBox(
-              decoration: BoxDecoration(
-                color: scheme.surface.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(Radii.control),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Space.sm,
-                  vertical: Space.xs,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: Space.xs,
-                  children: [
-                    Icon(
-                      Icons.layers_outlined,
-                      size: 14,
-                      color: scheme.onSurface,
-                    ),
-                    Text(
-                      '${group.totalEntries}',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
     );
   }
+}
+
+class _GameRow extends StatelessWidget {
+  const _GameRow({required this.group});
+
+  final LibraryGroup group;
+
+  @override
+  Widget build(BuildContext context) => GameListRow(
+    title: group.game.name,
+    coverUrl: group.game.coverUrl,
+    status: group.singleStatus,
+    metadata: [_groupCaption(group)],
+    onTap: () => context.push('/games/${group.game.igdbId}'),
+  );
 }

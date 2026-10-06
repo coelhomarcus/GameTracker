@@ -18,6 +18,21 @@ class GameShelfItem extends StatelessWidget {
   final String? coverUrl;
   final VoidCallback? onTap;
 
+  /// Altura necessária quando a prateleira usa um viewport horizontal de extensão fixa.
+  static double extent(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final text = Theme.of(context).textTheme;
+    double line(TextStyle? style) {
+      final fontSize = style?.fontSize ?? 14;
+      return scaler.scale(fontSize) * (style?.height ?? 1);
+    }
+
+    final copy = line(text.titleMedium) * 2 + Space.xs + line(text.bodyMedium);
+    const cover = 56 * 4 / 3;
+    // Padding interno do card e a margem padrão do próprio Card.
+    return (copy > cover ? copy : cover) + Space.xl + Space.sm;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;

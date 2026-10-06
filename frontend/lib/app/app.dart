@@ -97,6 +97,7 @@ class _GameTrackerAppState extends ConsumerState<GameTrackerApp> {
     ref.watch(pushControllerProvider);
     return MaterialApp.router(
       title: 'GameTracker',
+      debugShowCheckedModeBanner: false,
       routerConfig: _router,
       theme: AppTheme.light(fontFamily: widget.fontFamily),
       darkTheme: AppTheme.dark(fontFamily: widget.fontFamily),

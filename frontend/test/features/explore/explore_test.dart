@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gametracker/core/design_system/game_card.dart';
+import 'package:gametracker/core/design_system/game_catalog_row.dart';
+import 'package:gametracker/core/design_system/game_shelf_item.dart';
 import 'package:gametracker/core/network/app_exception.dart';
 import 'package:gametracker/core/design_system/game_status.dart';
 import 'package:gametracker/features/games/application/game_providers.dart';
@@ -12,6 +14,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../support/fake_profiles.dart';
 import '../../support/fake_repos.dart';
+import '../../support/golden.dart';
 import '../../support/harness.dart';
 
 const _zelda = GameSummary(
@@ -58,6 +61,8 @@ Future<AppHarness> open(
   Size size = const Size(400, 900),
   double textScale = 1,
   String path = '/explore',
+  Map<String, Object> prefs = const {},
+  String? fontFamily,
 }) async {
   final h = AppHarness(
     games: games ?? (FakeGamesRepository()..searchResult = [_zelda, _celeste]),
@@ -74,7 +79,13 @@ Future<AppHarness> open(
           ]),
     library: library,
   );
-  await h.pump(tester, size: size, textScale: textScale);
+  await h.pump(
+    tester,
+    size: size,
+    textScale: textScale,
+    prefs: prefs,
+    fontFamily: fontFamily,
+  );
   if (path == '/explore') {
     await tapAndSettle(tester, find.text('Explorar').last);
   } else {
@@ -87,6 +98,8 @@ Future<void> openTab(WidgetTester tester, String tab) =>
     tapAndSettle(tester, find.widgetWithText(Tab, tab));
 
 void main() {
+  setUpAll(loadGoldenFonts);
+
   group('estrutura', () {
     testWidgets('uma barra só, e as abas Jogos e Pessoas abaixo dela', (
       tester,
@@ -497,7 +510,7 @@ void main() {
           reason: 'só o que está em andamento',
         );
 
-        await tapAndSettle(tester, find.byType(GameCard).first);
+        await tapAndSettle(tester, find.byType(GameShelfItem).first);
         expect(location(tester), '/games/900001');
         await tapAndSettle(tester, find.byType(BackButton));
 
@@ -536,10 +549,14 @@ void main() {
   });
 
   group('layout', () {
-    for (final (size, scale) in [
-      (const Size(360, 640), 2.0),
-      (const Size(390, 844), 1.0),
-      (const Size(1440, 900), 1.0),
+    for (final (size, scale, grid) in [
+      (const Size(360, 640), 2.0, false),
+      (const Size(390, 844), 1.0, false),
+      (const Size(600, 960), 1.0, false),
+      (const Size(840, 900), 1.0, true),
+      (const Size(1280, 900), 1.0, true),
+      (const Size(1440, 900), 1.0, true),
+      (const Size(1440, 900), 2.0, false),
     ]) {
       testWidgets(
         '${size.width.toInt()} px, texto $scale×: início e resultados sem overflow',
@@ -553,6 +570,11 @@ void main() {
           expect(tester.takeException(), isNull);
           await type(tester, 'zelda');
           expect(tester.takeException(), isNull);
+          expect(find.byType(GameCard), grid ? findsWidgets : findsNothing);
+          expect(
+            find.byType(GameCatalogRow),
+            grid ? findsNothing : findsWidgets,
+          );
           await openTab(tester, 'Pessoas');
           await tester.pump(_wait);
           await tester.pumpAndSettle();
@@ -587,5 +609,53 @@ void main() {
         reason: 'o modal só escolhe',
       );
     });
+  });
+
+  group('goldens da etapa 3', () {
+    FakeGamesRepository games() => FakeGamesRepository()
+      ..searchResult = [
+        _zelda,
+        _celeste,
+        const GameSummary(
+          igdbId: 3,
+          name: 'Hades',
+          platforms: ['PC', 'PlayStation 5'],
+          genres: [],
+        ),
+        const GameSummary(
+          igdbId: 4,
+          name: 'The Legend of Zelda: Tears of the Kingdom',
+          platforms: ['Switch'],
+          genres: [],
+        ),
+        const GameSummary(
+          igdbId: 5,
+          name: 'Outer Wilds',
+          platforms: [],
+          genres: [],
+        ),
+      ];
+
+    for (final (layout, size) in [
+      ('390', const Size(390, 1000)),
+      ('1280', const Size(1280, 900)),
+    ]) {
+      for (final theme in ['light', 'dark']) {
+        testWidgets('$layout · $theme', skip: goldenSkip, (tester) async {
+          await open(
+            tester,
+            games: games(),
+            size: size,
+            prefs: {'theme.mode': theme},
+            fontFamily: goldenFontFamily,
+          );
+          await type(tester, 'jogos');
+          await expectLater(
+            find.byType(MaterialApp),
+            matchesGoldenFile('goldens/explore_${layout}_$theme.png'),
+          );
+        });
+      }
+    }
   });
 }

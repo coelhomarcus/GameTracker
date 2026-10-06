@@ -17,6 +17,7 @@ class GameGridGeometry {
     required this.titleExtent,
     required this.statusExtent,
     required this.captionExtent,
+    required this.catalogCardExtent,
   });
 
   static const spacing = Space.md;
@@ -27,6 +28,7 @@ class GameGridGeometry {
   final double titleExtent;
   final double statusExtent;
   final double captionExtent;
+  final double catalogCardExtent;
 
   static int columnsFor(double availableWidth) {
     final minWidth = availableWidth < Breakpoints.medium ? 148.0 : 176.0;
@@ -49,6 +51,7 @@ class GameGridGeometry {
       titleExtent: titleExtent,
       statusExtent: statusExtent,
       captionExtent: captionExtent,
+      catalogCardExtent: catalogCardExtentFor(context, cardWidth),
     );
   }
 
@@ -62,6 +65,18 @@ class GameGridGeometry {
         statusExtent +
         Space.xs +
         captionExtent;
+  }
+
+  /// Altura do resultado de catálogo: capa, identificação, plataforma e ação.
+  static double catalogCardExtentFor(BuildContext context, double cardWidth) {
+    final (titleExtent, _, captionExtent) = _textExtents(context);
+    return cardWidth * 4 / 3 +
+        Space.sm +
+        titleExtent +
+        Space.xs +
+        captionExtent +
+        Space.sm +
+        48;
   }
 
   static (double, double, double) _textExtents(BuildContext context) {
@@ -79,7 +94,7 @@ class GameGridGeometry {
   }
 }
 
-enum _GameCardVariant { cover, collection }
+enum _GameCardVariant { cover, collection, catalog }
 
 /// Card de jogo com contratos explícitos para capa isolada e coleção identificável.
 ///
@@ -111,6 +126,20 @@ class GameCard extends StatefulWidget {
        semanticDescription = null,
        overlay = null,
        badge = null;
+
+  const GameCard.catalog({
+    super.key,
+    required this.title,
+    required this.caption,
+    required Widget action,
+    this.coverUrl,
+    this.onTap,
+  }) : _variant = _GameCardVariant.catalog,
+       status = null,
+       semanticDescription = null,
+       overlay = null,
+       badge = null,
+       trailing = action;
 
   final _GameCardVariant _variant;
   final String title;
@@ -148,6 +177,7 @@ class _GameCardState extends State<GameCard> {
   Widget build(BuildContext context) => switch (widget._variant) {
     _GameCardVariant.cover => _coverCard(context),
     _GameCardVariant.collection => _collectionCard(context),
+    _GameCardVariant.catalog => _catalogCard(context),
   };
 
   Widget _coverCard(BuildContext context) {
@@ -268,6 +298,78 @@ class _GameCardState extends State<GameCard> {
               ),
               if (widget.trailing != null)
                 Positioned(right: 0, bottom: 0, child: widget.trailing!),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _catalogCard(BuildContext context) {
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final geometry = GameGridGeometry.resolve(
+          context,
+          constraints.maxWidth,
+        );
+        return AnimatedContainer(
+          duration: Motion.resolve(context, Motion.short),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.cover),
+            border: Border.all(
+              color: _focused ? theme.colorScheme.primary : Colors.transparent,
+              width: 3,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Semantics(
+                  button: widget.onTap != null,
+                  focusable: widget.onTap != null,
+                  label: _semanticLabel,
+                  onTap: widget.onTap,
+                  excludeSemantics: true,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Radii.cover),
+                    onTap: widget.onTap,
+                    onFocusChange: _setFocused,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GameCover(
+                          name: widget.title,
+                          url: widget.coverUrl,
+                          radius: Radii.cover,
+                        ),
+                        const SizedBox(height: Space.sm),
+                        SizedBox(
+                          height: geometry.titleExtent,
+                          child: Text(
+                            widget.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        const SizedBox(height: Space.xs),
+                        Text(
+                          widget.caption!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Space.sm),
+              SizedBox(height: 48, child: widget.trailing!),
             ],
           ),
         );

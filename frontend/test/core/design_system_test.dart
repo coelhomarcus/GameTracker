@@ -321,6 +321,42 @@ void main() {
       expect(geometry.cardWidth, 158);
       expect(geometry.titleExtent, 48);
       expect(geometry.cardExtent, greaterThan(geometry.cardWidth * 4 / 3));
+      expect(
+        geometry.catalogCardExtent,
+        greaterThan(geometry.cardWidth * 4 / 3),
+      );
+    });
+
+    testWidgets('catálogo separa abrir do CTA e mantém nome e plataforma', (
+      tester,
+    ) async {
+      var opened = 0, added = 0;
+      await _pump(
+        tester,
+        Scaffold(
+          body: Builder(
+            builder: (context) => SizedBox(
+              width: 180,
+              height: GameGridGeometry.catalogCardExtentFor(context, 180),
+              child: GameCard.catalog(
+                title: 'Celeste',
+                caption: 'PC · Switch',
+                onTap: () => opened++,
+                action: FilledButton(
+                  onPressed: () => added++,
+                  child: const Text('Adicionar'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Celeste'), findsWidgets);
+      expect(find.text('PC · Switch'), findsOneWidget);
+      await tester.tap(find.text('Adicionar'));
+      expect((opened, added), (0, 1));
+      await tester.tap(find.text('Celeste').last);
+      expect((opened, added), (1, 1));
     });
 
     testWidgets('toque abre e o foco do teclado ganha contorno', (

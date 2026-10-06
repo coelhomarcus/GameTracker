@@ -3,13 +3,15 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
-import '../../../core/design_system/game_card.dart';
-import '../../../core/design_system/game_status.dart';
+import '../../../core/design_system/game_shelf_item.dart';
 import '../../../core/design_system/page_container.dart';
+import '../../../core/design_system/page_header.dart';
+import '../../../core/design_system/search_field.dart';
 import '../../../core/design_system/section_header.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../games/presentation/game_search_view.dart';
 import '../../library/application/library_filter.dart';
+import '../../library/application/library_groups.dart';
 import '../../notifications/presentation/notifications_bell.dart';
 import '../../profiles/presentation/people_search_view.dart';
 import '../application/explore_search.dart';
@@ -60,19 +62,29 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
   Widget build(BuildContext context) {
     final query = ref.watch(exploreQueryProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explorar'),
-        actions: const [NotificationsBell()],
+      appBar: const PageHeader(
+        title: 'Explorar',
+        width: PageWidth.wide,
+        utilities: [NotificationsBell()],
       ),
       body: PageContainer(
+        width: PageWidth.wide,
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.only(top: Space.sm, bottom: Space.sm),
-              child: _SearchField(onSubmitted: () => _remember(_scope)),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: _SearchField(onSubmitted: () => _remember(_scope)),
+                ),
+              ),
             ),
             TabBar(
               controller: _tabs,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: 'Jogos'),
                 Tab(text: 'Pessoas'),
@@ -144,26 +156,13 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
         );
       }
     });
-    final query = ref.watch(exploreQueryProvider);
-    // O `SearchBar` do Material gera um nó externo (toque/foco) sem rótulo ao lado do campo
-    // rotulado; juntá-los dá ao leitor de tela um único elemento "Buscar jogos ou pessoas".
-    return MergeSemantics(
-      child: SearchBar(
-        controller: _controller,
-        hintText: 'Buscar jogos ou pessoas',
-        leading: const Icon(Icons.search),
-        textInputAction: TextInputAction.search,
-        trailing: [
-          if (query.isNotEmpty)
-            IconButton(
-              tooltip: 'Limpar busca',
-              icon: const Icon(Icons.close),
-              onPressed: () => ref.read(exploreQueryProvider.notifier).set(''),
-            ),
-        ],
-        onChanged: ref.read(exploreQueryProvider.notifier).set,
-        onSubmitted: (_) => widget.onSubmitted(),
-      ),
+    ref.watch(exploreQueryProvider);
+    return AppSearchField(
+      controller: _controller,
+      hintText: 'Buscar jogos ou pessoas',
+      onChanged: ref.read(exploreQueryProvider.notifier).set,
+      onClear: () => ref.read(exploreQueryProvider.notifier).set(''),
+      onSubmitted: (_) => widget.onSubmitted(),
     );
   }
 }
@@ -211,17 +210,17 @@ class _Home extends ConsumerWidget {
         if (playing.isNotEmpty) ...[
           const SectionHeader(title: 'Jogando agora'),
           SizedBox(
-            height: 104 * 4 / 3,
+            height: GameShelfItem.extent(context),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: playing.length,
               separatorBuilder: (_, _) => const SizedBox(width: Space.md),
               itemBuilder: (context, i) => SizedBox(
-                width: 104,
-                child: GameCard.cover(
+                width: 240,
+                child: GameShelfItem(
                   title: playing[i].game.name,
                   coverUrl: playing[i].game.coverUrl,
-                  semanticDescription: GameStatus.playing.label,
+                  caption: _playingCaption(playing[i]),
                   onTap: () => context.push(
                     '/games/${playing[i].game.igdbId}?tab=progress',
                   ),
@@ -254,4 +253,13 @@ class _Home extends ConsumerWidget {
       ],
     );
   }
+}
+
+String _playingCaption(LibraryGroup group) {
+  final platforms = group.platforms.where((p) => p.trim().isNotEmpty).toList();
+  return switch (platforms.length) {
+    0 => 'Plataforma não informada',
+    1 => platforms.single,
+    _ => '${platforms.length} plataformas',
+  };
 }

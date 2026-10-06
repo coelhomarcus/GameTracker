@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/design_system/async_content.dart';
-import '../../../core/design_system/game_cover.dart';
+import '../../../core/design_system/game_card.dart';
+import '../../../core/design_system/game_catalog_row.dart';
+import '../../../core/design_system/search_field.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../library/application/library_filter.dart';
 import '../application/game_providers.dart';
@@ -76,22 +78,14 @@ class _GameSearchViewState extends ConsumerState<GameSearchView> {
             Space.lg,
             Space.sm,
           ),
-          child: SearchBar(
+          child: AppSearchField(
             controller: _controller,
-            autoFocus: widget.autofocus,
             hintText: 'Buscar jogos',
-            leading: const Icon(Icons.search),
-            trailing: [
-              if (_query.isNotEmpty)
-                IconButton(
-                  tooltip: 'Limpar busca',
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _controller.clear();
-                    setState(() => _query = '');
-                  },
-                ),
-            ],
+            autofocus: widget.autofocus,
+            onClear: () {
+              _controller.clear();
+              setState(() => _query = '');
+            },
             onChanged: (value) => setState(() => _query = value),
           ),
         ),
@@ -121,44 +115,70 @@ class _GameSearchViewState extends ConsumerState<GameSearchView> {
             message: 'Nada para "$term".',
           );
         }
-        return ListView.separated(
-          key: const PageStorageKey('explore-games'),
-          padding: const EdgeInsets.only(bottom: Space.xl),
-          itemCount: games.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) => widget.onOpenProgress == null
-              ? _modalTile(games[i])
-              : _GameResult(
+        if (widget.onOpenProgress == null) {
+          return ListView.separated(
+            padding: const EdgeInsets.only(bottom: Space.xl),
+            itemCount: games.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, i) => _modalRow(games[i]),
+          );
+        }
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+            final grid =
+                constraints.maxWidth >= Breakpoints.medium && scale < 1.75;
+            if (!grid) {
+              return ListView.separated(
+                key: const PageStorageKey('explore-games-list'),
+                padding: const EdgeInsets.only(bottom: Space.xl),
+                itemCount: games.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, i) => _GameResult(
                   game: games[i],
                   inLibrary: _libraryIds.contains(games[i].igdbId),
                   onOpen: widget.onOpen,
                   onAdd: widget.onAdd,
                   onOpenProgress: widget.onOpenProgress!,
                 ),
+              );
+            }
+            final geometry = GameGridGeometry.resolve(
+              context,
+              constraints.maxWidth,
+            );
+            return GridView.builder(
+              key: const PageStorageKey('explore-games-grid'),
+              padding: const EdgeInsets.only(top: Space.md, bottom: Space.xl),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: geometry.columns,
+                mainAxisExtent: geometry.catalogCardExtent,
+                mainAxisSpacing: GameGridGeometry.spacing,
+                crossAxisSpacing: GameGridGeometry.spacing,
+              ),
+              itemCount: games.length,
+              itemBuilder: (context, i) => _GameResult(
+                game: games[i],
+                inLibrary: _libraryIds.contains(games[i].igdbId),
+                onOpen: widget.onOpen,
+                onAdd: widget.onAdd,
+                onOpenProgress: widget.onOpenProgress!,
+                grid: true,
+              ),
+            );
+          },
         );
       },
     );
   }
 
   /// Linha do seletor em modal: o toque ou o "+" escolhem o jogo.
-  Widget _modalTile(GameSummary game) => ListTile(
-    leading: SizedBox(
-      width: 48,
-      child: GameCover(
-        name: game.name,
-        url: game.coverUrl,
-        radius: Radii.cover,
-      ),
-    ),
-    title: Text(game.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-    subtitle: game.platforms.isEmpty
-        ? null
-        : Text(
-            platformsSummary(game.platforms),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-    trailing: widget.onAdd == null
+  Widget _modalRow(GameSummary game) => GameCatalogRow(
+    title: game.name,
+    coverUrl: game.coverUrl,
+    caption: _platformsOrUnknown(game.platforms),
+    stackActionOnCompact: false,
+    action: widget.onAdd == null
         ? null
         : IconButton(
             tooltip: 'Adicionar ${game.name} à biblioteca',
@@ -174,6 +194,10 @@ String platformsSummary(List<String> platforms) => platforms.length > 2
     ? '${platforms.take(2).join(' · ')} +${platforms.length - 2}'
     : platforms.join(' · ');
 
+String _platformsOrUnknown(List<String> platforms) => platforms.isEmpty
+    ? 'Plataformas não informadas'
+    : platformsSummary(platforms);
+
 /// Resultado de busca em Explorar: o corpo abre o jogo; o botão adiciona ou abre os registros.
 /// O botão fica abaixo do texto, para não faltar espaço com fonte ampliada.
 class _GameResult extends StatelessWidget {
@@ -183,6 +207,7 @@ class _GameResult extends StatelessWidget {
     required this.onOpen,
     required this.onAdd,
     required this.onOpenProgress,
+    this.grid = false,
   });
 
   final GameSummary game;
@@ -190,77 +215,42 @@ class _GameResult extends StatelessWidget {
   final void Function(GameSummary game) onOpen;
   final void Function(GameSummary game)? onAdd;
   final void Function(GameSummary game) onOpenProgress;
+  final bool grid;
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return InkWell(
+    final action = inLibrary
+        ? Tooltip(
+            message: '${game.name} já está na biblioteca. Ver registros',
+            child: OutlinedButton.icon(
+              onPressed: () => onOpenProgress(game),
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Na biblioteca'),
+            ),
+          )
+        : Tooltip(
+            message: 'Adicionar ${game.name} à biblioteca',
+            child: FilledButton.tonalIcon(
+              onPressed: onAdd == null ? null : () => onAdd!(game),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar'),
+            ),
+          );
+    if (grid) {
+      return GameCard.catalog(
+        title: game.name,
+        coverUrl: game.coverUrl,
+        caption: _platformsOrUnknown(game.platforms),
+        action: action,
+        onTap: () => onOpen(game),
+      );
+    }
+    return GameCatalogRow(
+      title: game.name,
+      coverUrl: game.coverUrl,
+      caption: _platformsOrUnknown(game.platforms),
+      action: action,
       onTap: () => onOpen(game),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Space.lg,
-          vertical: Space.md,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: Space.lg,
-          children: [
-            SizedBox(
-              width: 56,
-              child: GameCover(
-                name: game.name,
-                url: game.coverUrl,
-                radius: Radii.cover,
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    game.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.titleMedium,
-                  ),
-                  if (game.platforms.isNotEmpty)
-                    Text(
-                      platformsSummary(game.platforms),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: Space.sm),
-                  // O botão fica sob o texto: com fonte ampliada ele quebra de linha em vez de
-                  // faltar espaço. Tem alvo de toque próprio; o resto da linha abre o jogo.
-                  inLibrary
-                      ? Tooltip(
-                          message:
-                              '${game.name} já está na biblioteca. Ver registros',
-                          child: OutlinedButton.icon(
-                            onPressed: () => onOpenProgress(game),
-                            icon: const Icon(Icons.check, size: 18),
-                            label: const Text('Na biblioteca'),
-                          ),
-                        )
-                      : Tooltip(
-                          message: 'Adicionar ${game.name} à biblioteca',
-                          child: FilledButton.tonalIcon(
-                            onPressed: onAdd == null
-                                ? null
-                                : () => onAdd!(game),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Adicionar'),
-                          ),
-                        ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

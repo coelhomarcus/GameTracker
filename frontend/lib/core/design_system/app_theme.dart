@@ -108,6 +108,23 @@ abstract final class AppTheme {
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
       ),
+      searchBarTheme: SearchBarThemeData(
+        backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerHighest),
+        elevation: const WidgetStatePropertyAll(0),
+        side: WidgetStateProperty.resolveWith(
+          (states) => BorderSide(
+            color: states.contains(WidgetState.focused)
+                ? scheme.primary
+                : scheme.outlineVariant,
+            width: states.contains(WidgetState.focused) ? 2 : 1,
+          ),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.control),
+          ),
+        ),
+      ),
       // Sem sombra: a separação vem da cor da superfície e de um contorno discreto.
       cardTheme: CardThemeData(
         margin: EdgeInsets.zero,
